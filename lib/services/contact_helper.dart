@@ -1,21 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart'; // Add to pubspec.yaml
 
 class ContactHelper {
+  // ✅ Request permissions with complete case handling
   static Future<Contact?> pickPhoneContact(BuildContext context) async {
-    if (await FlutterContacts.requestPermission()) {
-      // Show loading indicator? Maybe not needed for small lists, but good practice.
-      // But let's block UI slightly or just await.
+    try {
+      // 1. Verify if we already have permission
+      PermissionStatus status = await Permission.contacts.status;
 
-      // Fetch contacts
+      if (status.isDenied) {
+        // 2. Request permission
+        status = await Permission.contacts.request();
+      }
+
+      if (status.isPermanentlyDenied) {
+        // 3. User permanently denied - lead to settings
+        if (context.mounted) {
+          final shouldOpenSettings = await _showPermissionDeniedDialog(context);
+          if (shouldOpenSettings == true) {
+            await openAppSettings();
+          }
+        }
+        return null;
+      }
+
+      if (status.isDenied || status.isRestricted) {
+        // 4. User denied or restricted
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Se necesita permiso para acceder a los contactos',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return null;
+      }
+
+      // 5. Permission granted - get contacts
+      if (!context.mounted) return null;
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Cargando contactos...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: false,
       );
 
+      // Close loading
+      if (context.mounted) Navigator.pop(context);
+
       if (!context.mounted) return null;
 
-      // Show Picker
+      if (contacts.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontraron contactos en tu dispositivo'),
+          ),
+        );
+        return null;
+      }
+
+      // 6. Show selector
       return await showModalBottomSheet<Contact>(
         context: context,
         isScrollControlled: true,
@@ -24,8 +93,52 @@ class ContactHelper {
         ),
         builder: (ctx) => _ContactPickerSheet(contacts: contacts),
       );
+    } catch (e) {
+      debugPrint('Error al acceder a contactos: $e');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar contactos: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+
+      return null;
     }
-    return null;
+  }
+
+  // ✅ Dialog for permanently denied permissions
+  static Future<bool?> _showPermissionDeniedDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Permiso Requerido'),
+          ],
+        ),
+        content: const Text(
+          'Para importar contactos, necesitas habilitar el permiso de contactos '
+          'en la configuración de tu dispositivo.\n\n'
+          '¿Deseas abrir la configuración ahora?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Abrir Configuración'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -77,14 +190,18 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
           Row(
             children: [
               const Expanded(
-                  child: Text('Seleccionar Contacto',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold))),
+                child: Text(
+                  'Seleccionar Contacto',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
               IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close)),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
+          const SizedBox(height: 12),
           TextField(
             controller: _searchController,
             decoration: const InputDecoration(
@@ -105,10 +222,25 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                       final phone = contact.phones.isNotEmpty
                           ? contact.phones.first.number
                           : 'Sin teléfono';
+                      final email = contact.emails.isNotEmpty
+                          ? contact.emails.first.address
+                          : null;
+
                       return ListTile(
                         leading: const CircleAvatar(child: Icon(Icons.person)),
                         title: Text(contact.displayName),
-                        subtitle: Text(phone),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(phone, style: const TextStyle(fontSize: 12)),
+                            if (email != null)
+                              Text(
+                                email,
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.grey),
+                              ),
+                          ],
+                        ),
                         onTap: () => Navigator.pop(context, contact),
                       );
                     },

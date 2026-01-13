@@ -43,6 +43,9 @@ class CustomerProvider extends ChangeNotifier {
 
   Future<void> addCustomer(Customer customer) async {
     try {
+      if (customer.name.trim().isEmpty) {
+        throw Exception("El nombre es requerido");
+      }
       if (customer.id != null) {
         await _db.updateCustomer(customer);
       } else {

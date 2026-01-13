@@ -10,6 +10,7 @@ import '../../services/invoice_service.dart';
 import '../../models/product.dart';
 import '../../models/invoice_item.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/input_validators.dart';
 
 class SalesScreen extends StatelessWidget {
   const SalesScreen({super.key});
@@ -121,9 +122,8 @@ class SalesScreen extends StatelessWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        InputValidators.showValidationError(
+            context, 'Error al procesar venta: $e');
       }
     }
   }

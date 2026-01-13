@@ -21,7 +21,31 @@ class DatabaseService {
     return _database!;
   }
 
+  String? _testDbPath;
+
+  @visibleForTesting
+  void setTestDbPath(String path) {
+    _testDbPath = path;
+    _database = null; // Reset
+  }
+
   Future<Database> _initDatabase() async {
+    if (_testDbPath != null) {
+      return await openDatabase(_testDbPath!, version: 4,
+          onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      }, onCreate: (db, version) async {
+        await _createTables(db);
+        await _createCategoriesTable(db);
+        await _createSuppliersTable(db);
+      }, onUpgrade: (db, old, newV) async {
+        // For tests we usually start fresh, but logic here:
+        // ... same upgrade logic if needed, but inMemory usually starts fresh
+        if (old < 2) await _createCategoriesTable(db);
+        if (old < 3) await _createSuppliersTable(db);
+        // ... etc
+      });
+    }
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'dulces_pierre.db');
 
@@ -281,6 +305,28 @@ class DatabaseService {
       final saleId = await txn.insert('transactions', sale.toMap());
 
       for (var item in sale.items) {
+        // 1. Get current stock inside transaction (Atomic check)
+        final List<Map<String, dynamic>> result = await txn.query(
+          'products',
+          columns: ['stock', 'name'],
+          where: 'id = ?',
+          whereArgs: [item.productId],
+        );
+
+        if (result.isEmpty) {
+          throw Exception('Producto no encontrado: ID ${item.productId}');
+        }
+
+        final currentStock = (result.first['stock'] as num).toDouble();
+        final productName = result.first['name'] as String;
+
+        // 2. Check availability
+        if (currentStock < item.quantity) {
+          throw Exception(
+              'Stock insuficiente para "$productName". Disponible: $currentStock');
+        }
+
+        // 3. Insert Item
         await txn.insert('transaction_items', {
           'transaction_id': saleId,
           'product_id': item.productId,
@@ -290,6 +336,7 @@ class DatabaseService {
           'subtotal': item.subtotal,
         });
 
+        // 4. Update Stock
         await txn.rawUpdate(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
           [item.quantity, item.productId],
@@ -678,6 +725,8 @@ class DatabaseService {
     final customers = await db.query('customers');
     final transactions = await db.query('transactions');
     final invoiceItems = await db.query('transaction_items');
+    final suppliers = await db.query('suppliers');
+    final categories = await db.query('categories');
 
     return {
       'timestamp': DateTime.now().toIso8601String(),
@@ -687,6 +736,8 @@ class DatabaseService {
         'customers': customers,
         'transactions': transactions,
         'invoice_items': invoiceItems,
+        'suppliers': suppliers,
+        'categories': categories,
       }
     };
   }

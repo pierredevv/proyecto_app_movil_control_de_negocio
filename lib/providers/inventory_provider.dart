@@ -79,6 +79,9 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> addProduct(Product product) async {
     // ... existing implementation
     try {
+      if (product.price < product.cost) {
+        throw Exception("El precio no puede ser menor al costo");
+      }
       if (product.id != null) {
         await _db.updateProduct(product);
       } else {

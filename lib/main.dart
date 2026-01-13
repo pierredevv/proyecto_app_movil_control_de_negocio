@@ -10,8 +10,13 @@ import 'providers/navigation_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/supplier_provider.dart';
+import 'providers/notification_provider.dart';
 
-void main() {
+import 'services/backup_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   if (Platform.isWindows || Platform.isLinux) {
     // Initialize FFI
     sqfliteFfiInit();
@@ -21,8 +26,22 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-Run Backup after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BackupService.autoBackupIfNeeded();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +56,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(
             create: (_) => SupplierProvider()..loadSuppliers()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
         title: 'Gestion de Negocio App',

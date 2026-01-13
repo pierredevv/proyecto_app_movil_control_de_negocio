@@ -6,6 +6,7 @@ import '../../providers/inventory_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/supplier.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/input_validators.dart';
 
 class ProductFormScreen extends StatefulWidget {
   final Product? product;
@@ -171,8 +172,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               decoration:
                   const InputDecoration(labelText: 'Nombre del Producto *'),
               textCapitalization: TextCapitalization.sentences,
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Requerido' : null,
+              validator: (value) => InputValidators.validateName(value),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
@@ -270,6 +270,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       ),
                     ),
                     keyboardType: TextInputType.number,
+                    validator: InputValidators.validateBarcode,
                   ),
                 ),
               ],
@@ -283,12 +284,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     decoration: const InputDecoration(labelText: 'Costo *'),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Requerido';
-                      if (double.tryParse(value) == null) return 'Inválido';
-                      return null;
-                    },
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: (value) =>
+                        InputValidators.validatePositiveDecimal(value,
+                            fieldName: 'Costo'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -300,14 +298,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Requerido';
-                      final p = double.tryParse(value);
-                      if (p == null) return 'Inválido';
-
-                      final cost = double.tryParse(_costController.text) ?? 0;
-                      if (p < cost) return 'Menor que costo!';
-
-                      return null;
+                      final error = InputValidators.validatePositiveDecimal(
+                          value,
+                          fieldName: 'Precio');
+                      if (error != null) return error;
+                      return InputValidators.validatePriceVsCost(
+                          value, _costController.text);
                     },
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                   ),

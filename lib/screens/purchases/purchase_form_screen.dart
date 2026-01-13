@@ -338,8 +338,23 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   @override
   void initState() {
     super.initState();
-    _qtyController =
-        TextEditingController(text: widget.item.quantity.toString());
+    // Logic to restore "Box" view if quantity matches
+    if (widget.product.unitsPerBox > 1 &&
+        widget.item.quantity > 0 &&
+        widget.item.quantity % widget.product.unitsPerBox == 0) {
+      _isBox = true;
+      _qtyController = TextEditingController(
+          text: (widget.item.quantity / widget.product.unitsPerBox)
+              .toStringAsFixed(
+                  widget.item.quantity % widget.product.unitsPerBox == 0
+                      ? 0
+                      : 2)); // Clean decimal
+    } else {
+      _isBox = false;
+      _qtyController =
+          TextEditingController(text: widget.item.quantity.toString());
+    }
+
     _costController =
         TextEditingController(text: widget.item.unitPrice.toString());
   }
@@ -352,7 +367,7 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   }
 
   void _updateValues() {
-    final rawQty = double.tryParse(_qtyController.text) ?? 1;
+    final rawQty = double.tryParse(_qtyController.text) ?? 0;
     final cost = double.tryParse(_costController.text) ?? 0.0;
 
     final multiplier = _isBox ? widget.product.unitsPerBox : 1.0;
@@ -399,58 +414,81 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
             ),
             const SizedBox(height: 8),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start, // Align to top
               children: [
                 Expanded(
+                  flex: 3, // Give more space to Quantity column
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.product.unitsPerBox > 1)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Row(
-                            children: [
-                              Text('Por: ',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[700])),
-                              InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _isBox = false;
-                                    _updateValues();
-                                  });
-                                },
-                                child: Text('Unid.',
+                          child: SingleChildScrollView(
+                            // Prevent Overflow
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                Text('Por: ',
                                     style: TextStyle(
-                                      fontWeight: !_isBox
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: !_isBox
-                                          ? AppTheme.primary
-                                          : Colors.grey,
-                                      fontSize: 12,
-                                    )),
-                              ),
-                              const Text(' | ', style: TextStyle(fontSize: 12)),
-                              InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _isBox = true;
-                                    _updateValues();
-                                  });
-                                },
-                                child: Text(
-                                    'Caja (${widget.product.unitsPerBox.toStringAsFixed(0)}u)',
-                                    style: TextStyle(
-                                      fontWeight: _isBox
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: _isBox
-                                          ? AppTheme.primary
-                                          : Colors.grey,
-                                      fontSize: 12,
-                                    )),
-                              ),
-                            ],
+                                        fontSize: 12, color: Colors.grey[700])),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _isBox = false;
+                                      // Recalculate text for Unit view
+                                      final rawQty = double.tryParse(
+                                              _qtyController.text) ??
+                                          0;
+                                      // Current is Box, switch to Unit -> Multiply
+                                      _qtyController.text =
+                                          (rawQty * widget.product.unitsPerBox)
+                                              .toString();
+                                      _updateValues();
+                                    });
+                                  },
+                                  child: Text('Unid.',
+                                      style: TextStyle(
+                                        fontWeight: !_isBox
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: !_isBox
+                                            ? AppTheme.primary
+                                            : Colors.grey,
+                                        fontSize: 12,
+                                      )),
+                                ),
+                                const Text(' | ',
+                                    style: TextStyle(fontSize: 12)),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _isBox = true;
+                                      // Recalculate text for Box view
+                                      final rawQty = double.tryParse(
+                                              _qtyController.text) ??
+                                          0;
+                                      // Current is Unit, switch to Box -> Divide
+                                      _qtyController.text =
+                                          (rawQty / widget.product.unitsPerBox)
+                                              .toString();
+                                      _updateValues();
+                                    });
+                                  },
+                                  child: Text(
+                                      'Caja (${widget.product.unitsPerBox.toStringAsFixed(0)}u)',
+                                      style: TextStyle(
+                                        fontWeight: _isBox
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: _isBox
+                                            ? AppTheme.primary
+                                            : Colors.grey,
+                                        fontSize: 12,
+                                      )),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       TextFormField(
@@ -471,19 +509,26 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextFormField(
-                    controller: _costController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Costo Unit.',
-                      isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      border: OutlineInputBorder(),
-                      prefixText: 'Bs. ',
+                  flex: 2, // Slightly less space for Cost
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                        top: widget.product.unitsPerBox > 1
+                            ? 20.0
+                            : 0), // Align with input
+                    child: TextFormField(
+                      controller: _costController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Costo Unit.',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        border: OutlineInputBorder(),
+                        prefixText: 'Bs. ',
+                      ),
+                      onChanged: (_) => _updateValues(),
                     ),
-                    onChanged: (_) => _updateValues(),
                   ),
                 ),
                 const SizedBox(width: 12),

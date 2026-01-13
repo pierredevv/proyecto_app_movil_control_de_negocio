@@ -6,9 +6,10 @@ import '../widgets/dashboard/financial_summary.dart';
 import '../widgets/dashboard/recent_transactions.dart';
 import '../widgets/dashboard/analytics_chart.dart';
 import '../../providers/dashboard_provider.dart';
-import '../../services/backup_service.dart';
+
 import 'customers/customer_list_screen.dart';
 import 'history/transaction_history_screen.dart';
+import 'backup_manager_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -158,26 +159,13 @@ class _DashboardHeader extends StatelessWidget {
                           title: const Text('Respaldo de Datos'),
                           subtitle:
                               const Text('Exportar base de datos a archivo'),
-                          onTap: () async {
+                          onTap: () {
                             Navigator.pop(ctx);
-                            try {
-                              await BackupService.createAndShareBackup();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Respaldo generado exitosamente')),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: Colors.red),
-                                );
-                              }
-                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const BackupManagerScreen()),
+                            );
                           },
                         ),
                       ],

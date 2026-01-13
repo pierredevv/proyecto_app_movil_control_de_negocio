@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/customer.dart';
 import '../../providers/customer_provider.dart';
-import '../../theme/app_theme.dart';
-
 import '../../services/contact_helper.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/input_validators.dart';
 
 class CustomerFormScreen extends StatefulWidget {
   final Customer? customer;
@@ -147,8 +148,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nombre Completo *'),
               textCapitalization: TextCapitalization.words,
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Requerido' : null,
+              validator: (value) => InputValidators.validateName(value),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -158,6 +158,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                 prefixIcon: Icon(Icons.phone),
               ),
               keyboardType: TextInputType.phone,
+              validator: InputValidators.validateBolivianPhone,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -167,6 +168,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                 prefixIcon: Icon(Icons.email),
               ),
               keyboardType: TextInputType.emailAddress,
+              validator: InputValidators.validateEmail,
             ),
             const SizedBox(height: 16),
             TextFormField(
