@@ -51,7 +51,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4, // Updated to version 4
+      version: 5, // Updated to version 5
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -86,6 +86,14 @@ class DatabaseService {
             debugPrint('Error adding V4 columns: $e');
           }
         }
+        if (oldVersion < 5) {
+          // Add image_path
+          try {
+            await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
+          } catch (e) {
+            debugPrint('Error adding image_path column: $e');
+          }
+        }
       },
     );
   }
@@ -105,7 +113,8 @@ class DatabaseService {
         supplier_id INTEGER,
         unit_type TEXT DEFAULT 'UN',
         units_per_box REAL DEFAULT 1.0,
-        created_at INTEGER
+        created_at INTEGER,
+        image_path TEXT
       )
     ''');
 

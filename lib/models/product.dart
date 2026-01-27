@@ -11,6 +11,7 @@ class Product {
   final String unitType; // 'UN', 'BX', 'KG'
   final double unitsPerBox; // Conversion factor, default 1.0
   final DateTime createdAt;
+  final String? imagePath;
 
   Product({
     this.id,
@@ -25,6 +26,7 @@ class Product {
     this.unitType = 'UN',
     this.unitsPerBox = 1.0,
     DateTime? createdAt,
+    this.imagePath,
   }) : createdAt = createdAt ?? DateTime.now();
 
   Product copyWith({
@@ -40,6 +42,7 @@ class Product {
     String? unitType,
     double? unitsPerBox,
     DateTime? createdAt,
+    String? imagePath,
   }) {
     return Product(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class Product {
       unitType: unitType ?? this.unitType,
       unitsPerBox: unitsPerBox ?? this.unitsPerBox,
       createdAt: createdAt ?? this.createdAt,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 
@@ -71,6 +75,7 @@ class Product {
       'unit_type': unitType,
       'units_per_box': unitsPerBox,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'image_path': imagePath,
     };
   }
 
@@ -88,6 +93,7 @@ class Product {
       unitType: map['unit_type'] ?? 'UN',
       unitsPerBox: (map['units_per_box'] as num?)?.toDouble() ?? 1.0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
+      imagePath: map['image_path'],
     );
   }
 }

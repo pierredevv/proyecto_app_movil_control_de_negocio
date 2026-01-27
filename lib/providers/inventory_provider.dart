@@ -6,6 +6,10 @@ import '../services/database_service.dart';
 
 import '../models/category.dart';
 
+enum SortOption { nameAsc, stockAsc, priceAsc, priceDesc }
+
+enum StockStatus { sufficient, moderate, critical }
+
 class InventoryProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
 
@@ -13,23 +17,44 @@ class InventoryProvider extends ChangeNotifier {
   List<Category> _categories = [];
   bool _isLoading = false;
   String _searchQuery = '';
-  int? _selectedCategoryId;
+
+  // Filter State
+  SortOption _currentSort = SortOption.nameAsc;
+  List<int> _selectedCategories =
+      []; // Replaces single _selectedCategoryId logic
+  List<StockStatus> _selectedStockStatuses = [];
+  RangeValues? _priceRange;
+  RangeValues? _stockRange;
+
+  // Getters
+  SortOption get currentSort => _currentSort;
+  List<int> get selectedCategories => _selectedCategories;
+  List<StockStatus> get selectedStockStatuses => _selectedStockStatuses;
+  RangeValues? get priceRange => _priceRange;
+  RangeValues? get stockRange => _stockRange;
+
+  // Legacy getter compatibility if needed, though we should migrate usage
+  int? get selectedCategoryId =>
+      _selectedCategories.isNotEmpty ? _selectedCategories.first : null;
+
+  int get activeFilterCount {
+    int count = 0;
+    if (_currentSort != SortOption.nameAsc) count++;
+    if (_selectedCategories.isNotEmpty) count++;
+    if (_selectedStockStatuses.isNotEmpty) count++;
+    if (_priceRange != null) count++;
+    if (_stockRange != null) count++;
+    return count;
+  }
 
   List<Product> get products => _products;
   List<Category> get categories => _categories;
   bool get isLoading => _isLoading;
-  int? get selectedCategoryId => _selectedCategoryId;
 
   List<Product> get filteredProducts {
-    var result = _products;
+    var result = List<Product>.from(_products);
 
-    // Filter by Category
-    if (_selectedCategoryId != null) {
-      result =
-          result.where((p) => p.categoryId == _selectedCategoryId).toList();
-    }
-
-    // Filter by Search
+    // 1. Search
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       result = result.where((p) {
@@ -37,6 +62,62 @@ class InventoryProvider extends ChangeNotifier {
             p.barcode.contains(query);
       }).toList();
     }
+
+    // 2. Categories
+    if (_selectedCategories.isNotEmpty) {
+      result = result
+          .where((p) => _selectedCategories.contains(p.categoryId))
+          .toList();
+    }
+
+    // 3. Stock Status
+    if (_selectedStockStatuses.isNotEmpty) {
+      result = result.where((p) {
+        bool matches = false;
+        for (final status in _selectedStockStatuses) {
+          if (status == StockStatus.sufficient && p.stock > 10) {
+            matches = true;
+          }
+          if (status == StockStatus.moderate && p.stock >= 3 && p.stock <= 10) {
+            matches = true;
+          }
+          if (status == StockStatus.critical && p.stock < 3) {
+            matches = true;
+          }
+        }
+        return matches;
+      }).toList();
+    }
+
+    // 4. Price Range
+    if (_priceRange != null) {
+      result = result
+          .where((p) =>
+              p.price >= _priceRange!.start && p.price <= _priceRange!.end)
+          .toList();
+    }
+
+    // 5. Stock Range
+    if (_stockRange != null) {
+      result = result
+          .where((p) =>
+              p.stock >= _stockRange!.start && p.stock <= _stockRange!.end)
+          .toList();
+    }
+
+    // 6. Sorting
+    result.sort((a, b) {
+      switch (_currentSort) {
+        case SortOption.nameAsc:
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case SortOption.stockAsc:
+          return a.stock.compareTo(b.stock);
+        case SortOption.priceAsc:
+          return a.price.compareTo(b.price);
+        case SortOption.priceDesc:
+          return b.price.compareTo(a.price);
+      }
+    });
 
     return result;
   }
@@ -46,8 +127,60 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFilters({
+    SortOption? sort,
+    List<int>? categories,
+    List<StockStatus>? stockStatuses,
+    RangeValues? priceRange,
+    RangeValues? stockRange,
+  }) {
+    if (sort != null) _currentSort = sort;
+    if (categories != null) _selectedCategories = categories;
+    if (stockStatuses != null) _selectedStockStatuses = stockStatuses;
+    if (priceRange != null) _priceRange = priceRange;
+    if (stockRange != null) _stockRange = stockRange;
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _currentSort = SortOption.nameAsc;
+    _selectedCategories = [];
+    _selectedStockStatuses = [];
+    _priceRange = null;
+    _stockRange = null;
+    // Keep search query as it's usually separate, or clear it too?
+    // Usually search is separate. keeping it.
+    notifyListeners();
+  }
+
+  void removeFilter(String type, [dynamic value]) {
+    switch (type) {
+      case 'category':
+        _selectedCategories.remove(value);
+        break;
+      case 'stockStatus':
+        _selectedStockStatuses.remove(value);
+        break;
+      case 'price':
+        _priceRange = null;
+        break;
+      case 'stock':
+        _stockRange = null;
+        break;
+      case 'sort':
+        _currentSort = SortOption.nameAsc;
+        break;
+    }
+    notifyListeners();
+  }
+
+  // Legacy support wrapper
   void setCategoryFilter(int? categoryId) {
-    _selectedCategoryId = categoryId;
+    if (categoryId == null) {
+      _selectedCategories = [];
+    } else {
+      _selectedCategories = [categoryId];
+    }
     notifyListeners();
   }
 
@@ -73,6 +206,17 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Error loading categories: $e");
+    }
+  }
+
+  Future<void> addCategory(String name) async {
+    try {
+      final category = Category(name: name);
+      await _db.insertCategory(category);
+      await loadCategories();
+    } catch (e) {
+      debugPrint("Error adding category: $e");
+      rethrow;
     }
   }
 
