@@ -35,21 +35,38 @@ class _CartItemCardState extends State<CartItemCard>
   @override
   Widget build(BuildContext context) {
     // If deleting, animate out. Else animate in on mount.
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     Widget card = Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF2C3246).withValues(alpha: 0.9),
-            const Color(0xFF2C3246).withValues(alpha: 0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? null : Colors.white,
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  const Color(0xFF2C3246).withValues(alpha: 0.9),
+                  const Color(0xFF2C3246).withValues(alpha: 0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : theme.colorScheme.outline),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -61,8 +78,8 @@ class _CartItemCardState extends State<CartItemCard>
               children: [
                 Text(
                   widget.item.productName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -70,12 +87,16 @@ class _CartItemCardState extends State<CartItemCard>
                 const SizedBox(height: 4),
                 Text(
                   'Bs. ${widget.item.unitPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 13),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Subtotal',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 11),
                 ),
               ],
             ),
@@ -100,8 +121,8 @@ class _CartItemCardState extends State<CartItemCard>
                     child: Text(
                       '${widget.item.quantity % 1 == 0 ? widget.item.quantity.toInt() : widget.item.quantity}',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 16),
                     )
@@ -126,8 +147,8 @@ class _CartItemCardState extends State<CartItemCard>
               // Subtotal
               Text(
                 'Bs. ${widget.item.subtotal.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),

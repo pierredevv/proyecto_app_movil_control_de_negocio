@@ -1,7 +1,6 @@
 import 'package:provider/provider.dart';
 import '../providers/dashboard_provider.dart';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
 import '../widgets/dashboard/summary_glass_card.dart';
 import '../widgets/dashboard/sales_trend_chart.dart';
 import '../widgets/dashboard/quick_access_grid.dart';
@@ -28,24 +27,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Content
           Consumer<DashboardProvider>(
             builder: (context, provider, child) {
-              // Calculate percentages or use raw values
-              // Logic for balance percentage could be: (Sales - Expenses - Purchases) / Sales ?
-              // Or just mapping what we have.
-              // For now let's use the provided fields.
-
-              // Prevent division by zero if needed for percentage calculation
-              // But SummaryGlassCard takes just values.
-              // We need to calculate a "Balance Percentage" for the gauge.
-              // Let's assume (Sales - Purchases) / Sales for "Profit Margin" notion,
-              // or just use 0.0 if no sales.
-
               double balancePct = 0.0;
               if (provider.totalSalesToday > 0) {
                 balancePct =
@@ -75,14 +65,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 24),
 
                     // 2. Sales Last 7 Days
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'Ventas Últimos 7 Días',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -123,6 +113,8 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       height: 60 + MediaQuery.of(context).padding.top,
       padding: EdgeInsets.only(
@@ -131,26 +123,25 @@ class _DashboardHeader extends StatelessWidget {
         right: 16,
         bottom: 0,
       ),
-      color: AppTheme.backgroundBlack.withValues(
-          alpha:
-              0.95), // Slight opacity for scroll behind? Or solid. Design says Fixed.
+      color: theme.scaffoldBackgroundColor
+          .withValues(alpha: 0.95), // Slight opacity for scroll behind
       alignment: Alignment.centerLeft,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Gestión de Negocio',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none,
-                    color: AppTheme.textPrimary),
+                icon: Icon(Icons.notifications_none,
+                    color: theme.colorScheme.onSurface),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -160,8 +151,8 @@ class _DashboardHeader extends StatelessWidget {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: AppTheme.textPrimary),
+                icon: Icon(Icons.settings_outlined,
+                    color: theme.colorScheme.onSurface),
                 onPressed: () {
                   Navigator.push(
                     context,

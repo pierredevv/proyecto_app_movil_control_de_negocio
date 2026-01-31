@@ -20,12 +20,12 @@ class RecentActivityList extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Actividad Reciente',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               InkWell(
@@ -107,14 +107,26 @@ class RecentActivityList extends StatelessWidget {
       required bool isSale,
       required int delay}) {
     final accentColor = isSale ? AppTheme.greenAccent : AppTheme.redAccent;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFF242B3D)
-            .withValues(alpha: 0.5), // Secondary background 50% opacity
+        color: isDark
+            ? const Color(0xFF242B3D).withValues(alpha: 0.5)
+            : Colors.white, // White card in light mode
         borderRadius: BorderRadius.circular(12),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Stack(
         children: [
@@ -141,8 +153,8 @@ class RecentActivityList extends StatelessWidget {
                     Expanded(
                       child: Text(
                         name,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -152,8 +164,9 @@ class RecentActivityList extends StatelessWidget {
                     ),
                     Text(
                       date,
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
+                      style: TextStyle(
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 12,
                       ),
                     ),
@@ -183,8 +196,9 @@ class RecentActivityList extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       number,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 12,
                       ),
                     ),
@@ -197,10 +211,11 @@ class RecentActivityList extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Expanded(child: Container()), // Spacer
-                    const Text(
+                    Text(
                       'Total - ', // or just Total, design says "Total - Bs..." but alignment seems to imply label is small
                       style: TextStyle(
-                        color: AppTheme.textTertiary,
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 12,
                       ),
                     ),

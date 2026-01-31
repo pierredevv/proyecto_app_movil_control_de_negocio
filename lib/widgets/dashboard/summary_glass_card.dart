@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'dart:ui';
+
 import '../../theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
@@ -19,59 +19,60 @@ class SummaryGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Glassmorphism Specs
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 16), // Reduced padding
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1), // Reduced opacity
-            borderRadius: BorderRadius.circular(24), // More rounded
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2), // Sharper border
-              width: 1,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Light Mode: White Card with Shadow (Apple Style)
+    // Dark Mode: Glassmorphism
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: isDark
+            ? Border.all(color: Colors.white.withValues(alpha: 0.2))
+            : Border.all(
+                color:
+                    Colors.transparent), // No border in light mode, just shadow
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.2)
+                : Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // Sales (Left)
+          Expanded(
+            child: _buildSideStat(
+              context,
+              label: 'Ventas',
+              amount: salesTotal,
+              color: AppTheme.greenAccent,
+              alignment: CrossAxisAlignment.start,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround, // Better spacing
-            children: [
-              // Sales (Left)
-              Expanded(
-                child: _buildSideStat(
-                  context,
-                  label: 'Ventas',
-                  amount: salesTotal,
-                  color: AppTheme.greenAccent,
-                  alignment: CrossAxisAlignment.start,
-                ),
-              ),
 
-              // Gauge (Center)
-              _buildGauge(context),
+          // Gauge (Center)
+          _buildGauge(context),
 
-              // Purchases (Right)
-              Expanded(
-                child: _buildSideStat(
-                  context,
-                  label: 'Compras',
-                  amount: purchasesTotal,
-                  color: AppTheme.redAccent,
-                  alignment: CrossAxisAlignment.end,
-                ),
-              ),
-            ],
+          // Purchases (Right)
+          Expanded(
+            child: _buildSideStat(
+              context,
+              label: 'Compras',
+              amount: purchasesTotal,
+              color: AppTheme.redAccent,
+              alignment: CrossAxisAlignment.end,
+            ),
           ),
-        ),
+        ],
       ),
     )
         .animate()
@@ -86,6 +87,7 @@ class SummaryGlassCard extends StatelessWidget {
       required CrossAxisAlignment alignment}) {
     final currencyFormat = NumberFormat.currency(
         symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: alignment,
@@ -93,9 +95,9 @@ class SummaryGlassCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12, // Smaller font
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            fontSize: 12,
             fontWeight: FontWeight.w400,
             fontFamily: 'Inter',
           ),
@@ -105,7 +107,7 @@ class SummaryGlassCard extends StatelessWidget {
           currencyFormat.format(amount),
           style: TextStyle(
             color: color,
-            fontSize: 16, // Smaller font
+            fontSize: 16,
             fontWeight: FontWeight.w700,
             fontFamily: 'Inter',
           ),
@@ -115,25 +117,26 @@ class SummaryGlassCard extends StatelessWidget {
   }
 
   Widget _buildGauge(BuildContext context) {
+    final theme = Theme.of(context);
     return SizedBox(
-      width: 110, // Fixed container width
+      width: 110,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 80, // Smaller gauge
-            height: 80, // Square area for full circle calculation
+            width: 80,
+            height: 80,
             child: CustomPaint(
-              painter: _GaugePainter(percentage: balancePercentage),
+              painter: _GaugePainter(
+                percentage: balancePercentage,
+                isDark: theme.brightness == Brightness.dark,
+              ),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                        Icons
-                            .show_chart, // Changed icon to match "trend" notion better? Or stick to arrow.
-                        color: AppTheme.greenAccent,
-                        size: 20),
+                    const Icon(Icons.show_chart,
+                        color: AppTheme.greenAccent, size: 20),
                     const SizedBox(height: 2),
                     Text(
                       '+${(balancePercentage * 100).toStringAsFixed(0)}%',
@@ -143,16 +146,16 @@ class SummaryGlassCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 12), // Push Balance text down
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
           ),
-          const Text(
+          Text(
             'Balance',
             style: TextStyle(
-              color: AppTheme.textSecondary,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 10,
             ),
           ),
@@ -164,18 +167,18 @@ class SummaryGlassCard extends StatelessWidget {
 
 class _GaugePainter extends CustomPainter {
   final double percentage;
+  final bool isDark;
 
-  _GaugePainter({required this.percentage});
+  _GaugePainter({required this.percentage, required this.isDark});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Specs: Arc thickness 10px, Inverted C (Arch)
-    // Start 135 deg (Bottom-Left), Sweep 270 deg (to Bottom-Right)
-
     const double strokeWidth = 10;
 
     final Paint bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.1)
+      ..color = isDark
+          ? Colors.white.withValues(alpha: 0.1)
+          : Colors.grey.withValues(alpha: 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;

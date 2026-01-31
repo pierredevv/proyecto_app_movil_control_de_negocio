@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import '../../services/database_service.dart';
 import '../../models/transaction_model.dart';
-import '../../theme/app_theme.dart';
-import 'package:intl/intl.dart';
+import 'dart:ui';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -62,7 +63,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
     if (picked != null) {
       setState(() {
-        // Ensure strictly inclusive for entire days
         _dateRange = DateTimeRange(
             start: DateTime(
                 picked.start.year, picked.start.month, picked.start.day),
@@ -73,199 +73,563 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
+  void _onTabChanged(String? type) {
+    if (_selectedType == type) return;
+    setState(() => _selectedType = type);
+    _loadData();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Background Gradient logic can be handled by Scaffold background or a Container
+    // The user requested Glassmorphism which implies a dark/colorful background.
+    // If we are in Light mode, we need to ensure contrast.
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historial Transacciones'),
-        actions: [
-          IconButton(
-            icon: Icon(
-                _dateRange == null ? Icons.date_range : Icons.event_available),
-            onPressed: _pickDateRange,
-            tooltip: 'Filtrar por Fecha',
-          ),
-          if (_dateRange != null)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                setState(() => _dateRange = null);
-                _loadData();
-              },
-              tooltip: 'Limpiar Fecha',
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          // Background Pattern (Optional)
+          Positioned.fill(
+            child: Opacity(
+              opacity: isDark ? 0.03 : 0.02,
+              child: Image.asset(
+                'assets/images/pattern.png',
+                repeat: ImageRepeat.repeat,
+                color: isDark ? Colors.white : Colors.black,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: SizedBox(
-            height: 50,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+
+          SafeArea(
+            child: Column(
               children: [
-                _FilterChip(
-                  label: 'Todos',
-                  isSelected: _selectedType == null,
-                  onSelected: () {
-                    setState(() => _selectedType = null);
-                    _loadData();
-                  },
+                // 1. Custom Header
+                _buildHeader(context, isDark),
+
+                const SizedBox(height: 20),
+
+                // 2. Filter Tabs
+                _GlassFilterTabs(
+                  selectedType: _selectedType,
+                  onChanged: _onTabChanged,
+                  isDark: isDark,
                 ),
-                _FilterChip(
-                  label: 'Ventas',
-                  isSelected: _selectedType == 'sale',
-                  onSelected: () {
-                    setState(() => _selectedType = 'sale');
-                    _loadData();
-                  },
-                ),
-                _FilterChip(
-                  label: 'Compras',
-                  isSelected: _selectedType == 'purchase',
-                  onSelected: () {
-                    setState(() => _selectedType = 'purchase');
-                    _loadData();
-                  },
-                ),
-                _FilterChip(
-                  label: 'Gastos',
-                  isSelected: _selectedType == 'expense',
-                  onSelected: () {
-                    setState(() => _selectedType = 'expense');
-                    _loadData();
-                  },
-                ),
-                _FilterChip(
-                  label: 'Pagos',
-                  isSelected: _selectedType == 'payment',
-                  onSelected: () {
-                    setState(() => _selectedType = 'payment');
-                    _loadData();
-                  },
+
+                const SizedBox(height: 20),
+
+                // 3. Transactions List
+                Expanded(
+                  child: _isLoading
+                      ? _buildSkeletonLoader(isDark)
+                      : _transactions.isEmpty
+                          ? _buildEmptyState(context, isDark)
+                          : RefreshIndicator(
+                              onRefresh: _loadData,
+                              color: const Color(0xFFFF6B6B),
+                              child: ListView.builder(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                itemCount: _transactions.length,
+                                itemBuilder: (context, index) {
+                                  final t = _transactions[index];
+                                  return _GlassTransactionCard(
+                                    transaction: t,
+                                    isDark: isDark,
+                                  ).animate().fadeIn(duration: 300.ms).slideY(
+                                      begin: 0.2,
+                                      end: 0,
+                                      curve: Curves.easeOut,
+                                      delay: ((50 * index).clamp(0, 500)).ms);
+                                },
+                              ),
+                            ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _transactions.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    // Determine subtitle
+    final count = _transactions.length;
+    final dateStr = _dateRange != null
+        ? '${DateFormat('MMM dd').format(_dateRange!.start)} - ${DateFormat('MMM dd').format(_dateRange!.end)}'
+        : DateFormat('MMMM yyyy').format(DateTime.now());
+
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subColor = isDark ? const Color(0xFFA0A8C1) : Colors.grey[600];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              // Back Button
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.05),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: Center(
+                        child:
+                            Icon(Icons.arrow_back, color: textColor, size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Historial Transacciones',
+                    style: TextStyle(
+                      fontSize:
+                          20, // Reduced slightly to fit better with back button
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$count registros • $dateStr',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: subColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Glass Calendar Icon
+          GestureDetector(
+            onTap: _pickDateRange,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Center(
+                    child:
+                        Icon(Icons.calendar_today, color: textColor, size: 24),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoader(bool isDark) {
+    return ListView.builder(
+      itemCount: 5,
+      padding: const EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+          ),
+        ).animate(onPlay: (c) => c.repeat()).shimmer(
+            duration: 1200.ms, color: isDark ? Colors.white10 : Colors.black12);
+      },
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
+    IconData icon;
+    String message;
+    String ctaLabel;
+
+    // Customize based on filter
+    if (_selectedType == 'sale') {
+      icon = Icons.point_of_sale;
+      message = 'No se encontraron ventas';
+      ctaLabel = 'Realizar Venta';
+    } else if (_selectedType == 'purchase') {
+      icon = Icons.inventory_2;
+      message = 'No se encontraron compras';
+      ctaLabel = 'Registrar Compra';
+    } else if (_selectedType == 'expense') {
+      icon = Icons.money_off;
+      message = 'No hay gastos registrados';
+      ctaLabel = 'Registrar Gasto';
+    } else {
+      icon = Icons.history_edu;
+      message = 'No hay movimientos';
+      ctaLabel = 'Actualizar';
+    }
+
+    final textColor = isDark ? Colors.white70 : Colors.black54;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: textColor.withValues(alpha: 0.3)),
+          const SizedBox(height: 16),
+          Text(message, style: TextStyle(color: textColor, fontSize: 16)),
+          const SizedBox(height: 24),
+          // CTA Button (Glass + gradient)
+          Container(
+            decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)]),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4))
+                ]),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _selectedType == 'sale'
+                    ? () {
+                        Navigator.pop(context); // Go back to dashboard/POS
+                      }
+                    : _loadData,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.history, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text('No se encontraron registros',
-                          style: TextStyle(color: Colors.grey[600])),
+                      const Icon(Icons.add, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text(ctaLabel,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
-                )
-              : ListView.builder(
-                  itemCount: _transactions.length,
-                  itemBuilder: (context, index) {
-                    final t = _transactions[index];
-                    return _TransactionTile(transaction: t);
-                  },
                 ),
-    );
+              ),
+            ),
+          )
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onSelected;
+class _GlassFilterTabs extends StatelessWidget {
+  final String? selectedType;
+  final Function(String?) onChanged;
+  final bool isDark;
 
-  const _FilterChip(
-      {required this.label,
-      required this.isSelected,
-      required this.onSelected});
+  const _GlassFilterTabs(
+      {required this.selectedType,
+      required this.onChanged,
+      required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onSelected(),
-        showCheckmark: false,
-        backgroundColor: Theme.of(context).cardColor,
-        selectedColor: AppTheme.primary.withValues(alpha: 0.2),
-        labelStyle: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppTheme.primary : null,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _buildTab(null, 'Todos'),
+          const SizedBox(width: 12),
+          _buildTab('sale', 'Ventas'),
+          const SizedBox(width: 12),
+          _buildTab('purchase', 'Compras'),
+          const SizedBox(width: 12),
+          _buildTab('expense', 'Gastos'),
+          const SizedBox(width: 12),
+          _buildTab('payment', 'Pagos'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(String? type, String label) {
+    final bool isActive = selectedType == type;
+
+    // Active Styles (Glass)
+    final bgColor = isActive
+        ? (isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : Colors.black.withValues(alpha: 0.05))
+        : Colors.transparent;
+
+    final borderColor = isActive
+        ? (isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.05))
+        : Colors.transparent;
+
+    final textColor = isActive
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? const Color(0xFFA0A8C1) : Colors.grey);
+
+    final fontWeight = isActive ? FontWeight.w600 : FontWeight.w400;
+
+    return GestureDetector(
+      onTap: () => onChanged(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Spacer to center text vertically accounting for underline
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    color: textColor, fontWeight: fontWeight, fontSize: 15)),
+            if (isActive) ...[
+              const SizedBox(height: 4),
+              Container(
+                width: 20,
+                height: 3,
+                decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B6B),
+                    borderRadius: BorderRadius.circular(1.5),
+                    boxShadow: [
+                      BoxShadow(
+                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+                          blurRadius: 8)
+                    ]),
+              )
+            ]
+          ],
         ),
       ),
     );
   }
 }
 
-class _TransactionTile extends StatelessWidget {
+class _GlassTransactionCard extends StatelessWidget {
   final Transaction transaction;
+  final bool isDark;
 
-  const _TransactionTile({required this.transaction});
+  const _GlassTransactionCard(
+      {required this.transaction, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    IconData icon;
-    Color color;
-    String title;
-    String subtitle = DateFormat('dd MMM, HH:mm').format(transaction.date);
-    String amountPrefix = '';
+    // 1. Data Parsing
+    String typeLabel = '';
+    IconData typeIcon = Icons.help_outline;
+    Color typeColor = Colors.grey;
+    String name = '';
+    String dateStr = DateFormat('MMM dd, HH:mm').format(transaction.date);
+    double amount = transaction.totalAmount;
+    String amountStr = 'Bs. ${amount.toStringAsFixed(2)}';
+    bool isPositive = false;
 
-    // Determine Logic based on Type
     switch (transaction.type) {
-      case TransactionType.sale:
-        icon = Icons.arrow_upward;
-        color = const Color(0xFF047857); // Green
-        title = (transaction as Sale).customerName ?? 'Venta General';
-        amountPrefix = '+';
-        break;
       case TransactionType.purchase:
-        icon = Icons.arrow_downward;
-        color = AppTheme.primary; // Blue
-        title = (transaction as Purchase).supplierName ?? 'Compra';
-        amountPrefix = '-';
+        typeLabel = 'COMPRA';
+        typeIcon = Icons.inventory_2; // Use distinct icon for purchase
+        typeColor = const Color(0xFFFF6B6B); // Red
+        name = (transaction as Purchase).supplierName ?? 'Proveedor General';
+        isPositive = false;
+        break;
+      case TransactionType.sale:
+        typeLabel = 'VENTA';
+        typeIcon = Icons.attach_money;
+        typeColor = const Color(0xFF51CF66); // Green
+        name = (transaction as Sale).customerName ?? 'Cliente General';
+        isPositive = true;
         break;
       case TransactionType.expense:
-        icon = Icons.money_off;
-        color = Colors.redAccent;
-        title = (transaction as Expense).description;
-        amountPrefix = '-';
+        typeLabel = 'GASTO';
+        typeIcon = Icons.money_off;
+        typeColor = const Color(0xFFFFA94D); // Yellow
+        name = (transaction as Expense).description;
+        isPositive = false;
         break;
       case TransactionType.payment:
-        icon = Icons.attach_money;
-        color = const Color(0xFF047857);
-        // Payment usually means customer paid debt => Income for us
-        // Wait, Payment in our system logic (from Phase 8.1): "Decreases Customer Debt", logs as "Payment".
-        // It is money IN.
-        title = 'Pago Cliente';
-        amountPrefix = '+';
+        typeLabel = 'PAGO';
+        typeIcon = Icons.payment;
+        typeColor = const Color(0xFF4A90E2); // Blue
+        name = 'Abono de Cliente';
+        isPositive = true; // Payments are money IN
         break;
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: Text(
-          '$amountPrefix Bs. ${transaction.totalAmount.toStringAsFixed(2)}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: color,
+    final amountColor =
+        isPositive ? const Color(0xFF51CF66) : const Color(0xFFFF6B6B);
+    final prefix = isPositive ? '+' : '-';
+
+    // 2. Styles
+    final cardBg =
+        isDark ? const Color(0xFFFFFFFF).withValues(alpha: 0.15) : Colors.white;
+    final cardBorder = isDark
+        ? const Color(0xFFFFFFFF).withValues(alpha: 0.10)
+        : Colors.grey.withValues(alpha: 0.2);
+    final shadowColor = isDark
+        ? const Color(0xFF000000).withValues(alpha: 0.15)
+        : Colors.black.withValues(alpha: 0.05);
+
+    final titleColor = isDark ? Colors.white : Colors.black87;
+    final subtitleColor = isDark ? const Color(0xFF6B7494) : Colors.grey[600];
+    const secondaryGray = Color(0xFFA0A8C1);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+              color: shadowColor, blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Stack(
+            children: [
+              // Left Border Indicator
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 4,
+                child: Container(color: typeColor),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Row 1: Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Badge
+                        Row(
+                          children: [
+                            Icon(typeIcon, size: 18, color: secondaryGray),
+                            const SizedBox(width: 6),
+                            Text('$typeLabel • #${transaction.id}',
+                                style: const TextStyle(
+                                    color: secondaryGray,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                        // Actions
+                        const Row(
+                          children: [
+                            Icon(Icons.print,
+                                size: 22,
+                                color: Color(0xFFFF6B6B)), // Coral print
+                            SizedBox(width: 12),
+                            Icon(Icons.more_vert,
+                                size: 22, color: secondaryGray),
+                          ],
+                        )
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Row 2: Name
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: titleColor,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // Row 3: Date
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: subtitleColor,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Separator
+                    Divider(
+                        height: 1,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.grey.withValues(alpha: 0.2)),
+
+                    const SizedBox(height: 12),
+
+                    // Row 4: Amount
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '$prefix $amountStr',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: amountColor,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    );
+    ).animate().scale(duration: 200.ms, curve: Curves.easeOut);
   }
 }

@@ -11,17 +11,18 @@ class QuickAccessGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Accesos Rápidos',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -91,6 +92,7 @@ class QuickAccessGrid extends StatelessWidget {
       required Color color,
       required int delay,
       required VoidCallback onTap}) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         _AnimatedScaleButton(
@@ -104,8 +106,8 @@ class QuickAccessGrid extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 12,
           ),
         ),

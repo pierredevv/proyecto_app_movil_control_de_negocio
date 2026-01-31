@@ -10,6 +10,9 @@ class SalesTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     // Generate spots from weeklySales
     // weeklySales structure: [{'date': millis, 'amount': double}, ...]
     List<FlSpot> spots = [];
@@ -50,17 +53,6 @@ class SalesTrendChart extends StatelessWidget {
         maxY = 1000;
         displayMax = 1000;
       }
-
-      // double minVal = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
-      // Optional: Set minY to slightly below minVal if we want to zoom, or keep 0.
-      // User asked for dynamic min/max. Let's stick to 0 unless values are huge?
-      // Usually "Min" implies the bottom of the chart. If bottom is 0, then label is 0.
-      // If we want to show the lowest value in the dataset as "Min", that's different.
-      // Let's assume they want the axis bounds.
-
-      // If we want strictly dynamic axis:
-      // minY = minVal * 0.8;
-      // But typically sales start at 0.
     }
 
     // Gradient colors
@@ -86,7 +78,7 @@ class SalesTrendChart extends StatelessWidget {
                 getDrawingHorizontalLine: (value) {
                   if (value == 200 || value == 1500) {
                     return FlLine(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                       dashArray: [4, 4],
                     );
@@ -111,8 +103,9 @@ class SalesTrendChart extends StatelessWidget {
                     reservedSize: 30,
                     interval: 1,
                     getTitlesWidget: (value, meta) {
-                      const style = TextStyle(
-                        color: AppTheme.textTertiary,
+                      final style = TextStyle(
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         fontSize: 12,
                       );
 
@@ -137,7 +130,7 @@ class SalesTrendChart extends StatelessWidget {
                 LineChartBarData(
                   spots: spots,
                   isCurved: true,
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppTheme.greenAccent,
                   barWidth: 3,
                   isStrokeCapRound: true,
                   dotData: FlDotData(
@@ -172,8 +165,9 @@ class SalesTrendChart extends StatelessWidget {
             left: 0,
             top: 20,
             child: Text('Máx. Bs. ${displayMax.toStringAsFixed(0)}',
-                style: const TextStyle(
-                    color: AppTheme.textTertiary, fontSize: 10)),
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 10)),
           ),
           if (maxY == 1000 &&
               spots.every((e) =>
@@ -182,8 +176,9 @@ class SalesTrendChart extends StatelessWidget {
               left: 0,
               bottom: 45,
               child: Text('Mín. Bs. ${minY.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 10)),
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 10)),
             ),
         ],
       ),

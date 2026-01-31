@@ -14,6 +14,8 @@ class SalesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 8,
@@ -26,24 +28,25 @@ class SalesHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon:
-                const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+            icon: Icon(Icons.arrow_back_ios,
+                color: theme.colorScheme.onSurface, size: 20),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               'Punto de Venta',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
           Stack(
             clipBehavior: Clip.none,
             children: [
-              const Icon(Icons.shopping_cart, color: Colors.white, size: 28),
+              Icon(Icons.shopping_cart,
+                  color: theme.colorScheme.onSurface, size: 28),
               if (cartItemCount > 0)
                 Positioned(
                   right: -4,
@@ -86,7 +89,8 @@ class SalesHeader extends StatelessWidget {
           const SizedBox(width: 16),
           IconButton(
             onPressed: onClearCart,
-            icon: const Icon(Icons.delete, color: Colors.white, size: 28),
+            icon: Icon(Icons.delete,
+                color: theme.colorScheme.onSurface, size: 28),
             tooltip: 'Vaciar Carrito',
           ),
         ],

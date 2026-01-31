@@ -14,16 +14,17 @@ class FrequentProductsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (frequentProducts.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             'Productos Frecuentes',
             style: TextStyle(
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -96,8 +97,16 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final icon = _getIconFor(widget.product.name);
     final color = _getColorFor(widget.product.name);
+
+    // In light mode, use a slightly stronger alpha for visibility or darker text
+    final bgAlpha = isDark ? 0.2 : 0.1;
+    final borderAlpha = isDark ? 0.5 : 0.3;
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -114,9 +123,9 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
           width: 120,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
+            color: color.withValues(alpha: bgAlpha),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.5)),
+            border: Border.all(color: color.withValues(alpha: borderAlpha)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -127,19 +136,20 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
                   Flexible(
                     child: Text(
                       widget.product.name,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: textColor, fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(icon, size: 16, color: Colors.white),
+                  Icon(icon, size: 16, color: textColor),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 'Bs. ${widget.product.price.toStringAsFixed(2)}',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                    color: textColor.withValues(alpha: 0.7), fontSize: 12),
               ),
             ],
           ),

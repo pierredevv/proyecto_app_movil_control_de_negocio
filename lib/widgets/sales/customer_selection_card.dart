@@ -15,33 +15,50 @@ class CustomerSelectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1), // Glass effect
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-      ),
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : theme.colorScheme.outline),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int?>(
           value: selectedCustomer?.id,
-          hint: const Text(
+          hint: Text(
             'Cliente: Público General',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
-          dropdownColor: const Color(0xFF1E2432), // Dark bg for dropdown
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+          dropdownColor: theme.cardColor,
+          icon: Icon(Icons.keyboard_arrow_down,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
           isExpanded: true,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
           items: [
-            const DropdownMenuItem<int?>(
+            DropdownMenuItem<int?>(
               value: null,
-              child: Text('Cliente: Público General'),
+              child: Text('Cliente: Público General',
+                  style: TextStyle(color: theme.colorScheme.onSurface)),
             ),
             ...customers.map((c) => DropdownMenuItem(
                   value: c.id,
-                  child: Text(c.name),
+                  child: Text(c.name,
+                      style: TextStyle(color: theme.colorScheme.onSurface)),
                 )),
           ],
           onChanged: (id) {

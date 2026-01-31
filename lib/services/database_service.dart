@@ -248,7 +248,10 @@ class DatabaseService {
 
   Future<List<Product>> getProducts() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('products');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'products',
+      where: 'is_active = 1',
+    );
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
@@ -264,8 +267,9 @@ class DatabaseService {
 
   Future<int> deleteProduct(int id) async {
     final db = await database;
-    return await db.delete(
+    return await db.update(
       'products',
+      {'is_active': 0},
       where: 'id = ?',
       whereArgs: [id],
     );

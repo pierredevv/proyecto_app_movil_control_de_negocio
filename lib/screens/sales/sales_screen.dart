@@ -38,11 +38,12 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _showProductSearch(BuildContext context) async {
+    final theme = Theme.of(context);
     final product = await showModalBottomSheet<Product>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: const Color(0xFF1E2432),
+      backgroundColor: theme.scaffoldBackgroundColor, // Adapt to theme
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -172,20 +173,22 @@ class _SalesScreenState extends State<SalesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Background Gradient (Dark Theme)
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A), // Deep dark background
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background Pattern (Optional - Low Opacity)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.03, // Very subtle
+              opacity: isDark ? 0.03 : 0.02,
               child: Image.asset(
-                'assets/images/pattern.png', // Fallback if exists, or remove.
+                'assets/images/pattern.png',
                 repeat: ImageRepeat.repeat,
-                errorBuilder: (c, e, s) =>
-                    const SizedBox.shrink(), // Safe fallback
+                color: isDark ? Colors.white : Colors.black,
+                errorBuilder: (c, e, s) => const SizedBox.shrink(),
               ),
             ),
           ),
@@ -349,6 +352,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final provider = context.watch<InventoryProvider>();
     final products =
         provider.filteredProducts.where((p) => p.stock > 0).toList();
@@ -363,22 +367,24 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Agregar Producto',
+          Text('Agregar Producto',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white)),
+                  color: theme.colorScheme.onSurface)),
           const SizedBox(height: 16),
           TextField(
             controller: _searchController,
             autofocus: true,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: theme.colorScheme.onSurface),
             decoration: InputDecoration(
               hintText: 'Buscar por nombre...',
-              hintStyle: const TextStyle(color: Colors.white54),
-              prefixIcon: const Icon(Icons.search, color: Colors.white70),
+              hintStyle: TextStyle(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+              prefixIcon: Icon(Icons.search,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.1),
+              fillColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none),
@@ -393,23 +399,29 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.5),
               child: products.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text('No hay productos',
-                          style: TextStyle(color: Colors.white54)))
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5))))
                   : ListView.separated(
                       shrinkWrap: true,
                       itemCount: products.length,
                       separatorBuilder: (_, __) => Divider(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color:
+                              theme.colorScheme.outline.withValues(alpha: 0.1),
                           height: 1),
                       itemBuilder: (context, index) {
                         final p = products[index];
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(p.name,
-                              style: const TextStyle(color: Colors.white)),
+                              style: TextStyle(
+                                  color: theme.colorScheme.onSurface)),
                           subtitle: Text('Stock: ${p.stock} | Ps. ${p.price}',
-                              style: const TextStyle(color: Colors.white54)),
+                              style: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.6))),
                           trailing: const Icon(Icons.add_circle,
                               color: AppTheme.primary),
                           onTap: () {

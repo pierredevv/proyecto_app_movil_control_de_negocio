@@ -32,32 +32,50 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     primaryColor: primary,
-    scaffoldBackgroundColor: backgroundLight,
+    scaffoldBackgroundColor: const Color(0xFFF3F4F6), // Light gray background
+    cardColor: Colors.white,
     colorScheme: const ColorScheme.light(
       primary: primary,
       secondary: secondary,
       surface: Colors.white,
+      surfaceContainerHighest:
+          Color(0xFFFFFFFF), // For glass effects in light mode
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: Color(0xFF1F2937),
+      outline: Color(0xFFE5E7EB),
     ),
-    textTheme: GoogleFonts.interTextTheme(),
-    iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
+    textTheme: GoogleFonts.interTextTheme(
+      ThemeData.light().textTheme,
+    ).apply(
+      bodyColor: const Color(0xFF1F2937),
+      displayColor: const Color(0xFF111827),
+    ),
+    iconTheme: const IconThemeData(color: Color(0xFF4B5563)),
+    dialogTheme: const DialogThemeData(
+      backgroundColor: Colors.white,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Colors.white,
+      modalBackgroundColor: Colors.white,
+    ),
   );
 
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     primaryColor: primary,
-    scaffoldBackgroundColor: backgroundBlack, // Updated
+    scaffoldBackgroundColor: backgroundBlack,
+    cardColor: const Color(0xFF1E2432), // Slightly lighter than bg
     colorScheme: const ColorScheme.dark(
       primary: primary,
       secondary: secondary,
-      surface: Color(0xFF242B3D), // Used for "Recent Activity" cards base
+      surface: Color(0xFF1E2432),
+      surfaceContainerHighest: Color(0xFF242B3D),
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: textPrimary,
-      surfaceContainerHighest: Color(0xFF242B3D), // For secondary backgrounds
+      outline: Color(0xFF2D3748),
     ),
     textTheme: GoogleFonts.interTextTheme(
       ThemeData.dark().textTheme,
@@ -68,7 +86,12 @@ class AppTheme {
     iconTheme: const IconThemeData(
       color: textPrimary,
     ),
-    // Define specific text styles here if needed for global usage,
-    // but the design specs are very specific per component.
+    dialogTheme: const DialogThemeData(
+      backgroundColor: Color(0xFF1E2432),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Color(0xFF1E2432),
+      modalBackgroundColor: Color(0xFF1E2432),
+    ),
   );
 }
