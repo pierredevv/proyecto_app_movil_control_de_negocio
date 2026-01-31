@@ -38,6 +38,7 @@ class MainScreen extends StatelessWidget {
         height: 64,
         margin: const EdgeInsets.only(top: 30),
         child: FloatingActionButton(
+          heroTag: 'main_fab',
           backgroundColor: AppTheme.primary,
           elevation: 4,
           onPressed: () {

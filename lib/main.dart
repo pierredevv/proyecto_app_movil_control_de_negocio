@@ -13,6 +13,7 @@ import 'providers/supplier_provider.dart';
 import 'providers/notification_provider.dart';
 
 import 'services/backup_service.dart';
+import 'services/snackbar_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +60,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
+        scaffoldMessengerKey: SnackbarService.messengerKey,
         title: 'Gestion de Negocio App',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

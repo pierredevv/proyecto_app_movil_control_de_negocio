@@ -3,6 +3,7 @@ import '../models/product.dart';
 import '../models/invoice_item.dart';
 import '../models/transaction_model.dart';
 import '../services/database_service.dart';
+import '../services/snackbar_service.dart';
 
 import '../models/category.dart';
 
@@ -11,7 +12,11 @@ enum SortOption { nameAsc, stockAsc, priceAsc, priceDesc }
 enum StockStatus { sufficient, moderate, critical }
 
 class InventoryProvider extends ChangeNotifier {
-  final DatabaseService _db = DatabaseService();
+  late final DatabaseService _db;
+
+  InventoryProvider({DatabaseService? db}) {
+    _db = db ?? DatabaseService();
+  }
 
   List<Product> _products = [];
   List<Category> _categories = [];
@@ -20,11 +25,16 @@ class InventoryProvider extends ChangeNotifier {
 
   // Filter State
   SortOption _currentSort = SortOption.nameAsc;
-  List<int> _selectedCategories =
-      []; // Replaces single _selectedCategoryId logic
+  List<int> _selectedCategories = [];
   List<StockStatus> _selectedStockStatuses = [];
   RangeValues? _priceRange;
   RangeValues? _stockRange;
+
+  // Pagination State
+  int _currentPage = 0;
+  static const int _pageSize = 20;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   // Getters
   SortOption get currentSort => _currentSort;
@@ -32,6 +42,8 @@ class InventoryProvider extends ChangeNotifier {
   List<StockStatus> get selectedStockStatuses => _selectedStockStatuses;
   RangeValues? get priceRange => _priceRange;
   RangeValues? get stockRange => _stockRange;
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
 
   // Legacy getter compatibility if needed, though we should migrate usage
   int? get selectedCategoryId =>
@@ -55,79 +67,15 @@ class InventoryProvider extends ChangeNotifier {
   List<Product> _frequentProducts = [];
 
   List<Product> get filteredProducts {
-    var result = List<Product>.from(_products);
-
-    // 1. Search
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      result = result.where((p) {
-        return p.name.toLowerCase().contains(query) ||
-            p.barcode.contains(query);
-      }).toList();
-    }
-
-    // 2. Categories
-    if (_selectedCategories.isNotEmpty) {
-      result = result
-          .where((p) => _selectedCategories.contains(p.categoryId))
-          .toList();
-    }
-
-    // 3. Stock Status
-    if (_selectedStockStatuses.isNotEmpty) {
-      result = result.where((p) {
-        bool matches = false;
-        for (final status in _selectedStockStatuses) {
-          if (status == StockStatus.sufficient && p.stock > 10) {
-            matches = true;
-          }
-          if (status == StockStatus.moderate && p.stock >= 3 && p.stock <= 10) {
-            matches = true;
-          }
-          if (status == StockStatus.critical && p.stock < 3) {
-            matches = true;
-          }
-        }
-        return matches;
-      }).toList();
-    }
-
-    // 4. Price Range
-    if (_priceRange != null) {
-      result = result
-          .where((p) =>
-              p.price >= _priceRange!.start && p.price <= _priceRange!.end)
-          .toList();
-    }
-
-    // 5. Stock Range
-    if (_stockRange != null) {
-      result = result
-          .where((p) =>
-              p.stock >= _stockRange!.start && p.stock <= _stockRange!.end)
-          .toList();
-    }
-
-    // 6. Sorting
-    result.sort((a, b) {
-      switch (_currentSort) {
-        case SortOption.nameAsc:
-          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-        case SortOption.stockAsc:
-          return a.stock.compareTo(b.stock);
-        case SortOption.priceAsc:
-          return a.price.compareTo(b.price);
-        case SortOption.priceDesc:
-          return b.price.compareTo(a.price);
-      }
-    });
-
-    return result;
+    // Logic moved to SQL. Returning _products directly.
+    return _products;
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
-    notifyListeners();
+    // Debounce could be added here preferably
+    loadProducts(reset: true);
   }
 
   void setFilters({
@@ -142,7 +90,7 @@ class InventoryProvider extends ChangeNotifier {
     if (stockStatuses != null) _selectedStockStatuses = stockStatuses;
     if (priceRange != null) _priceRange = priceRange;
     if (stockRange != null) _stockRange = stockRange;
-    notifyListeners();
+    loadProducts(reset: true);
   }
 
   void clearFilters() {
@@ -153,7 +101,7 @@ class InventoryProvider extends ChangeNotifier {
     _stockRange = null;
     // Keep search query as it's usually separate, or clear it too?
     // Usually search is separate. keeping it.
-    notifyListeners();
+    loadProducts(reset: true);
   }
 
   void removeFilter(String type, [dynamic value]) {
@@ -174,7 +122,7 @@ class InventoryProvider extends ChangeNotifier {
         _currentSort = SortOption.nameAsc;
         break;
     }
-    notifyListeners();
+    loadProducts();
   }
 
   // Legacy support wrapper
@@ -184,21 +132,85 @@ class InventoryProvider extends ChangeNotifier {
     } else {
       _selectedCategories = [categoryId];
     }
-    notifyListeners();
+    loadProducts(reset: true);
   }
 
-  Future<void> loadProducts() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadProducts({bool reset = false}) async {
+    if (reset) {
+      _currentPage = 0;
+      _hasMore = true;
+      _products = [];
+      _isLoading = true;
+      notifyListeners();
+    } else {
+      if (!_hasMore || _isLoadingMore) return;
+      _isLoadingMore = true;
+      notifyListeners();
+    }
 
     try {
-      _products = await _db.getProducts();
+      // Convert Enums/Complex types to simple types for DB
+      List<String>? statusStrings;
+      if (_selectedStockStatuses.isNotEmpty) {
+        statusStrings = _selectedStockStatuses.map((s) => s.name).toList();
+      }
+
+      String sortCol = 'name';
+      bool sortAsc = true;
+      switch (_currentSort) {
+        case SortOption.nameAsc:
+          sortCol = 'name';
+          sortAsc = true;
+          break;
+        case SortOption.stockAsc:
+          sortCol = 'stock';
+          sortAsc = true;
+          break;
+        case SortOption.priceAsc:
+          sortCol = 'price';
+          sortAsc = true;
+          break;
+        case SortOption.priceDesc:
+          sortCol = 'price';
+          sortAsc = false;
+          break;
+      }
+
+      final newProducts = await _db.getProducts(
+        searchQuery: _searchQuery,
+        categoryIds: _selectedCategories,
+        stockStatuses: statusStrings,
+        minPrice: _priceRange?.start,
+        maxPrice: _priceRange?.end,
+        minStock: _stockRange?.start,
+        maxStock: _stockRange?.end,
+        sortColumn: sortCol,
+        sortAscending: sortAsc,
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      if (newProducts.length < _pageSize) {
+        _hasMore = false;
+      }
+
+      if (reset) {
+        _products = newProducts;
+      } else {
+        _products.addAll(newProducts);
+        _currentPage++;
+      }
+
       // Also load categories if they haven't been loaded or simple reload
-      _categories = await _db.getCategories();
+      if (_categories.isEmpty) {
+        _categories = await _db.getCategories();
+      }
     } catch (e) {
       debugPrint("Error loading products/categories: $e");
+      SnackbarService.showError("Error al cargar inventario");
     } finally {
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
@@ -206,31 +218,22 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> loadCategories() async {
     try {
       _categories = await _db.getCategories();
+      // Don't notify here if we want to avoid UI jumps, but usually fine
       notifyListeners();
     } catch (e) {
       debugPrint("Error loading categories: $e");
+      SnackbarService.showError("Error al cargar categorías");
     }
   }
 
   Future<void> loadFrequentProducts() async {
     try {
       final ids = await _db.getFrequentProductIds(limit: 5);
-      // Map IDs to actual product objects from the loaded list
-      if (_products.isEmpty) await loadProducts();
+      // Fetch products by ID
+      _frequentProducts = await _db.getProductsByIds(ids);
 
-      _frequentProducts = ids
-          .map((id) => _products.firstWhere(
-                (p) => p.id == id,
-                orElse: () => Product(
-                    id: -1,
-                    name: 'Unknown',
-                    barcode: '',
-                    price: 0,
-                    cost: 0,
-                    stock: 0),
-              ))
-          .where((p) => p.id != -1) // data integrity
-          .toList();
+      // No longer need filtering or mapping from _products
+      // _frequentProducts logic handled above with direct DB fetch
 
       notifyListeners();
     } catch (e) {
@@ -243,8 +246,10 @@ class InventoryProvider extends ChangeNotifier {
       final category = Category(name: name);
       await _db.insertCategory(category);
       await loadCategories();
+      SnackbarService.showSuccess("Categoría agregada");
     } catch (e) {
       debugPrint("Error adding category: $e");
+      SnackbarService.showError("Error al agregar categoría");
       rethrow;
     }
   }
@@ -260,9 +265,11 @@ class InventoryProvider extends ChangeNotifier {
       } else {
         await _db.insertProduct(product);
       }
-      await loadProducts();
+      await loadProducts(reset: true);
+      SnackbarService.showSuccess("Producto guardado exitosamente");
     } catch (e) {
       debugPrint("Error adding/updating product: $e");
+      SnackbarService.showError("Error al guardar producto: ${e.toString()}");
       rethrow;
     }
   }
@@ -281,9 +288,10 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> updateProduct(Product product) async {
     try {
       await _db.updateProduct(product);
-      await loadProducts();
+      await loadProducts(reset: true);
     } catch (e) {
       debugPrint("Error updating product: $e");
+      SnackbarService.showError("Error al actualizar producto");
       rethrow;
     }
   }
@@ -291,9 +299,11 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> deleteProduct(int id) async {
     try {
       await _db.deleteProduct(id);
-      await loadProducts();
+      await loadProducts(reset: true);
+      SnackbarService.showSuccess("Producto eliminado");
     } catch (e) {
       debugPrint("Error deleting product: $e");
+      SnackbarService.showError("Error al eliminar producto");
       rethrow;
     }
   }
@@ -350,6 +360,6 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> updateStock(int productId, double quantity) async {
     // Logic to update local state optimistically or reload?
     // For now reload for safety
-    await loadProducts();
+    await loadProducts(reset: true);
   }
 }

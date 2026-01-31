@@ -13,6 +13,10 @@ class DatabaseService {
   factory DatabaseService() => _instance;
   DatabaseService._internal();
 
+  /// Constructor for mocking in tests
+  @visibleForTesting
+  DatabaseService.forTesting();
+
   Database? _database;
 
   Future<Database> get database async {
@@ -246,11 +250,98 @@ class DatabaseService {
     return await db.insert('products', product.toMap());
   }
 
-  Future<List<Product>> getProducts() async {
+  Future<List<Product>> getProducts({
+    String? searchQuery,
+    List<int>? categoryIds,
+    List<String>? stockStatuses, // 'sufficient', 'moderate', 'critical'
+    double? minPrice,
+    double? maxPrice,
+    double? minStock,
+    double? maxStock,
+    String sortColumn = 'name',
+    bool sortAscending = true,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await database;
+
+    String whereClause = 'is_active = 1';
+    List<dynamic> args = [];
+
+    // 1. Search
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      whereClause += ' AND (name LIKE ? OR barcode LIKE ?)';
+      args.add('%$searchQuery%');
+      args.add('%$searchQuery%');
+    }
+
+    // 2. Categories
+    if (categoryIds != null && categoryIds.isNotEmpty) {
+      final placeholders = List.filled(categoryIds.length, '?').join(',');
+      whereClause += ' AND category_id IN ($placeholders)';
+      args.addAll(categoryIds);
+    }
+
+    // 3. Stock Status
+    // Logic must match Provider: Critical (<3), Moderate (3-10), Sufficient (>10)
+    if (stockStatuses != null && stockStatuses.isNotEmpty) {
+      List<String> statusClauses = [];
+      for (var status in stockStatuses) {
+        if (status == 'critical') {
+          statusClauses.add('(stock < 3)');
+        } else if (status == 'moderate') {
+          statusClauses.add('(stock >= 3 AND stock <= 10)');
+        } else if (status == 'sufficient') {
+          statusClauses.add('(stock > 10)');
+        }
+      }
+      if (statusClauses.isNotEmpty) {
+        whereClause += ' AND (${statusClauses.join(' OR ')})';
+      }
+    }
+
+    // 4. Price Range
+    if (minPrice != null) {
+      whereClause += ' AND price >= ?';
+      args.add(minPrice);
+    }
+    if (maxPrice != null) {
+      whereClause += ' AND price <= ?';
+      args.add(maxPrice);
+    }
+
+    // 5. Stock Range
+    if (minStock != null) {
+      whereClause += ' AND stock >= ?';
+      args.add(minStock);
+    }
+    if (maxStock != null) {
+      whereClause += ' AND stock <= ?';
+      args.add(maxStock);
+    }
+
+    // 6. Sorting
+    String orderBy = '$sortColumn ${sortAscending ? 'ASC' : 'DESC'}';
+
     final List<Map<String, dynamic>> maps = await db.query(
       'products',
-      where: 'is_active = 1',
+      where: whereClause,
+      whereArgs: args,
+      orderBy: orderBy,
+      limit: limit,
+      offset: offset,
+    );
+    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+  }
+
+  Future<List<Product>> getProductsByIds(List<int> ids) async {
+    if (ids.isEmpty) return [];
+    final db = await database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'products',
+      where: 'id IN ($placeholders)',
+      whereArgs: ids,
     );
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
