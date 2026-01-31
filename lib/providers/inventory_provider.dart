@@ -49,7 +49,10 @@ class InventoryProvider extends ChangeNotifier {
 
   List<Product> get products => _products;
   List<Category> get categories => _categories;
+  List<Product> get frequentProducts => _frequentProducts;
   bool get isLoading => _isLoading;
+
+  List<Product> _frequentProducts = [];
 
   List<Product> get filteredProducts {
     var result = List<Product>.from(_products);
@@ -206,6 +209,32 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Error loading categories: $e");
+    }
+  }
+
+  Future<void> loadFrequentProducts() async {
+    try {
+      final ids = await _db.getFrequentProductIds(limit: 5);
+      // Map IDs to actual product objects from the loaded list
+      if (_products.isEmpty) await loadProducts();
+
+      _frequentProducts = ids
+          .map((id) => _products.firstWhere(
+                (p) => p.id == id,
+                orElse: () => Product(
+                    id: -1,
+                    name: 'Unknown',
+                    barcode: '',
+                    price: 0,
+                    cost: 0,
+                    stock: 0),
+              ))
+          .where((p) => p.id != -1) // data integrity
+          .toList();
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading frequent products: $e");
     }
   }
 

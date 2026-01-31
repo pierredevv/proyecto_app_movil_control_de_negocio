@@ -51,7 +51,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 5, // Updated to version 5
+      version: 6, // Updated to version 6
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -94,6 +94,15 @@ class DatabaseService {
             debugPrint('Error adding image_path column: $e');
           }
         }
+        if (oldVersion < 6) {
+          // Soft delete support
+          try {
+            await db.execute(
+                "ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1");
+          } catch (e) {
+            debugPrint('Error adding is_active column: $e');
+          }
+        }
       },
     );
   }
@@ -114,7 +123,8 @@ class DatabaseService {
         unit_type TEXT DEFAULT 'UN',
         units_per_box REAL DEFAULT 1.0,
         created_at INTEGER,
-        image_path TEXT
+        image_path TEXT,
+        is_active INTEGER DEFAULT 1
       )
     ''');
 
@@ -726,6 +736,21 @@ class DatabaseService {
     }
 
     return result;
+  }
+
+  Future<List<int>> getFrequentProductIds({int limit = 5}) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT ti.product_id, COUNT(ti.product_id) as frequency
+      FROM transaction_items ti
+      JOIN transactions t ON ti.transaction_id = t.id
+      WHERE t.type = 'sale'
+      GROUP BY ti.product_id
+      ORDER BY frequency DESC
+      LIMIT ?
+    ''', [limit]);
+
+    return result.map((row) => row['product_id'] as int).toList();
   }
 
   Future<Map<String, dynamic>> exportDatabase() async {
