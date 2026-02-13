@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/transaction_model.dart';
 import 'package:intl/intl.dart';
 import '../../screens/history/transaction_history_screen.dart';
+import '../../screens/sales/sale_detail_screen.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -84,6 +85,7 @@ class RecentActivityList extends StatelessWidget {
 
               return _buildTransactionCard(
                 context,
+                transaction: t, // Pass full object
                 name: name,
                 date: DateFormat('dd/MM HH:mm').format(t.date),
                 type: typeLabel,
@@ -99,7 +101,8 @@ class RecentActivityList extends StatelessWidget {
   }
 
   Widget _buildTransactionCard(BuildContext context,
-      {required String name,
+      {required Transaction transaction,
+      required String name,
       required String date,
       required String type,
       required String number,
@@ -110,133 +113,176 @@ class RecentActivityList extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF242B3D).withValues(alpha: 0.5)
-            : Colors.white, // White card in light mode
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Stack(
-        children: [
-          // Side Border
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 4,
-            child: Container(color: accentColor),
-          ),
+    return GestureDetector(
+      onTap: () {
+        if (isSale && transaction is Sale) {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  SaleDetailScreen(sale: transaction),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                const curve = Curves.easeInOut;
 
-          // Content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                20, 16, 16, 16), // Extra left padding for border
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Row 1: Name and Date
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      date,
-                      style: TextStyle(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve)); // Slide from right
 
-                // Row 2: Badge and Number
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        type,
-                        style: TextStyle(
-                          color: accentColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      number,
-                      style: TextStyle(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                var offsetAnimation = animation.drive(tween);
+                var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeIn),
+                );
 
-                // Row 3: Total
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Expanded(child: Container()), // Spacer
-                    Text(
-                      'Total - ', // or just Total, design says "Total - Bs..." but alignment seems to imply label is small
-                      style: TextStyle(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      total,
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                return SlideTransition(
+                  position: offsetAnimation,
+                  child: FadeTransition(
+                    opacity: fadeAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 350),
+              reverseTransitionDuration: const Duration(milliseconds: 350),
             ),
-          ),
-        ],
-      ),
-    )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: Duration(milliseconds: 800 + delay))
-        .slideX(begin: -0.1, end: 0);
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF242B3D).withValues(alpha: 0.5)
+              : Colors.white, // White card in light mode
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Stack(
+          children: [
+            // Side Border
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              child: Container(color: accentColor),
+            ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  20, 16, 16, 16), // Extra left padding for border
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: Name and Date
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        date,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Row 2: Badge and Number
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          type,
+                          style: TextStyle(
+                            color: accentColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        number,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Row 3: Total
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Expanded(child: Container()), // Spacer
+                      Text(
+                        'Total - ',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                      Hero(
+                        tag: 'transaction-${number.replaceAll("#", "")}-total',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Text(
+                            total,
+                            style: TextStyle(
+                              color: accentColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      )
+          .animate()
+          .fadeIn(duration: 300.ms, delay: Duration(milliseconds: 800 + delay))
+          .slideX(begin: -0.1, end: 0),
+    );
   }
 }

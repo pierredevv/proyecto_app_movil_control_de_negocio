@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_screen.dart';
 import 'providers/inventory_provider.dart';
@@ -17,6 +18,7 @@ import 'services/snackbar_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es_BO', null);
 
   if (Platform.isWindows || Platform.isLinux) {
     // Initialize FFI

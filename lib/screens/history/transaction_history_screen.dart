@@ -4,6 +4,10 @@ import 'package:intl/intl.dart';
 import '../../services/database_service.dart';
 import '../../models/transaction_model.dart';
 import 'dart:ui';
+import '../sales/sale_detail_screen.dart';
+import '../../services/pdf_generator_service.dart';
+import '../sales/invoice_preview_screen.dart';
+import '../../widgets/transactions/transaction_options_sheet.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -454,6 +458,74 @@ class _GlassTransactionCard extends StatelessWidget {
   const _GlassTransactionCard(
       {required this.transaction, required this.isDark});
 
+  void _navigateToDetail(BuildContext context) {
+    if (transaction is Sale) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SaleDetailScreen(sale: transaction as Sale),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handlePrint(BuildContext context) async {
+    if (transaction is! Sale) return;
+
+    final sale = transaction as Sale;
+    final pdfService = PdfGeneratorService();
+
+    try {
+      // Just showing a quick loading indicator could be nice, but for now navigate directly
+      // Or show a snackbar "Generating PDF..."
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Generando previsualización...'),
+            duration: Duration(milliseconds: 800)),
+      );
+
+      // Generate invoice
+      // If we want to preview it:
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InvoicePreviewScreen(
+            title: 'Factura #${sale.id}',
+            buildPdf: (format) => pdfService.generateInvoice(sale),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error al generar PDF: $e'),
+            backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showOptions(BuildContext context) {
+    // Only support options for Sale for now, or adapt helper
+    // The design shows "Cancel", "Duplicate", etc.
+    // For now we wire up what we have.
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TransactionOptionsBottomSheet(
+        onEdit: () {
+          // TODO: Navigate to Edit screen or POS with loaded data
+        },
+        onCancel: () {
+          // TODO: Implement cancel logic
+        },
+        onSharePdf: () => _handlePrint(context), // Reuse print logic
+        onDuplicate: () {
+          // TODO: Implement duplicate logic
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1. Data Parsing
@@ -530,103 +602,117 @@ class _GlassTransactionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Stack(
-            children: [
-              // Left Border Indicator
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 4,
-                child: Container(color: typeColor),
-              ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _navigateToDetail(context),
+              child: Stack(
+                children: [
+                  // Left Border Indicator
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 4,
+                    child: Container(color: typeColor),
+                  ),
 
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Row 1: Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Badge
+                        // Row 1: Header
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(typeIcon, size: 18, color: secondaryGray),
-                            const SizedBox(width: 6),
-                            Text('$typeLabel • #${transaction.id}',
-                                style: const TextStyle(
-                                    color: secondaryGray,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500)),
+                            // Badge
+                            Row(
+                              children: [
+                                Icon(typeIcon, size: 18, color: secondaryGray),
+                                const SizedBox(width: 6),
+                                Text('$typeLabel • #${transaction.id}',
+                                    style: const TextStyle(
+                                        color: secondaryGray,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                            // Actions
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.print,
+                                      size: 22, color: Color(0xFFFF6B6B)),
+                                  onPressed: () => _handlePrint(context),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.more_vert,
+                                      size: 22, color: secondaryGray),
+                                  onPressed: () => _showOptions(context),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                ),
+                              ],
+                            )
                           ],
                         ),
-                        // Actions
-                        const Row(
-                          children: [
-                            Icon(Icons.print,
-                                size: 22,
-                                color: Color(0xFFFF6B6B)), // Coral print
-                            SizedBox(width: 12),
-                            Icon(Icons.more_vert,
-                                size: 22, color: secondaryGray),
-                          ],
+
+                        const SizedBox(height: 8),
+
+                        // Row 2: Name
+                        Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: titleColor,
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // Row 3: Date
+                        Text(
+                          dateStr,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: subtitleColor,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Separator
+                        Divider(
+                            height: 1,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : Colors.grey.withValues(alpha: 0.2)),
+
+                        const SizedBox(height: 12),
+
+                        // Row 4: Amount
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '$prefix $amountStr',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: amountColor,
+                            ),
+                          ),
                         )
                       ],
                     ),
-
-                    const SizedBox(height: 8),
-
-                    // Row 2: Name
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // Row 3: Date
-                    Text(
-                      dateStr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: subtitleColor,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Separator
-                    Divider(
-                        height: 1,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : Colors.grey.withValues(alpha: 0.2)),
-
-                    const SizedBox(height: 12),
-
-                    // Row 4: Amount
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '$prefix $amountStr',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: amountColor,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
