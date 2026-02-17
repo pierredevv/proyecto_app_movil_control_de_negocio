@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+import 'dart:ui' as ui;
+
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,7 +12,7 @@ import '../../models/category.dart';
 import '../../providers/inventory_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/supplier.dart';
-import '../../theme/app_theme.dart';
+
 import '../../utils/input_validators.dart';
 import 'barcode_scanner_view.dart';
 import 'category_selection_modal.dart';
@@ -238,410 +240,747 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.product != null;
-    final theme = Theme.of(context);
-
-    // Find selected category name
-    String categoryName = 'Seleccionar Categoría';
-    if (_selectedCategoryId != null) {
-      final cat = _categories.firstWhere(
-        (c) => c.id == _selectedCategoryId,
-        orElse: () => Category(id: -1, name: 'Desconocido'),
-      );
-      if (cat.id != -1) categoryName = cat.name;
-    }
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    // Assuming dark mode for now as per design
 
     return Scaffold(
+      backgroundColor: const Color(0xFF151924), // Keep base background
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        // Main scrollable area
-                        padding: const EdgeInsets.fromLTRB(20, 100, 20,
-                            100), // Top pad for header, Bottom for button
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Image Section
-                              Center(
-                                child: GestureDetector(
-                                  onTap: _pickImage,
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        width: 120,
-                                        height: 120,
-                                        decoration: BoxDecoration(
-                                            color: theme.colorScheme
-                                                .surfaceContainerHighest,
-                                            shape: BoxShape.circle,
-                                            image: _imagePath != null
-                                                ? DecorationImage(
-                                                    image: FileImage(
-                                                        File(_imagePath!)),
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : null,
-                                            border: _imagePath == null
-                                                ? Border.all(
-                                                    color: theme.dividerColor)
-                                                : null),
-                                        child: _imagePath == null
-                                            ? Icon(Icons.camera_alt,
-                                                size: 40,
-                                                color: theme.iconTheme.color
-                                                    ?.withValues(alpha: 0.5))
-                                            : null,
-                                      ),
-                                      if (_imagePath != null)
-                                        Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor:
-                                                theme.colorScheme.primary,
-                                            child: const Icon(Icons.edit,
-                                                size: 16, color: Colors.white),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (_imagePath == null)
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text('Subir Imagen',
-                                        style: TextStyle(
-                                            color: theme.primaryColor)),
-                                  ),
-                                ),
-
-                              const SizedBox(height: 30),
-
-                              // Name
-                              _buildSectionTitle('Información Básica'),
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: _inputDecoration(
-                                    'Nombre del Producto *',
-                                    Icons.inventory_2_outlined),
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                validator: InputValidators.validateName,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Barcode
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _barcodeController,
-                                      decoration: _inputDecoration(
-                                          'Código de Barras', Icons.qr_code),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  IconButton.filledTonal(
-                                    onPressed: _scanBarcode,
-                                    icon: const Icon(Icons.qr_code_scanner),
-                                    tooltip: 'Escanear',
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Category
-                              InkWell(
-                                onTap: _selectCategory,
-                                borderRadius: BorderRadius.circular(12),
-                                child: InputDecorator(
-                                  decoration: _inputDecoration(
-                                      'Categoría', Icons.category_outlined),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(categoryName,
-                                          style: TextStyle(
-                                              color: _selectedCategoryId != null
-                                                  ? theme.textTheme.bodyLarge
-                                                      ?.color
-                                                  : theme.hintColor)),
-                                      const Icon(Icons.arrow_drop_down),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Precios'),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _costController,
-                                      decoration: _inputDecoration(
-                                          'Costo *', Icons.attach_money),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      validator: (val) => InputValidators
-                                          .validatePositiveDecimal(val,
-                                              fieldName: 'Costo'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _priceController,
-                                      decoration: _inputDecoration(
-                                          'Precio Venta *',
-                                          Icons.sell_outlined),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      validator: (val) {
-                                        final err = InputValidators
-                                            .validatePositiveDecimal(val,
-                                                fieldName: 'Precio');
-                                        if (err != null) return err;
-                                        return InputValidators
-                                            .validatePriceVsCost(
-                                                val, _costController.text);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Inventario & Alertas'),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _stockController,
-                                      decoration: _inputDecoration(
-                                          'Stock Actual *',
-                                          Icons.warehouse_outlined),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      validator: (val) =>
-                                          val == null || val.isEmpty
-                                              ? 'Requerido'
-                                              : null,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Warnings / Alerts Toggle
-                              SwitchListTile.adaptive(
-                                contentPadding: EdgeInsets.zero,
-                                title: const Text('Alertas de Stock Bajo'),
-                                subtitle: Text(_showLowStockAlert
-                                    ? 'Activado'
-                                    : 'Desactivado'),
-                                value: _showLowStockAlert,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _showLowStockAlert = val;
-                                  });
-                                },
-                              ),
-
-                              if (_showLowStockAlert) ...[
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                    controller: _minStockController,
-                                    decoration: _inputDecoration('Stock Mínimo',
-                                        Icons.warning_amber_rounded),
-                                    keyboardType: TextInputType.number,
-                                    validator: (val) {
-                                      if (_showLowStockAlert) {
-                                        return InputValidators
-                                            .validatePositiveInteger(val,
-                                                fieldName: 'Stock Mínimo');
-                                      }
-                                      return null;
-                                    }),
-                              ],
-
-                              const SizedBox(height: 24),
-                              ExpansionTile(
-                                title: const Text('Opciones Avanzadas'),
-                                tilePadding: EdgeInsets.zero,
-                                children: [
-                                  // Supplier
-                                  DropdownButtonFormField<int>(
-                                    initialValue: _selectedSupplierId,
-                                    decoration: _inputDecoration('Proveedor',
-                                        Icons.local_shipping_outlined),
-                                    items: _suppliers.map((s) {
-                                      return DropdownMenuItem<int>(
-                                        value: s.id,
-                                        child: Text(s.name),
-                                      );
-                                    }).toList(),
-                                    onChanged: (val) => setState(
-                                        () => _selectedSupplierId = val),
-                                    hint: const Text('Seleccionar Proveedor'),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Units
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                          initialValue: _unitType,
-                                          decoration: _inputDecoration(
-                                              'Unidad', Icons.scale),
-                                          items: const [
-                                            DropdownMenuItem(
-                                                value: 'UN',
-                                                child: Text('Unidad')),
-                                            DropdownMenuItem(
-                                                value: 'BX',
-                                                child: Text('Caja')),
-                                            DropdownMenuItem(
-                                                value: 'KG', child: Text('Kg')),
-                                          ],
-                                          onChanged: (val) =>
-                                              setState(() => _unitType = val!),
-                                        ),
-                                      ),
-                                      if (_unitType != 'UN') ...[
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _unitsPerBoxController,
-                                            decoration: _inputDecoration(
-                                                'Equivalencia', Icons.numbers),
-                                            keyboardType: TextInputType.number,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                // Background Gradient & Blobs
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF0F172A),
+                          Color(0xFF1E293B),
+                          Color(0xFF0F172A),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-
-                // Fixed Header
                 Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
+                  top: -100,
+                  right: -100,
                   child: Container(
-                    height: 90, // Include Status Bar
-                    padding: const EdgeInsets.only(
-                        top: 30, left: 20, right: 20, bottom: 10),
+                    width: 300,
+                    height: 300,
                     decoration: BoxDecoration(
-                      color:
-                          theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-                      border: Border(
-                          bottom: BorderSide(
-                              color:
-                                  theme.dividerColor.withValues(alpha: 0.1))),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          isEdit ? 'Editar Producto' : 'Nuevo Producto',
-                          style: theme.textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
+                      color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                          blurRadius: 100,
+                          spreadRadius: 20,
                         ),
                       ],
                     ),
                   ),
                 ),
-
-                // Fixed Action Button
                 Positioned(
-                  bottom: 20,
-                  left: 20,
-                  right: 20,
-                  child: SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _save,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(
-                        isEdit ? 'Guardar Cambios' : 'Crear Producto',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                  bottom: 100,
+                  left: -50,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                          blurRadius: 80,
+                          spreadRadius: 20,
+                        ),
+                      ],
                     ),
                   ),
+                ),
+                // Pattern Overlay
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.03,
+                    child: Image.asset(
+                      'assets/images/pattern.png',
+                      repeat: ImageRepeat.repeat,
+                      color: Colors.white,
+                      errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+
+                // Scrollable Form Content
+                SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                      top: 100,
+                      left: 16,
+                      right: 16,
+                      bottom: 100 + bottomPadding),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
+                        // 1. Image Upload
+                        Center(child: _buildImagePicker()),
+                        const SizedBox(height: 24),
+
+                        // 2. Basic Information
+                        _buildSectionTitle('Información Básica'),
+                        _buildGlassTextField(
+                          controller: _nameController,
+                          label: 'Nombre del Producto *',
+                          hintText: 'Ej. Coca Cola 3L',
+                          icon: Icons.shopping_bag_outlined,
+                          validator: InputValidators.validateName,
+                          textCapitalization: TextCapitalization.sentences,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildBarcodeField(),
+                        const SizedBox(height: 16),
+                        _buildCategoryDropdown(),
+
+                        const SizedBox(height: 24),
+
+                        // 3. Prices
+                        _buildSectionTitle('Precios'),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildGlassTextField(
+                                controller: _costController,
+                                label: 'Costo *',
+                                hintText: '0.00',
+                                icon: Icons.attach_money,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                validator: (val) =>
+                                    InputValidators.validatePositiveDecimal(val,
+                                        fieldName: 'Costo'),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildGlassTextField(
+                                controller: _priceController,
+                                label: 'Precio Venta *',
+                                hintText: '0.00',
+                                icon: Icons.sell_outlined,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                validator: (val) {
+                                  final err =
+                                      InputValidators.validatePositiveDecimal(
+                                          val,
+                                          fieldName: 'Precio');
+                                  if (err != null) return err;
+                                  return InputValidators.validatePriceVsCost(
+                                      val, _costController.text);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // 4. Inventory & Alerts
+                        _buildSectionTitle('Inventario & Alertas'),
+                        _buildGlassTextField(
+                          controller: _stockController,
+                          label: 'Stock Actual *',
+                          hintText: '0.00',
+                          icon: Icons.inventory_2_outlined,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          validator: (val) =>
+                              val == null || val.isEmpty ? 'Requerido' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStockAlertToggle(),
+
+                        // Animated container for min stock
+                        AnimatedCrossFade(
+                          firstChild: Container(),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: _buildGlassTextField(
+                              controller: _minStockController,
+                              label: 'Stock Mínimo',
+                              hintText: 'Ej. 5',
+                              icon: Icons.warning_amber_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) {
+                                if (_showLowStockAlert) {
+                                  return InputValidators
+                                      .validatePositiveInteger(val,
+                                          fieldName: 'Stock Mínimo');
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          crossFadeState: _showLowStockAlert
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 300),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // 5. Advanced Options (Collapsible)
+                        _buildAdvancedOptions(),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 6. Header (Fixed)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildHeader(isEdit),
+                ),
+
+                // 7. Create/Save Button (Fixed Bottom)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildBottomButton(isEdit, bottomPadding),
                 ),
               ],
             ),
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).dividerColor),
+  // --- Widgets ---
+
+  Widget _buildHeader(bool isEdit) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          height: 90,
+          padding:
+              const EdgeInsets.only(top: 30, left: 20, right: 20, bottom: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF151924)
+                .withValues(alpha: 0.6), // More transparent
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withValues(alpha: 0.05),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEdit ? 'Editar Producto' : 'Nuevo Producto',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      filled: true,
-      fillColor: Theme.of(context).cardColor,
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.05), // Lighter fill
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 2,
+              ),
+            ),
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: _imagePath != null
+                    ? Image.file(
+                        File(_imagePath!),
+                        fit: BoxFit.cover,
+                        width: 160,
+                        height: 160,
+                      )
+                    : const Icon(
+                        Icons.camera_alt,
+                        size: 48,
+                        color: Color(0xFF6B7494),
+                      ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Subir Imagen',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFFFF6B6B),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(top: 24, bottom: 16),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.secondary,
+        style: const TextStyle(
+          color: Color(0xFF4A90E2),
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hintText, // Added hintText
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    Widget? suffix,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label above field
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFFA0A8C1),
+              fontWeight: FontWeight.w400,
             ),
+          ),
+        ),
+        // Glassmorphism Input Field
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: TextFormField(
+              controller: controller,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              keyboardType: keyboardType,
+              textCapitalization: textCapitalization,
+              validator: validator,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor:
+                    Colors.white.withValues(alpha: 0.05), // More transparent
+                prefixIcon:
+                    Icon(icon, color: const Color(0xFFA0A8C1), size: 24),
+                suffixIcon: suffix,
+                hintText: hintText, // Use hintText
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                hintStyle: const TextStyle(color: Color(0xFF6B7494)),
+                // Border States
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.08), width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                ),
+                errorStyle:
+                    const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBarcodeField() {
+    return _buildGlassTextField(
+      controller: _barcodeController,
+      label: 'Código de Barras',
+      hintText: 'Escanea o ingresa el código',
+      icon: Icons.qr_code,
+      keyboardType: TextInputType.number,
+      suffix: Container(
+        margin: const EdgeInsets.all(8),
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF4A90E2),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: IconButton(
+          onPressed: _scanBarcode,
+          icon:
+              const Icon(Icons.qr_code_scanner, color: Colors.white, size: 24),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          tooltip: 'Escanear',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Categoría',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFFA0A8C1),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+        InkWell(
+          onTap: _selectCategory,
+          borderRadius: BorderRadius.circular(12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.category_outlined,
+                        color: Color(0xFFA0A8C1), size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _selectedCategoryId != null
+                            ? _categories
+                                .firstWhere(
+                                  (c) => c.id == _selectedCategoryId,
+                                  orElse: () =>
+                                      Category(id: -1, name: 'Desconocido'),
+                                )
+                                .name
+                            : 'General',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.expand_more, color: Color(0xFFA0A8C1)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStockAlertToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Alertas de Stock Bajo',
+              style: TextStyle(fontSize: 16, color: Colors.white),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _showLowStockAlert ? 'Activado' : 'Desactivado',
+              style: const TextStyle(fontSize: 14, color: Color(0xFFA0A8C1)),
+            ),
+          ],
+        ),
+        Switch.adaptive(
+          value: _showLowStockAlert,
+          activeTrackColor: const Color(
+              0xFFFF6B6B), // Use activeTrackColor instead of activeColor
+          inactiveTrackColor: const Color(0xFF6B7494),
+          onChanged: (val) {
+            setState(() {
+              _showLowStockAlert = val;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdvancedOptions() {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text(
+          'Opciones Avanzadas',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        iconColor: const Color(0xFFA0A8C1),
+        collapsedIconColor: const Color(0xFFA0A8C1),
+        childrenPadding: EdgeInsets.zero,
+        children: [
+          const SizedBox(height: 16),
+          // Supplier Dropdown
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  'Proveedor',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFA0A8C1),
+                  ),
+                ),
+              ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: DropdownButtonFormField<int>(
+                    initialValue:
+                        _selectedSupplierId, // Change value to initialValue
+                    dropdownColor: const Color(0xFF1E293B),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    icon:
+                        const Icon(Icons.expand_more, color: Color(0xFFA0A8C1)),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      prefixIcon: const Icon(Icons.local_shipping_outlined,
+                          color: Color(0xFFA0A8C1)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF4A90E2), width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                    ),
+                    items: _suppliers.map((s) {
+                      return DropdownMenuItem<int>(
+                        value: s.id,
+                        child: Text(s.name),
+                      );
+                    }).toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedSupplierId = val),
+                    hint: const Text(
+                      'Seleccionar Proveedor',
+                      style: TextStyle(color: Color(0xFF6B7494)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Units
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text('Unidad',
+                          style: TextStyle(
+                              color: Color(0xFFA0A8C1), fontSize: 14)),
+                    ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: DropdownButtonFormField<String>(
+                          initialValue:
+                              _unitType, // Change value to initialValue
+                          dropdownColor: const Color(0xFF1E293B),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16),
+                          icon: const Icon(Icons.expand_more,
+                              color: Color(0xFFA0A8C1)),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white.withValues(alpha: 0.1),
+                            prefixIcon: const Icon(Icons.scale,
+                                color: Color(0xFFA0A8C1)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.08)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF4A90E2), width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 16),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'UN', child: Text('Unidad')),
+                            DropdownMenuItem(value: 'BX', child: Text('Caja')),
+                            DropdownMenuItem(value: 'KG', child: Text('Kg')),
+                          ],
+                          onChanged: (val) => setState(() => _unitType = val!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_unitType != 'UN') ...[
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildGlassTextField(
+                    controller: _unitsPerBoxController,
+                    label: 'Equivalencia',
+                    icon: Icons.numbers,
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomButton(bool isEdit, double bottomPadding) {
+    return Container(
+      padding: EdgeInsets.only(
+          left: 16, right: 16, bottom: 16 + bottomPadding, top: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151924).withValues(alpha: 0.95),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _save,
+            borderRadius: BorderRadius.circular(16),
+            child: Center(
+              child: Text(
+                isEdit ? 'Guardar Cambios' : 'Crear Producto',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

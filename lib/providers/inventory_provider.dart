@@ -122,7 +122,8 @@ class InventoryProvider extends ChangeNotifier {
         _currentSort = SortOption.nameAsc;
         break;
     }
-    loadProducts();
+
+    loadProducts(reset: true);
   }
 
   // Legacy support wrapper
@@ -311,11 +312,7 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> addPurchase(Purchase purchase) async {
     try {
       await _db.insertPurchase(purchase);
-
-      // Optimistic Update / Refresh
-      // Since cost and stock changed for multiple products, reloading might be safest
-      // to keep sync with DB trigger/logic if any.
-      // But we can also iterate and update local state for speed.
+      // Optimistic Update
       for (var item in purchase.items) {
         final index = _products.indexWhere((p) => p.id == item.productId);
         if (index != -1) {
@@ -329,6 +326,17 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Error adding purchase: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> addOrder(Order order) async {
+    try {
+      await _db.insertOrder(order);
+      // No stock update for orders until received
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error adding order: $e");
       rethrow;
     }
   }

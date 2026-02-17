@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -151,133 +152,153 @@ class RecentActivityList extends StatelessWidget {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        clipBehavior: Clip.antiAlias,
+        // Glassmorphism Decoration
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF242B3D).withValues(alpha: 0.5)
-              : Colors.white, // White card in light mode
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-        ),
-        child: Stack(
-          children: [
-            // Side Border
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 4,
-              child: Container(color: accentColor),
-            ),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  20, 16, 16, 16), // Extra left padding for border
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1: Name and Date
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        date,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Row 2: Badge and Number
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          type,
-                          style: TextStyle(
-                            color: accentColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        number,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Row 3: Total
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Expanded(child: Container()), // Spacer
-                      Text(
-                        'Total - ',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                      Hero(
-                        tag: 'transaction-${number.replaceAll("#", "")}-total',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Text(
-                            total,
-                            style: TextStyle(
-                              color: accentColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              ? const Color(0x26FFFFFF) // White 15% opacity
+              : Colors
+                  .white, // Keep white for light mode or adapt? usually glass is used on dark
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? const Color(0x1AFFFFFF) // White 10% opacity
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Stack(
+              children: [
+                // Side Border
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 4,
+                  child: Container(color: accentColor),
+                ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row 1: Name and Date
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey[200]
+                                  : theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Row 2: Badge and Number
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: accentColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              type,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            number,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white70
+                                  : theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Row 3: Total
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Expanded(child: Container()), // Spacer
+                          Text(
+                            'Total - ',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white70
+                                  : theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                          Hero(
+                            tag:
+                                'transaction-${number.replaceAll("#", "")}-total',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Text(
+                                total,
+                                style: TextStyle(
+                                  color: accentColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       )
           .animate()

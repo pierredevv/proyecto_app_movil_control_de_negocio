@@ -71,6 +71,28 @@ class SalesTrendChart extends StatelessWidget {
           // The Chart
           LineChart(
             LineChartData(
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  tooltipBgColor: theme.colorScheme.surface,
+                  tooltipRoundedRadius: 8,
+                  tooltipPadding: const EdgeInsets.all(8),
+                  tooltipBorder: BorderSide(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                  ),
+                  getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                    return touchedBarSpots.map((barSpot) {
+                      return LineTooltipItem(
+                        'Bs. ${barSpot.y.toStringAsFixed(2)}',
+                        TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
+                handleBuiltInTouches: true,
+              ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,

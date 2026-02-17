@@ -1,6 +1,6 @@
 import 'invoice_item.dart';
 
-enum TransactionType { sale, purchase, expense, payment }
+enum TransactionType { sale, purchase, expense, payment, order }
 
 abstract class Transaction {
   final int? id;
@@ -182,6 +182,46 @@ class Expense extends Transaction {
       totalAmount: map['total_amount'],
       status: map['status'],
       description: map['entity_name'] ?? 'Gasto sin descripción',
+    );
+  }
+}
+
+class Order extends Transaction {
+  final String? supplierName;
+  final DateTime? deliveryDate;
+
+  Order({
+    super.id,
+    required super.date,
+    required super.totalAmount,
+    required super.status, // Status is required and dynamic for Orders
+    super.items,
+    this.supplierName,
+    this.deliveryDate,
+  }) : super(type: TransactionType.order);
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'type': type.name, // 'order'
+      'entity_name': supplierName,
+      'date': date.millisecondsSinceEpoch,
+      'total_amount': totalAmount,
+      'status': status,
+      // We might need to store deliveryDate in a generic field or new column if needed
+      // For now, let's skip persisting deliveryDate unless we add a column.
+    };
+  }
+
+  factory Order.fromMap(Map<String, dynamic> map, List<InvoiceItem> items) {
+    return Order(
+      id: map['id'],
+      date: DateTime.fromMillisecondsSinceEpoch(map['date']),
+      totalAmount: map['total_amount'],
+      status: map['status'] ?? 'PENDING',
+      supplierName: map['entity_name'],
+      items: items,
     );
   }
 }

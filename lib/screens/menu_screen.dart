@@ -10,6 +10,7 @@ import 'suppliers/supplier_list_screen.dart';
 import 'expenses/expense_form_screen.dart';
 import 'history/transaction_history_screen.dart';
 import 'purchases/purchase_list_screen.dart';
+import 'orders/order_list_screen.dart';
 import 'inventory/product_list_screen.dart';
 import 'reports/reports_screen.dart';
 import 'utilities/utilities_screen.dart';
@@ -72,6 +73,15 @@ class _MenuScreenState extends State<MenuScreen> {
                               context,
                               MaterialPageRoute(
                                   builder: (_) => const PurchaseListScreen())),
+                        ),
+                        _MenuItem(
+                          icon: Icons.local_shipping_outlined, // Orders
+                          title: 'Pedidos',
+                          color: Colors.brown, // Choose an appropriate color
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const OrderListScreen())),
                         ),
                         _MenuItem(
                           icon: Icons.people,

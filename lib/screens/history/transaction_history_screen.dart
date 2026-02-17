@@ -8,6 +8,8 @@ import '../sales/sale_detail_screen.dart';
 import '../../services/pdf_generator_service.dart';
 import '../sales/invoice_preview_screen.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
+import '../purchases/purchase_details_screen.dart';
+import '../orders/order_details_screen.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -458,12 +460,35 @@ class _GlassTransactionCard extends StatelessWidget {
   const _GlassTransactionCard(
       {required this.transaction, required this.isDark});
 
-  void _navigateToDetail(BuildContext context) {
+  void _navigateToDetail(BuildContext context, String heroTag) {
     if (transaction is Sale) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SaleDetailScreen(sale: transaction as Sale),
+          builder: (context) => SaleDetailScreen(
+            sale: transaction as Sale,
+            heroTag: heroTag,
+          ),
+        ),
+      );
+    } else if (transaction is Purchase) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PurchaseDetailsScreen(
+            purchase: transaction as Purchase,
+            heroTag: heroTag,
+          ),
+        ),
+      );
+    } else if (transaction is Order) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OrderDetailsScreen(
+            order: transaction as Order,
+            heroTag: heroTag,
+          ),
         ),
       );
     }
@@ -567,7 +592,18 @@ class _GlassTransactionCard extends StatelessWidget {
         name = 'Abono de Cliente';
         isPositive = true; // Payments are money IN
         break;
+      case TransactionType.order:
+        typeLabel = 'PEDIDO';
+        typeIcon = Icons.shopping_bag_outlined; // Or another suitable icon
+        typeColor = const Color(0xFF8C52FF); // Purple or another distinct color
+        name = (transaction as Order).supplierName ??
+            'Proveedor General'; // Orders have suppliers
+        isPositive =
+            false; // Orders are typically not direct money in/out until fulfilled
+        break;
     }
+
+    final heroTag = '${transaction.type.name}_${transaction.id}_icon';
 
     final amountColor =
         isPositive ? const Color(0xFF51CF66) : const Color(0xFFFF6B6B);
@@ -605,7 +641,7 @@ class _GlassTransactionCard extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _navigateToDetail(context),
+              onTap: () => _navigateToDetail(context, heroTag),
               child: Stack(
                 children: [
                   // Left Border Indicator
@@ -629,7 +665,11 @@ class _GlassTransactionCard extends StatelessWidget {
                             // Badge
                             Row(
                               children: [
-                                Icon(typeIcon, size: 18, color: secondaryGray),
+                                Hero(
+                                  tag: heroTag,
+                                  child: Icon(typeIcon,
+                                      size: 18, color: secondaryGray),
+                                ),
                                 const SizedBox(width: 6),
                                 Text('$typeLabel • #${transaction.id}',
                                     style: const TextStyle(

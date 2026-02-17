@@ -7,11 +7,13 @@ import '../../services/pdf_generator_service.dart';
 import '../../services/network_service.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import 'invoice_preview_screen.dart';
+import '../../services/database_service.dart'; // Import DatabaseService
 
 class SaleDetailScreen extends StatefulWidget {
   final Sale sale;
+  final String? heroTag;
 
-  const SaleDetailScreen({super.key, required this.sale});
+  const SaleDetailScreen({super.key, required this.sale, this.heroTag});
 
   @override
   State<SaleDetailScreen> createState() => _SaleDetailScreenState();
@@ -64,7 +66,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 backgroundColor: Colors.transparent,
                 builder: (context) => TransactionOptionsBottomSheet(
                   onEdit: () {},
-                  onCancel: () {},
+                  onCancel: () => _handleVoidSale(),
                   onSharePdf: () {},
                   onDuplicate: () {},
                 ),
@@ -117,21 +119,25 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isDark
-                                    ? const Color(0xFF333333)
-                                    : Colors.grey[200],
+                            Hero(
+                              tag: widget.heroTag ??
+                                  'sale_${widget.sale.id}_icon',
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isDark
+                                      ? const Color(0xFF333333)
+                                      : Colors.grey[200],
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text('S',
+                                    style: TextStyle(
+                                        color: yellowColor,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold)),
                               ),
-                              alignment: Alignment.center,
-                              child: const Text('S',
-                                  style: TextStyle(
-                                      color: yellowColor,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold)),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -629,6 +635,62 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       }
     } finally {
       if (mounted) setState(() => _isSendingReceipt = false);
+    }
+  }
+
+  Future<void> _handleVoidSale() async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Close options sheet
+    navigator.pop();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Anular Venta'),
+        content: const Text(
+            '¿Estás seguro de anular esta venta? El stock de los productos será restaurado.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Anular'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final dbService =
+            DatabaseService(); // Or use Provider if available, but simple instance is fine here or context.read if using provider
+        await dbService.deleteSale(widget.sale.id!);
+
+        HapticFeedbackHelper.heavyImpact();
+
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Venta anulada correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          navigator.pop(); // Return to list
+        }
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Error al anular: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }

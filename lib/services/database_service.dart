@@ -460,6 +460,51 @@ class DatabaseService {
     });
   }
 
+  Future<void> deleteSale(int saleId) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // 1. Check if already voided
+      final List<Map<String, dynamic>> transaction = await txn.query(
+        'transactions',
+        columns: ['status'],
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+
+      if (transaction.isEmpty) throw Exception('Venta no encontrada');
+      if (transaction.first['status'] == 'VOIDED') {
+        throw Exception('Esta venta ya ha sido anulada');
+      }
+
+      // 2. Get items to restore stock
+      final List<Map<String, dynamic>> items = await txn.query(
+        'transaction_items',
+        where: 'transaction_id = ?',
+        whereArgs: [saleId],
+      );
+
+      for (var item in items) {
+        final productId = item['product_id'] as int;
+        final quantity = item['quantity'] as num;
+
+        // 3. Restore Stock
+        await txn.rawUpdate(
+          'UPDATE products SET stock = stock + ? WHERE id = ?',
+          [quantity, productId],
+        );
+      }
+
+      // 4. Mark as VOIDED
+      await txn.update(
+        'transactions',
+        {'status': 'VOIDED'},
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+    });
+  }
+
   Future<int> insertPurchase(Purchase purchase) async {
     final db = await database;
 
@@ -482,6 +527,51 @@ class DatabaseService {
         );
       }
       return purchaseId;
+    });
+  }
+
+  Future<void> deletePurchase(int purchaseId) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // 1. Check if already voided
+      final List<Map<String, dynamic>> transaction = await txn.query(
+        'transactions',
+        columns: ['status'],
+        where: 'id = ?',
+        whereArgs: [purchaseId],
+      );
+
+      if (transaction.isEmpty) throw Exception('Compra no encontrada');
+      if (transaction.first['status'] == 'VOIDED') {
+        throw Exception('Esta compra ya ha sido anulada');
+      }
+
+      // 2. Get items to decrease stock
+      final List<Map<String, dynamic>> items = await txn.query(
+        'transaction_items',
+        where: 'transaction_id = ?',
+        whereArgs: [purchaseId],
+      );
+
+      for (var item in items) {
+        final productId = item['product_id'] as int;
+        final quantity = item['quantity'] as num;
+
+        // 3. Decrease Stock
+        await txn.rawUpdate(
+          'UPDATE products SET stock = stock - ? WHERE id = ?',
+          [quantity, productId],
+        );
+      }
+
+      // 4. Mark as VOIDED
+      await txn.update(
+        'transactions',
+        {'status': 'VOIDED'},
+        where: 'id = ?',
+        whereArgs: [purchaseId],
+      );
     });
   }
 
@@ -594,6 +684,138 @@ class DatabaseService {
     }
 
     return purchases;
+  }
+
+  // ---------------------------------------------------------------------------
+  // ORDER OPERATIONS (Scenario B)
+  // ---------------------------------------------------------------------------
+
+  Future<int> insertOrder(Order order) async {
+    final db = await database;
+
+    return await db.transaction((txn) async {
+      final orderId = await txn.insert('transactions', order.toMap());
+
+      for (var item in order.items) {
+        await txn.insert('transaction_items', {
+          'transaction_id': orderId,
+          'product_id': item.productId,
+          'product_name': item.productName,
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'subtotal': item.subtotal,
+        });
+        // NOTE: We do NOT update stock here. Stock is updated when status -> RECEIVED.
+      }
+      return orderId;
+    });
+  }
+
+  Future<List<Order>> getOrders({int limit = 20, int offset = 0}) async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: 'type = ?',
+      whereArgs: ['order'],
+      orderBy: 'date DESC',
+      limit: limit,
+      offset: offset,
+    );
+
+    List<Order> orders = [];
+
+    for (var map in maps) {
+      final id = map['id'] as int;
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id = ?',
+        whereArgs: [id],
+      );
+
+      final items = List.generate(
+          itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
+      orders.add(Order.fromMap(map, items));
+    }
+
+    return orders;
+  }
+
+  Future<void> updateOrderStatus(int orderId, String newStatus) async {
+    final db = await database;
+
+    // Get current status to prevent double-crediting if already received
+    final List<Map<String, dynamic>> result = await db.query(
+      'transactions',
+      columns: ['status', 'entity_name', 'total_amount'],
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+
+    if (result.isEmpty) throw Exception('Order $orderId not found');
+
+    final currentStatus = result.first['status'] as String;
+    final supplierName = result.first['entity_name'] as String?;
+    final totalAmount = (result.first['total_amount'] as num).toDouble();
+
+    // Prevent re-triggering stock increase if already Received
+    if (currentStatus == 'RECEIVED' && newStatus == 'RECEIVED') {
+      return;
+    }
+
+    await db.transaction((txn) async {
+      // 1. Update Status
+      await txn.update(
+        'transactions',
+        {'status': newStatus},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+
+      // 2. Logic: If status becomes RECEIVED, we increase stock (Purchase Logic)
+      if (newStatus == 'RECEIVED' && currentStatus != 'RECEIVED') {
+        // Fetch items
+        final itemsMaps = await txn.query(
+          'transaction_items',
+          where: 'transaction_id = ?',
+          whereArgs: [orderId],
+        );
+        final items = List.generate(
+            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
+
+        // NEW: Create a "Purchase" transaction to reflect this in analytics/history
+        final purchaseId = await txn.insert('transactions', {
+          'type': 'purchase',
+          'entity_name': supplierName,
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'total_amount': totalAmount,
+          'status': 'COMPLETED',
+        });
+
+        for (var item in items) {
+          // Increase Stock and update Cost (Weighted Average Cost could be implemented here, but typically we just set new cost or ignore)
+          // For simplicity, we update Cost to latest.
+          // Increase Stock and update Cost
+          await txn.rawUpdate(
+            'UPDATE products SET stock = stock + ?, cost = ? WHERE id = ?',
+            [item.quantity, item.unitPrice, item.productId],
+          );
+
+          // NEW: Link this item to the Purchase Transaction
+          await txn.insert('transaction_items', {
+            'transaction_id': purchaseId,
+            'product_id': item.productId,
+            'product_name': item.productName,
+            'quantity': item.quantity,
+            'unit_price': item.unitPrice,
+            'subtotal': item.subtotal,
+          });
+        }
+      }
+      // Note: If reverting FROM Received to Pending, should we decrease stock?
+      // For safety, let's say NO for now unless explicitly requested.
+      // Reverting 'Received' is complex (what if stock was already sold?).
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -748,6 +970,16 @@ class DatabaseService {
         transactions.add(Payment.fromMap(map));
       } else if (tType == 'expense') {
         transactions.add(Expense.fromMap(map));
+      } else if (tType == 'order') {
+        final id = map['id'] as int;
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id = ?',
+          whereArgs: [id],
+        );
+        final items = List.generate(
+            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
+        transactions.add(Order.fromMap(map, items));
       }
     }
 
