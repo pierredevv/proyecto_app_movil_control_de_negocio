@@ -1,10 +1,11 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/customer.dart';
 import '../../providers/customer_provider.dart';
 import '../../services/contact_helper.dart';
-import '../../theme/app_theme.dart';
 import '../../utils/input_validators.dart';
 
 class CustomerFormScreen extends StatefulWidget {
@@ -23,6 +24,11 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   late TextEditingController _addressController;
+
+  // Validation trackers to trigger error states on custom UI
+  String? _nameError;
+  String? _phoneError;
+  String? _emailError;
 
   @override
   void initState() {
@@ -54,11 +60,25 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
         if (contact.emails.isNotEmpty) {
           _emailController.text = contact.emails.first.address;
         }
+        _validate(); // Re-validate after auto-fill
       });
     }
   }
 
+  bool _validate() {
+    setState(() {
+      _nameError = InputValidators.validateName(_nameController.text);
+      _phoneError =
+          InputValidators.validateBolivianPhone(_phoneController.text);
+      _emailError = InputValidators.validateEmail(_emailController.text);
+    });
+    return _nameError == null && _phoneError == null && _emailError == null;
+  }
+
   Future<void> _save() async {
+    if (!_validate()) return;
+
+    // Fallback UI validation block
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
@@ -78,8 +98,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
 
     try {
       final provider = context.read<CustomerProvider>();
-      await provider
-          .addCustomer(newCustomer); // Handles update internally based on ID
+      await provider.addCustomer(newCustomer);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -90,12 +109,26 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
     }
   }
 
+  bool _canSave() {
+    final name = _nameController.text.trim();
+    return name.isNotEmpty && _nameError == null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.customer != null;
     return Scaffold(
+      backgroundColor: const Color(0xFF151924),
       appBar: AppBar(
-        title: Text(isEdit ? 'Editar Cliente' : 'Nuevo Cliente'),
+        backgroundColor: const Color(0xFF151924),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white, size: 24),
+        title: Text(
+          isEdit ? 'Editar Cliente' : 'Nuevo Cliente',
+          style: const TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         actions: [
           if (isEdit)
             IconButton(
@@ -129,69 +162,348 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _pickContact,
-                icon: const Icon(Icons.contacts),
-                label: const Text('Importar desde Contactos'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+              _ImportContactButton(onTap: _pickContact)
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 0.ms),
+              const SizedBox(height: 24),
+              _GlassTextFieldGroup(
+                label: 'Nombre Completo *',
+                controller: _nameController,
+                icon: Icons.person,
+                placeholder: 'Ingresa el nombre del cliente',
+                errorText: _nameError,
+                onChanged: (_) => setState(() => _nameError =
+                    InputValidators.validateName(_nameController.text)),
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 50.ms),
+              const SizedBox(height: 16),
+              _GlassTextFieldGroup(
+                label: 'Teléfono',
+                controller: _phoneController,
+                icon: Icons.phone,
+                placeholder: 'Ingresa el número de teléfono',
+                errorText: _phoneError,
+                keyboardType: TextInputType.phone,
+                onChanged: (_) => setState(() => _phoneError =
+                    InputValidators.validateBolivianPhone(
+                        _phoneController.text)),
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 100.ms),
+              const SizedBox(height: 16),
+              _GlassTextFieldGroup(
+                label: 'Email',
+                controller: _emailController,
+                icon: Icons.email,
+                placeholder: 'Ingresa el correo electrónico',
+                errorText: _emailError,
+                keyboardType: TextInputType.emailAddress,
+                onChanged: (_) => setState(() => _emailError =
+                    InputValidators.validateEmail(_emailController.text)),
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 150.ms),
+              const SizedBox(height: 16),
+              _GlassTextFieldGroup(
+                label: 'Dirección',
+                controller: _addressController,
+                icon: Icons.location_on,
+                placeholder: 'Ingresa la dirección (opcional)',
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 200.ms),
+              const SizedBox(height: 32),
+              _AnimatedSaveButton(
+                onTap: _save,
+                isEnabled: _canSave(),
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 250.ms),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImportContactButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _ImportContactButton({required this.onTap});
+
+  @override
+  State<_ImportContactButton> createState() => _ImportContactButtonState();
+}
+
+class _ImportContactButtonState extends State<_ImportContactButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.98 : 1.0, _isPressed ? 0.98 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF6B6B)
+              .withValues(alpha: _isPressed ? 0.15 : 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.30),
+              width: 1.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.contact_page, color: Color(0xFFFF6B6B), size: 22),
+                SizedBox(width: 12),
+                Text(
+                  'Importar desde Contactos',
+                  style: TextStyle(
+                    color: Color(0xFFFF6B6B),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassTextFieldGroup extends StatefulWidget {
+  final String label;
+  final TextEditingController controller;
+  final IconData icon;
+  final String placeholder;
+  final String? errorText;
+  final TextInputType? keyboardType;
+  final Function(String)? onChanged;
+
+  const _GlassTextFieldGroup({
+    required this.label,
+    required this.controller,
+    required this.icon,
+    required this.placeholder,
+    this.errorText,
+    this.keyboardType,
+    this.onChanged,
+  });
+
+  @override
+  State<_GlassTextFieldGroup> createState() => _GlassTextFieldGroupState();
+}
+
+class _GlassTextFieldGroupState extends State<_GlassTextFieldGroup> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasError = widget.errorText != null;
+
+    Color borderColor = Colors.white.withValues(alpha: 0.08);
+    Color bgColor = Colors.white.withValues(alpha: 0.10);
+
+    if (hasError) {
+      borderColor = const Color(0xFFFF6B6B);
+      bgColor =
+          Colors.white.withValues(alpha: 0.10); // Optionally add red tint here
+    } else if (_isFocused) {
+      borderColor = const Color(0xFF4ECDC4);
+      bgColor = Colors.white
+          .withValues(alpha: 0.15); // Slightly more opaque when focused
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: const TextStyle(
+            color: Color(0xFFA0A8C1),
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 56,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: borderColor,
+              width: _isFocused || hasError ? 1.5 : 1.0,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Icon(widget.icon,
+                        color: const Color(0xFFA0A8C1), size: 24),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: widget.controller,
+                      focusNode: _focusNode,
+                      keyboardType: widget.keyboardType,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      onChanged: widget.onChanged,
+                      decoration: InputDecoration(
+                        hintText: widget.placeholder,
+                        hintStyle: const TextStyle(
+                            color: Color(0xFF6B7494), fontSize: 16),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nombre Completo *'),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) => InputValidators.validateName(value),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Teléfono',
-                prefixIcon: Icon(Icons.phone),
+          ),
+        ),
+        if (hasError) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.error_outline,
+                  color: Color(0xFFFF6B6B), size: 14),
+              const SizedBox(width: 4),
+              Text(
+                widget.errorText!,
+                style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12),
               ),
-              keyboardType: TextInputType.phone,
-              validator: InputValidators.validateBolivianPhone,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: InputValidators.validateEmail,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _addressController,
-              decoration: const InputDecoration(
-                labelText: 'Dirección',
-                prefixIcon: Icon(Icons.location_on),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Guardar Cliente'),
-              ),
-            ),
-          ],
+            ],
+          ),
+        ]
+      ],
+    );
+  }
+}
+
+class _AnimatedSaveButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final bool isEnabled;
+
+  const _AnimatedSaveButton({required this.onTap, required this.isEnabled});
+
+  @override
+  State<_AnimatedSaveButton> createState() => _AnimatedSaveButtonState();
+}
+
+class _AnimatedSaveButtonState extends State<_AnimatedSaveButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isEnabled) {
+      return Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.30),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'Guardar Cliente',
+          style: TextStyle(
+              color: Colors.white54, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.97 : 1.0, _isPressed ? 0.97 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          boxShadow: _isPressed
+              ? null
+              : [
+                  BoxShadow(
+                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.30),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  )
+                ],
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'Guardar Cliente',
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );

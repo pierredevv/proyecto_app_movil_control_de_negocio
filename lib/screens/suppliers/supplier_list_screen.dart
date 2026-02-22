@@ -1,8 +1,10 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/supplier_provider.dart';
 import '../../models/supplier.dart';
-import '../../theme/app_theme.dart';
 import 'supplier_form_screen.dart';
 
 class SupplierListScreen extends StatefulWidget {
@@ -21,80 +23,6 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (context.watch<SupplierProvider>().isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final suppliers = context.watch<SupplierProvider>().filteredSuppliers;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Proveedores'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Buscar proveedor...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          context.read<SupplierProvider>().setSearchQuery('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Theme.of(context).cardColor,
-              ),
-              onChanged: (value) {
-                context.read<SupplierProvider>().setSearchQuery(value);
-                setState(() {}); // trigger rebuild for local state if needed
-              },
-            ),
-          ),
-        ),
-      ),
-      body: suppliers.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.business_outlined,
-                      size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay proveedores',
-                    style: TextStyle(color: Colors.grey[600]),
-                  )
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80),
-              itemCount: suppliers.length,
-              itemBuilder: (context, index) {
-                final supplier = suppliers[index];
-                return _SupplierCard(supplier: supplier);
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToForm(context, null),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
   void _navigateToForm(BuildContext context, Supplier? supplier) {
     Navigator.push(
       context,
@@ -103,98 +31,8 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
       ),
     );
   }
-}
 
-class _SupplierCard extends StatelessWidget {
-  final Supplier supplier;
-
-  const _SupplierCard({required this.supplier});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPhone = supplier.phone != null && supplier.phone!.isNotEmpty;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-          child: const Icon(Icons.business, color: AppTheme.primary),
-        ),
-        title: Text(
-          supplier.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (supplier.category != null && supplier.category!.isNotEmpty)
-              Text(supplier.category!,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-            if (hasPhone)
-              Text('${supplier.phone}', style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasPhone) ...[
-              IconButton(
-                icon: const Icon(Icons.phone, color: AppTheme.secondary),
-                onPressed: () {
-                  context
-                      .read<SupplierProvider>()
-                      .makePhoneCall(supplier.phone!);
-                },
-              ),
-              IconButton(
-                icon: Image.asset('assets/icons/whatsapp.png',
-                    width: 24,
-                    height: 24,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.message,
-                        color: Colors.green)), // Fallback icon if asset missing
-                onPressed: () {
-                  context.read<SupplierProvider>().sendWhatsApp(supplier.phone!,
-                      "Hola ${supplier.name}, quisiera hacer un pedido.");
-                },
-              ),
-            ],
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SupplierFormScreen(supplier: supplier),
-                    ),
-                  );
-                } else if (value == 'delete') {
-                  _confirmDelete(context);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                const PopupMenuItem(
-                    value: 'delete',
-                    child:
-                        Text('Eliminar', style: TextStyle(color: Colors.red))),
-              ],
-            ),
-          ],
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SupplierFormScreen(supplier: supplier),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context) {
+  void _confirmDelete(BuildContext context, Supplier supplier) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -213,6 +51,570 @@ class _SupplierCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (context.watch<SupplierProvider>().isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF151924),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final suppliers = context.watch<SupplierProvider>().filteredSuppliers;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF151924), // Dark #151924 background
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF151924),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white, size: 24),
+        title: const Text(
+          'Proveedores',
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      ),
+      body: Column(
+        children: [
+          // SEARCH BAR
+          Padding(
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08), width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar proveedor...',
+                      hintStyle: const TextStyle(
+                          color: Color(0xFF6B7494), fontSize: 16),
+                      prefixIcon: const Icon(Icons.search,
+                          color: Color(0xFFA0A8C1), size: 24),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear,
+                                  color: Color(0xFFA0A8C1), size: 20),
+                              onPressed: () {
+                                _searchController.clear();
+                                context
+                                    .read<SupplierProvider>()
+                                    .setSearchQuery('');
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                    ),
+                    onChanged: (value) {
+                      context.read<SupplierProvider>().setSearchQuery(value);
+                      setState(() {});
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // MAIN CONTENT
+          Expanded(
+            child: suppliers.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding:
+                        const EdgeInsets.only(bottom: 100), // Space for FAB
+                    itemCount: suppliers.length,
+                    itemBuilder: (context, index) {
+                      final supplier = suppliers[index];
+                      // Animate max 5 items
+                      Widget card = _SupplierGlassCard(
+                        supplier: supplier,
+                        onTap: () => _navigateToForm(context, supplier),
+                        onDeleteTap: () => _confirmDelete(context, supplier),
+                      );
+
+                      if (index < 5) {
+                        return card
+                            .animate()
+                            .fade(
+                                duration: 300.ms,
+                                delay: (index * 50).ms,
+                                curve: Curves.easeOut)
+                            .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                duration: 300.ms,
+                                delay: (index * 50).ms,
+                                curve: Curves.easeOut);
+                      }
+                      return card;
+                    },
+                  ),
+          ),
+        ],
+      ),
+      // FAB
+      floatingActionButton: _buildFAB(),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4ECDC4).withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const Icon(Icons.business, size: 120, color: Color(0xFF4ECDC4)),
+              ],
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'No hay proveedores',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Añade a tu primer proveedor para comenzar a\ngestionar tus inventarios.',
+              style: TextStyle(
+                  color: Color(0xFFA0A8C1), fontSize: 16, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            _AnimatedCTAButton(
+              onTap: () => _navigateToForm(context, null),
+              title: 'Añadir Proveedor',
+              icon: Icons.add_business,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFAB() {
+    return _AnimatedFAB(
+      onTap: () => _navigateToForm(context, null),
+    );
+  }
+}
+
+class _AnimatedCTAButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final String title;
+  final IconData icon;
+
+  const _AnimatedCTAButton(
+      {required this.onTap, required this.title, required this.icon});
+
+  @override
+  State<_AnimatedCTAButton> createState() => _AnimatedCTAButtonState();
+}
+
+class _AnimatedCTAButtonState extends State<_AnimatedCTAButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.96 : 1.0, _isPressed ? 0.96 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        width: 240,
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFF4ECDC4).withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+              color: const Color(0xFF4ECDC4).withValues(alpha: 0.30),
+              width: 1.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: const Color(0xFF4ECDC4), size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  widget.title,
+                  style: const TextStyle(
+                    color: Color(0xFF4ECDC4),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedFAB extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedFAB({required this.onTap});
+
+  @override
+  State<_AnimatedFAB> createState() => _AnimatedFABState();
+}
+
+class _AnimatedFABState extends State<_AnimatedFAB> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.95 : 1.0, _isPressed ? 0.95 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.20),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            )
+          ],
+        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
+    );
+  }
+}
+
+class _SupplierGlassCard extends StatefulWidget {
+  final Supplier supplier;
+  final VoidCallback onTap;
+  final VoidCallback onDeleteTap;
+
+  const _SupplierGlassCard({
+    required this.supplier,
+    required this.onTap,
+    required this.onDeleteTap,
+  });
+
+  @override
+  State<_SupplierGlassCard> createState() => _SupplierGlassCardState();
+}
+
+class _SupplierGlassCardState extends State<_SupplierGlassCard> {
+  bool _isCardPressed = false;
+
+  Color _getAvatarColor(String name) {
+    if (name.isEmpty) {
+      return const Color(0xFF4ECDC4);
+    }
+    final firstChar = name.trim().toUpperCase()[0];
+    if (RegExp(r'[A-F]').hasMatch(firstChar)) {
+      return const Color(0xFF4ECDC4); // Turquoise
+    }
+    if (RegExp(r'[G-L]').hasMatch(firstChar)) {
+      return const Color(0xFF4A90E2); // Blue
+    }
+    if (RegExp(r'[M-R]').hasMatch(firstChar)) {
+      return const Color(0xFF51CF66); // Green
+    }
+    if (RegExp(r'[S-Z]').hasMatch(firstChar)) {
+      return const Color(0xFFF5A623); // Orange
+    }
+    return const Color(0xFF4ECDC4); // Default Turquoise
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarColor = _getAvatarColor(widget.supplier.name);
+    final hasPhone =
+        widget.supplier.phone != null && widget.supplier.phone!.isNotEmpty;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isCardPressed = true),
+      onTapUp: (_) {
+        setState(() => _isCardPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isCardPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isCardPressed ? 0.98 : 1.0, _isCardPressed ? 0.98 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white
+                    .withValues(alpha: _isCardPressed ? 0.12 : 0.10),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08), width: 1),
+              ),
+              child: Row(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: avatarColor.withValues(alpha: 0.20),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: avatarColor.withValues(alpha: 0.30), width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.supplier.name.isNotEmpty
+                          ? widget.supplier.name[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        color: avatarColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.supplier.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (widget.supplier.category != null &&
+                            widget.supplier.category!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.supplier.category!,
+                            style: const TextStyle(
+                              color: Color(0xFFA0A8C1),
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (hasPhone) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.supplier.phone!,
+                            style: const TextStyle(
+                              color: Color(0xFF6B7494),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Actions
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (hasPhone)
+                        _CardActionButton(
+                          icon: Icons.phone,
+                          color: const Color(0xFF4A90E2), // Blue
+                          onTap: () {
+                            context
+                                .read<SupplierProvider>()
+                                .makePhoneCall(widget.supplier.phone!);
+                          },
+                        ),
+                      if (hasPhone) const SizedBox(width: 12),
+                      if (hasPhone)
+                        _CardActionButton(
+                          icon:
+                              Icons.message, // Use message as WhatsApp fallback
+                          color: const Color(0xFF51CF66), // Green
+                          onTap: () {
+                            context.read<SupplierProvider>().sendWhatsApp(
+                                widget.supplier.phone!,
+                                "Hola ${widget.supplier.name}, quisiera hacer un pedido.");
+                          },
+                        ),
+                      if (hasPhone) const SizedBox(width: 12),
+                      // Custom Popup Menu action button
+                      _CardPopupActions(
+                        supplier: widget.supplier,
+                        onEdit: widget.onTap,
+                        onDelete: widget.onDeleteTap,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CardActionButton extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CardActionButton(
+      {required this.icon, required this.color, required this.onTap});
+
+  @override
+  State<_CardActionButton> createState() => _CardActionButtonState();
+}
+
+class _CardActionButtonState extends State<_CardActionButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.92 : 1.0, _isPressed ? 0.92 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: widget.color.withValues(alpha: _isPressed ? 0.30 : 0.20),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: widget.color.withValues(alpha: 0.30), width: 1.5),
+        ),
+        child: Icon(widget.icon, color: widget.color, size: 22),
+      ),
+    );
+  }
+}
+
+class _CardPopupActions extends StatelessWidget {
+  final Supplier supplier;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _CardPopupActions(
+      {required this.supplier, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'edit') {
+          onEdit();
+        } else if (value == 'delete') {
+          onDelete();
+        }
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: const Color(0xFF1E2433), // Dark dropdown menu
+      icon: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.more_vert, color: Color(0xFF6B7494), size: 22),
+      ),
+      padding: EdgeInsets.zero,
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'edit',
+          child: Text('Editar', style: TextStyle(color: Colors.white)),
+        ),
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Text('Eliminar', style: TextStyle(color: Colors.red)),
+        ),
+      ],
     );
   }
 }

@@ -11,6 +11,7 @@ import '../../widgets/inventory/product_list_item.dart';
 import 'product_form_screen.dart';
 import 'inventory_filter_panel.dart';
 import '../../widgets/common/skeleton_list.dart';
+import '../notifications/notifications_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -64,7 +65,6 @@ class _ProductListScreenState extends State<ProductListScreen>
       key: _scaffoldKey,
       extendBodyBehindAppBar: true,
       backgroundColor: theme.scaffoldBackgroundColor,
-      endDrawer: const InventoryFilterPanel(),
       appBar: _buildHeader(context),
       floatingActionButton: _buildFAB(context),
       body: Stack(
@@ -232,7 +232,12 @@ class _ProductListScreenState extends State<ProductListScreen>
               icon: const Icon(Icons.notifications_none_outlined,
                   color: Colors.white, size: 24),
               onPressed: () {
-                // Optional: Navigate to notifications
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsScreen(),
+                  ),
+                );
               },
             ),
             if (unreadCount > 0)
@@ -263,7 +268,12 @@ class _ProductListScreenState extends State<ProductListScreen>
             IconButton(
               icon: const Icon(Icons.tune, color: Colors.white, size: 24),
               onPressed: () {
-                _scaffoldKey.currentState?.openEndDrawer();
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const InventoryFilterPanel(),
+                );
               },
             ),
             if (activeFilters > 0)
@@ -559,76 +569,81 @@ class _ProductListScreenState extends State<ProductListScreen>
 
   Widget _buildEmptyState(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF4A90E2).withValues(alpha: 0.05),
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.inventory_2_outlined,
-                size: 100, color: Colors.grey.withValues(alpha: 0.3)),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'No hay productos en inventario',
-            style: TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Agrega productos para comenzar a gestionar tu inventario',
-            style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4A90E2).withValues(alpha: 0.05),
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x4D4A90E2), // Blue 30%
-                  blurRadius: 16,
-                  offset: Offset(0, 8),
-                ),
-              ],
+              alignment: Alignment.center,
+              child: Icon(Icons.inventory_2_outlined,
+                  size: 100, color: Colors.grey.withValues(alpha: 0.3)),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
+            const SizedBox(height: 32),
+            const Text(
+              'No hay productos en inventario',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Agrega productos para comenzar a gestionar tu inventario',
+              style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => _navigateToForm(context, null),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add_circle_outline, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        'Agregar primer producto',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x4D4A90E2), // Blue 30%
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _navigateToForm(context, null),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_circle_outline, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Agregar primer producto',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import '../widgets/dashboard/quick_access_grid.dart';
 import '../widgets/dashboard/recent_activity_list.dart';
 import '../../screens/notifications/notifications_screen.dart';
 import '../../screens/settings/settings_screen.dart';
+import '../../providers/notification_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -114,6 +115,7 @@ class _DashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final unreadCount = context.watch<NotificationProvider>().unreadCount;
 
     return Container(
       height: 60 + MediaQuery.of(context).padding.top,
@@ -139,16 +141,40 @@ class _DashboardHeader extends StatelessWidget {
           ),
           Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.notifications_none,
-                    color: theme.colorScheme.onSurface),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const NotificationsScreen()),
-                  );
-                },
+              Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications_none,
+                        color: theme.colorScheme.onSurface),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const NotificationsScreen()),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               IconButton(
                 icon: Icon(Icons.settings_outlined,

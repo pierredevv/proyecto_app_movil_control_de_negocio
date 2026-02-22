@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../models/category.dart';
@@ -29,7 +30,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
     _sortOption = provider.currentSort;
     _selectedCategories = List.from(provider.selectedCategories);
     _selectedStockStatuses = List.from(provider.selectedStockStatuses);
-    _priceRange = provider.priceRange ?? const RangeValues(0, 100);
+    _priceRange = provider.priceRange ?? const RangeValues(0, 500); // Expanded
 
     // Init controllers if range exists, else default empty
     if (provider.stockRange != null) {
@@ -50,7 +51,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
     double minStock = double.tryParse(_minStockController.text) ?? 0;
     double maxStock = double.tryParse(_maxStockController.text) ?? 999;
 
-    // Only set stock range if inputs are non-empty/modified (logic can be refined)
+    // Only set stock range if inputs are non-empty
     RangeValues? finalStockRange;
     if (_minStockController.text.isNotEmpty ||
         _maxStockController.text.isNotEmpty) {
@@ -61,11 +62,10 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           sort: _sortOption,
           categories: _selectedCategories,
           stockStatuses: _selectedStockStatuses,
-          priceRange:
-              _priceRange, // Check if modified from default logic? For now pass it.
+          priceRange: _priceRange,
           stockRange: finalStockRange,
         );
-    Navigator.pop(context); // Close drawer
+    Navigator.pop(context); // Close Bottom Sheet
   }
 
   void _clearFilters() {
@@ -73,243 +73,107 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
       _sortOption = SortOption.nameAsc;
       _selectedCategories = [];
       _selectedStockStatuses = [];
-      _priceRange = const RangeValues(0, 100);
+      _priceRange = const RangeValues(0, 500);
       _minStockController.clear();
       _maxStockController.clear();
     });
-    // Optional: Immediately apply clear? The design says "Clear Filters" button inside panel.
-    // Usually it just clears draft, but user expectation might be reset.
-    // Let's Just clear draft.
   }
 
   @override
   Widget build(BuildContext context) {
     final categories = context.read<InventoryProvider>().categories;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = theme.scaffoldBackgroundColor;
-    final surfaceColor = theme.cardColor;
-    final borderColor = theme.dividerColor;
-    final primaryColor = theme.primaryColor;
 
-    return Drawer(
-      width: MediaQuery.of(context).size.width * 0.85,
-      backgroundColor: backgroundColor,
-      child: Column(
-        children: [
-          // Header
-          _buildHeader(context),
-
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                // 1. Sort By
-                _buildSectionTitle('Ordenar por'),
-                _buildSortOption(SortOption.nameAsc, 'Nombre (A-Z)'),
-                _buildSortOption(SortOption.stockAsc, 'Stock (Menor a Mayor)'),
-                _buildSortOption(SortOption.priceAsc, 'Precio (Menor a Mayor)'),
-                _buildSortOption(
-                    SortOption.priceDesc, 'Precio (Mayor a Menor)'),
-                const SizedBox(height: 24),
-
-                // 2. Stock Status
-                _buildSectionTitle('Estado de Stock'),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _buildStockChip(StockStatus.sufficient, 'Suficiente',
-                        const Color(0xFF10B981)),
-                    _buildStockChip(StockStatus.moderate, 'Moderado',
-                        const Color(0xFFF59E0B)),
-                    _buildStockChip(StockStatus.critical, 'Crítico',
-                        const Color(0xFFEF4444)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // 3. Categories
-                _buildSectionTitle('Categorías'),
-                const SizedBox(height: 12),
-                // Internal Search (Visual only for now or functional?)
-                // Plan said "Internal search bar". Let's add a placeholder.
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Buscar categoría...',
-                    prefixIcon: Icon(Icons.search,
-                        size: 20, color: theme.iconTheme.color),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    filled: true,
-                    fillColor:
-                        isDark ? Colors.grey[800] : const Color(0xFFF9FAFB),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: categories
-                          .map((cat) => _buildCategoryChip(cat))
-                          .toList(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // 4. Price Range
-                _buildSectionTitle('Rango de Precio'),
-                RangeSlider(
-                  values: _priceRange,
-                  min: 0,
-                  max: 500, // Adjust max based on real data if possible
-                  divisions: 50,
-                  labels: RangeLabels('\$${_priceRange.start.round()}',
-                      '\$${_priceRange.end.round()}'),
-                  onChanged: (values) {
-                    setState(() {
-                      _priceRange = values;
-                    });
-                  },
-                  activeColor: primaryColor,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Min: \$${_priceRange.start.round()}',
-                        style: TextStyle(
-                            color: theme.textTheme.bodyMedium?.color)),
-                    Text('Max: \$${_priceRange.end.round()}+',
-                        style: TextStyle(
-                            color: theme.textTheme.bodyMedium?.color)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // 5. Stock Range
-                _buildSectionTitle('Filtro de Stock'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                        child: _buildStockInput(
-                            'Mínimo Stock', '0', _minStockController)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                        child: _buildStockInput(
-                            'Máximo Stock', '999', _maxStockController)),
-                  ],
-                ),
-                const SizedBox(height: 40), // Bottom padding
-              ],
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12), // High blur
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
-          ),
-
-          // Bottom Buttons
-          Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: surfaceColor,
+              color: Colors.white.withValues(alpha: 0.15), // White 15% opacity
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.10), width: 1.5),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
+                  color: Colors.black.withValues(alpha: 0.20),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
                 )
               ],
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                _buildDynamicHandle(),
+                _buildHeader(context),
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: _clearFilters,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: borderColor),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildSortSection(),
+                        _buildDivider(),
+                        _buildStockStatusSection(),
+                        _buildDivider(),
+                        _buildCategoriesSection(categories),
+                        _buildDivider(),
+                        _buildPriceRangeSection(),
+                        _buildDivider(),
+                        _buildStockFieldsSection(),
+                        const SizedBox(height: 24),
+                        _buildBottomButtons(context),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                    child: Text('Limpiar',
-                        style: TextStyle(
-                            color: theme.textTheme.bodyMedium?.color)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _applyFilters,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFFEF4444), // Primary Red
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Aplicar Filtros',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
             ),
-          )
-        ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDynamicHandle() {
+    return Container(
+      width: 40,
+      height: 4,
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    // We can show active count from DRAFT state or Provider?
-    // "Filter & Sort . 3 active" -> This usually means draft active?
-    int activeCount = 0;
-    if (_sortOption != SortOption.nameAsc) activeCount++;
-    if (_selectedCategories.isNotEmpty) activeCount++;
-    if (_selectedStockStatuses.isNotEmpty) activeCount++;
-    if (_minStockController.text.isNotEmpty) activeCount++;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          20, 50, 20, 20), // Top padding for status bar
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
+          const Text(
             'Filtrar y Ordenar',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          if (activeCount > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEF4444),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$activeCount',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
-              ),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-          ],
-          const Spacer(),
+          ),
           IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.white, size: 24),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -318,43 +182,107 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(fontWeight: FontWeight.w600),
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 
-  Widget _buildSortOption(SortOption option, String label) {
+  Widget _buildDivider() {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.symmetric(vertical: 24),
+      color: Colors.white.withValues(alpha: 0.08),
+    );
+  }
+
+  // ==== 4. SORT BY SECTION ====
+  Widget _buildSortSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionTitle('Ordenar por'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildSortCard(SortOption.nameAsc, 'Nombre\n(A-Z)'),
+            _buildSortCard(SortOption.stockAsc, 'Stock\n(Menor a Mayor)'),
+            _buildSortCard(SortOption.priceAsc, 'Precio\n(Menor a Mayor)'),
+            _buildSortCard(SortOption.priceDesc, 'Precio\n(Mayor a Menor)'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSortCard(SortOption option, String title) {
     final isSelected = _sortOption == option;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _sortOption = option;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+    // Calculation to make exactly 2 columns with 8px spacing
+    final cardWidth = (MediaQuery.of(context).size.width - 32 - 8) / 2;
+
+    return GestureDetector(
+      onTap: () => setState(() => _sortOption = option),
+      child: Container(
+        width: cardWidth,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFFF6B6B).withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.05),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFFF6B6B)
+                : Colors.white.withValues(alpha: 0.08),
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Row(
           children: [
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: isSelected ? const Color(0xFFEF4444) : Colors.grey,
-              size: 20,
+            // Radio Indicator
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFFF6B6B)
+                      : Colors.white.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: isSelected
-                    ? Theme.of(context).textTheme.bodyLarge?.color
-                    : Theme.of(context).textTheme.bodyMedium?.color,
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                maxLines: 2,
               ),
             ),
           ],
@@ -363,101 +291,350 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
     );
   }
 
-  Widget _buildStockChip(StockStatus status, String label, Color color) {
+  // ==== 5. STOCK STATUS SECTION ====
+  Widget _buildStockStatusSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionTitle('Estado de Stock'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildStatusChip(StockStatus.sufficient, 'Suficiente',
+                const Color(0xFF51CF66), Icons.check_circle),
+            _buildStatusChip(StockStatus.moderate, 'Moderado',
+                const Color(0xFFFFA94D), Icons.warning),
+            _buildStatusChip(StockStatus.critical, 'Crítico',
+                const Color(0xFFFF6B6B), Icons.error),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusChip(
+      StockStatus status, String label, Color hue, IconData iconData) {
     final isSelected = _selectedStockStatuses.contains(status);
-    return FilterChip(
-      selected: isSelected,
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Icon based on status
-          if (isSelected)
-            const Icon(Icons.check, size: 16, color: Colors.white)
-          else
-            Icon(
-                status == StockStatus.sufficient
-                    ? Icons.check_circle_outline
-                    : status == StockStatus.moderate
-                        ? Icons.warning_amber_rounded
-                        : Icons.error_outline,
-                size: 16,
-                color: color),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(color: isSelected ? Colors.white : color)),
-        ],
-      ),
-      backgroundColor: Theme.of(context).cardColor,
-      selectedColor: color,
-      side: BorderSide(color: color.withValues(alpha: 0.3)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      showCheckmark: false,
-      onSelected: (selected) {
+
+    return GestureDetector(
+      onTap: () {
         setState(() {
-          if (selected) {
-            _selectedStockStatuses.add(status);
-          } else {
+          if (isSelected) {
             _selectedStockStatuses.remove(status);
+          } else {
+            _selectedStockStatuses.add(status);
           }
         });
       },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? hue.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? hue : hue.withValues(alpha: 0.3),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              iconData,
+              color: isSelected ? hue : hue.withValues(alpha: 0.6),
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? hue : hue.withValues(alpha: 0.8),
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==== 6 & 7. CATEGORIES SECTION ====
+  Widget _buildCategoriesSection(List<Category> categories) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionTitle('Categorías'),
+        // Glassmorphic Search Input
+        Container(
+          height: 48,
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: const TextField(
+                style: TextStyle(color: Colors.white, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Buscar categoría...',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF6B7494),
+                    fontSize: 15,
+                  ),
+                  prefixIcon:
+                      Icon(Icons.search, color: Color(0xFFA0A8C1), size: 20),
+                  border: InputBorder.none,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Wrappable Chips
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: categories.map((c) => _buildCategoryChip(c)).toList(),
+        ),
+      ],
     );
   }
 
   Widget _buildCategoryChip(Category category) {
     final isSelected = _selectedCategories.contains(category.id);
-    return FilterChip(
-      label: Text(category.name),
-      selected: isSelected,
-      onSelected: (selected) {
+
+    return GestureDetector(
+      onTap: () {
         setState(() {
-          if (selected) {
-            _selectedCategories.add(category.id!);
-          } else {
+          if (isSelected) {
             _selectedCategories.remove(category.id);
+          } else {
+            _selectedCategories.add(category.id!);
           }
         });
       },
-      selectedColor: const Color(0xFFEF4444),
-      labelStyle: TextStyle(
-        color: isSelected
-            ? Colors.white
-            : Theme.of(context).textTheme.bodyLarge?.color,
-        fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF4A90E2).withValues(alpha: 0.2) // Blue 20%
+              : const Color(0xFF333333).withValues(alpha: 0.3), // Dark Gray 30%
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF4A90E2)
+                : Colors.white.withValues(alpha: 0.10),
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          category.name,
+          style: TextStyle(
+            color:
+                isSelected ? const Color(0xFF4A90E2) : const Color(0xFFA0A8C1),
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? Colors.grey[800]
-          : const Color(0xFFF3F4F6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      side: BorderSide.none,
-      showCheckmark: false,
     );
   }
 
-  Widget _buildStockInput(
-      String label, String placeholder, TextEditingController controller) {
+  // ==== 8. PRICE RANGE SECTION ====
+  Widget _buildPriceRangeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionTitle('Rango de Precio'),
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: const Color(0xFFFF6B6B),
+            inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
+            thumbColor: const Color(0xFFFF6B6B),
+            overlayColor: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+            trackHeight: 4.0,
+          ),
+          child: RangeSlider(
+            values: _priceRange,
+            min: 0,
+            max: 1000,
+            divisions: 100,
+            onChanged: (values) => setState(() => _priceRange = values),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Min: \$${_priceRange.start.round()}',
+                style: const TextStyle(fontSize: 14, color: Colors.white)),
+            Text('Max: \$${_priceRange.end.round()}+',
+                style: const TextStyle(fontSize: 14, color: Colors.white)),
+          ],
+        )
+      ],
+    );
+  }
+
+  // ==== 9. STOCK FILTER SECTION ====
+  Widget _buildStockFieldsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionTitle('Filtro de Stock'),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGlassInputBox(
+                label: 'Mínimo Stock',
+                placeholder: '0',
+                controller: _minStockController,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildGlassInputBox(
+                label: 'Máximo Stock',
+                placeholder: '999',
+                controller: _maxStockController,
+              ),
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  Widget _buildGlassInputBox({
+    required String label,
+    required String placeholder,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodySmall?.color)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFFA0A8C1),
+            fontWeight: FontWeight.normal,
+          ),
+        ),
         const SizedBox(height: 4),
-        TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: placeholder,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+        Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: placeholder,
+                  hintStyle: const TextStyle(color: Color(0xFF6B7494)),
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==== 10. BOTTOM BUTTONS ====
+  Widget _buildBottomButtons(BuildContext context) {
+    return Row(
+      children: [
+        // Clean Button (45%)
+        Expanded(
+          flex: 45,
+          child: GestureDetector(
+            onTap: _clearFilters,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  width: 1.5,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: const Center(
+                    child: Text(
+                      'Limpiar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Apply Filters Button (55%)
+        Expanded(
+          flex: 55,
+          child: GestureDetector(
+            onTap: _applyFilters,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  )
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'Aplicar Filtros',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

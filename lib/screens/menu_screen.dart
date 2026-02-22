@@ -1,4 +1,6 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 // Providers
@@ -37,166 +39,164 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+    // Using a base scaffold layout. It's assumed the parent scaffold or app handles the global background.
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor:
+          Colors.transparent, // Let underlying background (if any) show through
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _buildHeader(context), // Header with profile
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    _buildSectionCard(
-                      context,
-                      title: 'MI NEGOCIO',
-                      items: [
-                        _MenuItem(
-                          icon: Icons.account_balance_wallet,
-                          title: 'Ventas',
-                          color: Colors.blue,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const TransactionHistoryScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.shopping_cart,
-                          title: 'Compras',
-                          color: Colors.indigo,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const PurchaseListScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.local_shipping_outlined, // Orders
-                          title: 'Pedidos',
-                          color: Colors.brown, // Choose an appropriate color
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const OrderListScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.people,
-                          title: 'Clientes',
-                          color: Colors.teal,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const CustomerListScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.local_shipping,
-                          title: 'Proveedores',
-                          color: Colors.orange,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SupplierListScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.inventory,
-                          title: 'Gestión de Inventario',
-                          color: Colors.purple,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ProductListScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.bar_chart,
-                          title: 'Reportes',
-                          color: Colors.red,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ReportsScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.receipt_long,
-                          title: 'Gastos',
-                          color: Colors.deepOrange,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ExpenseFormScreen())),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSectionCard(
-                      context,
-                      title: 'FUNCIONALIDADES IMPORTANTES',
-                      items: [
-                        _MenuItem(
-                          icon: Icons.sync,
-                          title: 'Sincronización y Compartir',
-                          color: isDark
-                              ? Colors.blueGrey.shade200
-                              : Colors.blueGrey,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Próximamente: Sincronización con Supabase')),
-                            );
-                          },
-                        ),
-                        _MenuItem(
-                          icon: Icons.cloud_upload,
-                          title: 'Respaldo de Datos',
-                          color: isDark
-                              ? Colors.blueGrey.shade200
-                              : Colors.blueGrey,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const BackupManagerScreen())),
-                        ),
-                        _MenuItem(
-                          icon: Icons.build,
-                          title: 'Utilidades',
-                          color: isDark
-                              ? Colors.blueGrey.shade200
-                              : Colors.blueGrey,
-                          isNew: true,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const UtilitiesScreen())),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSectionCard(
-                      context,
-                      title: 'OTROS',
-                      items: [
-                        _MenuItem(
-                          icon: Icons.settings,
-                          title: 'Configuración',
-                          color: isDark
-                              ? Colors.blueGrey.shade200
-                              : Colors.blueGrey,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen())),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildFooter(context), // Version and policy
-                  ],
-                ),
-              ),
+              _buildHeader(context)
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: -0.2, end: 0, duration: 300.ms),
+              const SizedBox(height: 16),
+              _buildSectionCard(
+                title: 'MI NEGOCIO',
+                items: [
+                  _MenuItemData(
+                    icon: Icons.account_balance_wallet,
+                    title: 'Ventas',
+                    color: const Color(0xFF4A90E2), // Blue
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const TransactionHistoryScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.shopping_cart,
+                    title: 'Compras',
+                    color: const Color(0xFF9B51E0), // Purple
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PurchaseListScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.local_shipping_outlined,
+                    title: 'Pedidos',
+                    color: const Color(0xFFF5A623), // Orange
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const OrderListScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.people,
+                    title: 'Clientes',
+                    color: const Color(0xFF4ECDC4), // Turquoise
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const CustomerListScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.local_shipping,
+                    title: 'Proveedores',
+                    color: const Color(0xFFFFA94D), // Yellow
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SupplierListScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.inventory,
+                    title: 'Gestión de Inventario',
+                    color: const Color(0xFFFF6B9D), // Magenta
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ProductListScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.bar_chart,
+                    title: 'Reportes',
+                    color: const Color(0xFFFF6B6B), // Red
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ReportsScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.receipt_long,
+                    title: 'Gastos',
+                    color: const Color(0xFFFF8A65), // Coral
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ExpenseFormScreen())),
+                  ),
+                ],
+              )
+                  .animate()
+                  .fade(duration: 300.ms, delay: 50.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 50.ms),
+              const SizedBox(height: 12),
+              _buildSectionCard(
+                title: 'FUNCIONALIDADES IMPORTANTES',
+                items: [
+                  _MenuItemData(
+                    icon: Icons.sync,
+                    title: 'Sincronización y Compartir',
+                    color: Colors.white,
+                    isSecondary: true,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Próximamente: Sincronización con Supabase')),
+                      );
+                    },
+                  ),
+                  _MenuItemData(
+                    icon: Icons.cloud_upload,
+                    title: 'Respaldo de Datos',
+                    color: Colors.white,
+                    isSecondary: true,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const BackupManagerScreen())),
+                  ),
+                  _MenuItemData(
+                    icon: Icons.build,
+                    title: 'Utilidades',
+                    color: Colors.white,
+                    isSecondary: true,
+                    isNew: true,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const UtilitiesScreen())),
+                  ),
+                ],
+              )
+                  .animate()
+                  .fade(duration: 300.ms, delay: 100.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 100.ms),
+              const SizedBox(height: 12),
+              _buildSectionCard(
+                title: 'OTROS',
+                items: [
+                  _MenuItemData(
+                    icon: Icons.settings,
+                    title: 'Configuración',
+                    color: Colors.white,
+                    isSecondary: true,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SettingsScreen())),
+                  ),
+                ],
+              )
+                  .animate()
+                  .fade(duration: 300.ms, delay: 150.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 150.ms),
+              const SizedBox(height: 32),
+              _buildFooter(),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -205,181 +205,330 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final notificationProvider = context.watch<NotificationProvider>();
     final unreadCount = notificationProvider.unreadCount;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      color: theme.cardColor,
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: isDark
-                ? Colors.blue.withValues(alpha: 0.2)
-                : const Color(0xFFDBEAFE),
-            child: const Icon(Icons.store, color: Colors.blue),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Pierre PB',
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              Text('Business Management',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.hintColor)),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12), // Slightly more opaque
+            border: Border(
+              bottom: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.08), width: 1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
             ],
           ),
-          const Spacer(),
-          Stack(
+          child: Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.notifications_none,
-                    color: theme.iconTheme.color),
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const NotificationsScreen()));
-                },
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.blue, // Fallback background
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.10), width: 2),
+                ),
+                child: const Icon(Icons.store, color: Colors.white, size: 28),
               ),
-              if (unreadCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pierre PB',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
                     ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
+                    Text(
+                      'Business Management',
+                      style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
                     ),
-                    child: Text(
-                      '$unreadCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  ],
+                ),
+              ),
+              // Notifications
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined,
+                        color: Colors.white, size: 24),
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen()));
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              // Settings
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white, size: 24),
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(
+      {required String title, required List<_MenuItemData> items}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08), width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFF6B7494),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-                color: theme.cardColor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)
-                ]),
-            child: Icon(Icons.settings, color: theme.iconTheme.color, size: 20),
-          ),
-        ],
-      ),
-    );
-  }
+                const SizedBox(height: 16),
+                ...items.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  _MenuItemData item = entry.value;
+                  bool isLast = index == items.length - 1;
 
-  Widget _buildSectionCard(BuildContext context,
-      {required String title, required List<_MenuItem> items}) {
-    final theme = Theme.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(title,
-                style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.hintColor,
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.bold)),
-          ),
-          ...items.map((item) => _buildListTile(context, item)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildListTile(BuildContext context, _MenuItem item) {
-    final theme = Theme.of(context);
-
-    return ListTile(
-      leading: Icon(item.icon, color: item.color, size: 22),
-      title: Row(
-        children: [
-          Text(item.title,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w500)),
-          if (item.isNew) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: Colors.red, borderRadius: BorderRadius.circular(4)),
-              child: const Text('NUEVO',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold)),
+                  return Column(
+                    children: [
+                      _MenuItemWidget(item: item),
+                      if (!isLast)
+                        Container(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.05),
+                          margin: EdgeInsets
+                              .zero, // Edge to edge because pad is inside item
+                        ),
+                    ],
+                  );
+                }),
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
-      trailing: Icon(Icons.chevron_right, color: theme.hintColor, size: 20),
-      onTap: item.onTap,
     );
   }
 
-  Widget _buildFooter(BuildContext context) {
-    final theme = Theme.of(context);
-
+  Widget _buildFooter() {
     return Column(
       children: [
-        Text('APP VERSION',
-            style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold, color: theme.hintColor)),
-        Text('21.8.0',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        const Text(
+          'APP VERSION',
+          style: TextStyle(
+            color: Color(0xFF6B7494),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '21.8.0',
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 24),
-        TextButton(
-            onPressed: () {},
-            child: const Text('Política de Privacidad',
-                style: TextStyle(color: Colors.blue, fontSize: 13))),
-        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: () {},
+          child: const Text(
+            'Política de Privacidad',
+            style: TextStyle(
+              color: Color(0xFF4A90E2),
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+              decorationColor: Color(0xFF4A90E2),
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _MenuItem {
+class _MenuItemData {
   final IconData icon;
   final String title;
   final Color color;
   final VoidCallback onTap;
   final bool isNew;
+  final bool isSecondary;
 
-  _MenuItem(
-      {required this.icon,
-      required this.title,
-      required this.color,
-      required this.onTap,
-      this.isNew = false});
+  _MenuItemData({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.onTap,
+    this.isNew = false,
+    this.isSecondary = false,
+  });
+}
+
+class _MenuItemWidget extends StatefulWidget {
+  final _MenuItemData item;
+  const _MenuItemWidget({required this.item});
+
+  @override
+  State<_MenuItemWidget> createState() => _MenuItemWidgetState();
+}
+
+class _MenuItemWidgetState extends State<_MenuItemWidget> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) =>
+      setState(() => _isPressed = true);
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    widget.item.onTap();
+  }
+
+  void _handleTapCancel() => setState(() => _isPressed = false);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: _isPressed
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.98 : 1.0, _isPressed ? 0.98 : 1.0, 1.0),
+        transformAlignment: Alignment.center,
+        child: Row(
+          children: [
+            // Icon Area
+            if (!widget.item.isSecondary)
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: widget.item.color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child:
+                    Icon(widget.item.icon, color: widget.item.color, size: 24),
+              )
+            else
+              SizedBox(
+                width: 40,
+                height: 40,
+                child:
+                    Icon(widget.item.icon, color: widget.item.color, size: 24),
+              ),
+
+            const SizedBox(width: 16),
+
+            // Text Area
+            Expanded(
+              child: Text(
+                widget.item.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ),
+
+            // Badges & Chevron
+            if (widget.item.isNew)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8A65)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'NUEVO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            const Icon(Icons.chevron_right, color: Color(0xFF6B7494), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
 }
