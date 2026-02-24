@@ -30,10 +30,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
+          // Background Gradient & Blobs
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          const Color(0xFF0F172A),
+                          const Color(0xFF1E293B),
+                          const Color(0xFF0F172A),
+                        ]
+                      : [
+                          const Color(0xFFF8FAFC),
+                          const Color(0xFFE2E8F0),
+                          const Color(0xFFF1F5F9),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -50,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2)
+                    .withValues(alpha: 0.1), // Primary Blue 10%
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color:
+                    const Color(0xFFFF6B6B).withValues(alpha: 0.08), // Coral 8%
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.15),
+                    blurRadius: 80,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
           // Content
           Consumer<DashboardProvider>(
             builder: (context, provider, child) {

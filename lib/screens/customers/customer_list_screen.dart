@@ -7,6 +7,7 @@ import '../../models/customer.dart';
 import 'customer_form_screen.dart';
 import 'customer_history_screen.dart';
 import '../../utils/input_validators.dart';
+import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
 
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({super.key});
@@ -93,14 +94,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (context.watch<CustomerProvider>().isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF151924),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final customers = context.watch<CustomerProvider>().filteredCustomers;
+    final customerProvider = context.watch<CustomerProvider>();
+    final customers = customerProvider.filteredCustomers;
+    final isLoading = customerProvider.isLoading;
 
     return Scaffold(
       backgroundColor: const Color(0xFF151924), // Dark #151924 background
@@ -170,52 +166,55 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
 
           // MAIN CONTENT
           Expanded(
-            child: customers.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding:
-                        const EdgeInsets.only(bottom: 100), // Space for FAB
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) {
-                      final customer = customers[index];
-                      // Animate max 5 items
-                      Widget card = _CustomerGlassCard(
-                        customer: customer,
-                        onTap: () => _navigateToForm(context, customer),
-                        onPaymentTap: () => _showPaymentDialog(customer),
-                        onHistoryTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => CustomerHistoryScreen(
-                                    customerId: customer.id!)),
+            child: isLoading
+                ? const SkeletonList()
+                : customers.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding:
+                            const EdgeInsets.only(bottom: 100), // Space for FAB
+                        itemCount: customers.length,
+                        itemBuilder: (context, index) {
+                          final customer = customers[index];
+                          // Animate max 5 items
+                          Widget card = _CustomerGlassCard(
+                            customer: customer,
+                            onTap: () => _navigateToForm(context, customer),
+                            onPaymentTap: () => _showPaymentDialog(customer),
+                            onHistoryTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => CustomerHistoryScreen(
+                                        customerId: customer.id!)),
+                              );
+                            },
+                            onEditTap: () => _navigateToForm(context, customer),
                           );
-                        },
-                        onEditTap: () => _navigateToForm(context, customer),
-                      );
 
-                      if (index < 5) {
-                        return card
-                            .animate()
-                            .fade(
-                                duration: 300.ms,
-                                delay: (index * 50).ms,
-                                curve: Curves.easeOut)
-                            .slideY(
-                                begin: 0.1,
-                                end: 0,
-                                duration: 300.ms,
-                                delay: (index * 50).ms,
-                                curve: Curves.easeOut);
-                      }
-                      return card;
-                    },
-                  ),
+                          if (index < 5) {
+                            return card
+                                .animate()
+                                .fade(
+                                    duration: 300.ms,
+                                    delay: (index * 50).ms,
+                                    curve: Curves.easeOut)
+                                .slideY(
+                                    begin: 0.1,
+                                    end: 0,
+                                    duration: 300.ms,
+                                    delay: (index * 50).ms,
+                                    curve: Curves.easeOut);
+                          }
+                          return card;
+                        },
+                      ),
           ),
         ],
       ),
       // FAB
-      floatingActionButton: _buildFAB(),
+      floatingActionButton:
+          (customers.isEmpty && !isLoading) ? null : _buildFAB(),
     );
   }
 
@@ -239,7 +238,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 ),
                 const Icon(Icons.people, size: 120, color: Color(0xFF4ECDC4)),
               ],
-            ),
+            ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 32),
             const Text(
               'No hay clientes registrados',

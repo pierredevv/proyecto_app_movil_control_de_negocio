@@ -57,6 +57,7 @@ dependencies:
   flutter_animate: ^4.5.2
   printing: ^5.12.0
   connectivity_plus: ^5.0.2
+  android_intent_plus: ^6.0.0
 
 dev_dependencies:
   flutter_test:

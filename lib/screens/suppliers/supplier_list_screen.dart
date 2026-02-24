@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/supplier_provider.dart';
 import '../../models/supplier.dart';
 import 'supplier_form_screen.dart';
+import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
 
 class SupplierListScreen extends StatefulWidget {
   const SupplierListScreen({super.key});
@@ -56,14 +57,9 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (context.watch<SupplierProvider>().isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF151924),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final suppliers = context.watch<SupplierProvider>().filteredSuppliers;
+    final supplierProvider = context.watch<SupplierProvider>();
+    final suppliers = supplierProvider.filteredSuppliers;
+    final isLoading = supplierProvider.isLoading;
 
     return Scaffold(
       backgroundColor: const Color(0xFF151924), // Dark #151924 background
@@ -133,43 +129,47 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
 
           // MAIN CONTENT
           Expanded(
-            child: suppliers.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding:
-                        const EdgeInsets.only(bottom: 100), // Space for FAB
-                    itemCount: suppliers.length,
-                    itemBuilder: (context, index) {
-                      final supplier = suppliers[index];
-                      // Animate max 5 items
-                      Widget card = _SupplierGlassCard(
-                        supplier: supplier,
-                        onTap: () => _navigateToForm(context, supplier),
-                        onDeleteTap: () => _confirmDelete(context, supplier),
-                      );
+            child: isLoading
+                ? const SkeletonList()
+                : suppliers.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding:
+                            const EdgeInsets.only(bottom: 100), // Space for FAB
+                        itemCount: suppliers.length,
+                        itemBuilder: (context, index) {
+                          final supplier = suppliers[index];
+                          // Animate max 5 items
+                          Widget card = _SupplierGlassCard(
+                            supplier: supplier,
+                            onTap: () => _navigateToForm(context, supplier),
+                            onDeleteTap: () =>
+                                _confirmDelete(context, supplier),
+                          );
 
-                      if (index < 5) {
-                        return card
-                            .animate()
-                            .fade(
-                                duration: 300.ms,
-                                delay: (index * 50).ms,
-                                curve: Curves.easeOut)
-                            .slideY(
-                                begin: 0.1,
-                                end: 0,
-                                duration: 300.ms,
-                                delay: (index * 50).ms,
-                                curve: Curves.easeOut);
-                      }
-                      return card;
-                    },
-                  ),
+                          if (index < 5) {
+                            return card
+                                .animate()
+                                .fade(
+                                    duration: 300.ms,
+                                    delay: (index * 50).ms,
+                                    curve: Curves.easeOut)
+                                .slideY(
+                                    begin: 0.1,
+                                    end: 0,
+                                    duration: 300.ms,
+                                    delay: (index * 50).ms,
+                                    curve: Curves.easeOut);
+                          }
+                          return card;
+                        },
+                      ),
           ),
         ],
       ),
       // FAB
-      floatingActionButton: _buildFAB(),
+      floatingActionButton:
+          (suppliers.isEmpty && !isLoading) ? null : _buildFAB(),
     );
   }
 
@@ -193,7 +193,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                 ),
                 const Icon(Icons.business, size: 120, color: Color(0xFF4ECDC4)),
               ],
-            ),
+            ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 32),
             const Text(
               'No hay proveedores',

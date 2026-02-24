@@ -3,10 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/haptic_feedback_helper.dart';
-import '../../services/pdf_generator_service.dart';
 import '../../services/network_service.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
-import 'invoice_preview_screen.dart';
+import '../utilities/print_preview_screen.dart';
 import '../../services/database_service.dart'; // Import DatabaseService
 
 class SaleDetailScreen extends StatefulWidget {
@@ -20,7 +19,6 @@ class SaleDetailScreen extends StatefulWidget {
 }
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
-  bool _isGeneratingPdf = false;
   bool _isSendingReceipt = false;
 
   @override
@@ -492,19 +490,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   child: SizedBox(
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: _isGeneratingPdf ? null : _handleGeneratePdf,
-                      icon: _isGeneratingPdf
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: isDark ? Colors.white : Colors.black))
-                          : Icon(Icons.receipt_long_rounded,
-                              color: isDark ? Colors.white : Colors.black87,
-                              size: 20),
-                      label: Text(
-                          _isGeneratingPdf ? 'Generando...' : 'Emitir Factura',
+                      onPressed: _handleGeneratePdf,
+                      icon: Icon(Icons.receipt_long_rounded,
+                          color: isDark ? Colors.white : Colors.black87,
+                          size: 20),
+                      label: Text('Emitir Factura',
                           style: TextStyle(
                               color: isDark ? Colors.white : Colors.black87)),
                       style: ElevatedButton.styleFrom(
@@ -576,35 +566,15 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  Future<void> _handleGeneratePdf() async {
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+  void _handleGeneratePdf() {
     HapticFeedbackHelper.lightImpact();
-    setState(() => _isGeneratingPdf = true);
 
-    try {
-      final pdfService = PdfGeneratorService();
-      await pdfService.generateInvoice(widget.sale);
-
-      if (mounted) {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (context) => InvoicePreviewScreen(
-              title: 'Factura #${widget.sale.id}',
-              buildPdf: (format) => pdfService.generateInvoice(widget.sale),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isGeneratingPdf = false);
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrintPreviewScreen(transaction: widget.sale),
+      ),
+    );
   }
 
   Future<void> _handleSendReceipt() async {

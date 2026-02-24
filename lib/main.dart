@@ -12,6 +12,7 @@ import 'providers/cart_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/supplier_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/note_provider.dart';
 
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
@@ -60,6 +61,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(
             create: (_) => SupplierProvider()..loadSuppliers()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => NoteProvider()..loadNotes()),
       ],
       child: MaterialApp(
         scaffoldMessengerKey: SnackbarService.messengerKey,

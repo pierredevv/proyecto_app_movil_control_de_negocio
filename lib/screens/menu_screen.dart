@@ -39,167 +39,224 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     // Using a base scaffold layout. It's assumed the parent scaffold or app handles the global background.
     return Scaffold(
-      backgroundColor:
-          Colors.transparent, // Let underlying background (if any) show through
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(context)
-                  .animate()
-                  .fade(duration: 300.ms)
-                  .slideY(begin: -0.2, end: 0, duration: 300.ms),
-              const SizedBox(height: 16),
-              _buildSectionCard(
-                title: 'MI NEGOCIO',
-                items: [
-                  _MenuItemData(
-                    icon: Icons.account_balance_wallet,
-                    title: 'Ventas',
-                    color: const Color(0xFF4A90E2), // Blue
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const TransactionHistoryScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.shopping_cart,
-                    title: 'Compras',
-                    color: const Color(0xFF9B51E0), // Purple
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const PurchaseListScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.local_shipping_outlined,
-                    title: 'Pedidos',
-                    color: const Color(0xFFF5A623), // Orange
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const OrderListScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.people,
-                    title: 'Clientes',
-                    color: const Color(0xFF4ECDC4), // Turquoise
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const CustomerListScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.local_shipping,
-                    title: 'Proveedores',
-                    color: const Color(0xFFFFA94D), // Yellow
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SupplierListScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.inventory,
-                    title: 'Gestión de Inventario',
-                    color: const Color(0xFFFF6B9D), // Magenta
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ProductListScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.bar_chart,
-                    title: 'Reportes',
-                    color: const Color(0xFFFF6B6B), // Red
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ReportsScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.receipt_long,
-                    title: 'Gastos',
-                    color: const Color(0xFFFF8A65), // Coral
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ExpenseFormScreen())),
-                  ),
-                ],
-              )
-                  .animate()
-                  .fade(duration: 300.ms, delay: 50.ms)
-                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 50.ms),
-              const SizedBox(height: 12),
-              _buildSectionCard(
-                title: 'FUNCIONALIDADES IMPORTANTES',
-                items: [
-                  _MenuItemData(
-                    icon: Icons.sync,
-                    title: 'Sincronización y Compartir',
-                    color: Colors.white,
-                    isSecondary: true,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Próximamente: Sincronización con Supabase')),
-                      );
-                    },
-                  ),
-                  _MenuItemData(
-                    icon: Icons.cloud_upload,
-                    title: 'Respaldo de Datos',
-                    color: Colors.white,
-                    isSecondary: true,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const BackupManagerScreen())),
-                  ),
-                  _MenuItemData(
-                    icon: Icons.build,
-                    title: 'Utilidades',
-                    color: Colors.white,
-                    isSecondary: true,
-                    isNew: true,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const UtilitiesScreen())),
-                  ),
-                ],
-              )
-                  .animate()
-                  .fade(duration: 300.ms, delay: 100.ms)
-                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 100.ms),
-              const SizedBox(height: 12),
-              _buildSectionCard(
-                title: 'OTROS',
-                items: [
-                  _MenuItemData(
-                    icon: Icons.settings,
-                    title: 'Configuración',
-                    color: Colors.white,
-                    isSecondary: true,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SettingsScreen())),
-                  ),
-                ],
-              )
-                  .animate()
-                  .fade(duration: 300.ms, delay: 150.ms)
-                  .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 150.ms),
-              const SizedBox(height: 32),
-              _buildFooter(),
-              const SizedBox(height: 100),
-            ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          // Background Gradient & Blobs
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          const Color(0xFF0F172A),
+                          const Color(0xFF1E293B),
+                          const Color(0xFF0F172A),
+                        ]
+                      : [
+                          const Color(0xFFF8FAFC),
+                          const Color(0xFFE2E8F0),
+                          const Color(0xFFF1F5F9),
+                        ],
+                ),
+              ),
+            ),
           ),
-        ),
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 100,
+            left: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    blurRadius: 80,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildHeader(context)
+                      .animate()
+                      .fade(duration: 300.ms)
+                      .slideY(begin: -0.2, end: 0, duration: 300.ms),
+                  const SizedBox(height: 16),
+                  _buildSectionCard(
+                    title: 'MI NEGOCIO',
+                    items: [
+                      _MenuItemData(
+                        icon: Icons.account_balance_wallet,
+                        title: 'Ventas',
+                        color: const Color(0xFF4A90E2), // Blue
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const TransactionHistoryScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.shopping_cart,
+                        title: 'Compras',
+                        color: const Color(0xFF9B51E0), // Purple
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PurchaseListScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.local_shipping_outlined,
+                        title: 'Pedidos',
+                        color: const Color(0xFFF5A623), // Orange
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const OrderListScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.people,
+                        title: 'Clientes',
+                        color: const Color(0xFF4ECDC4), // Turquoise
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const CustomerListScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.local_shipping,
+                        title: 'Proveedores',
+                        color: const Color(0xFFFFA94D), // Yellow
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SupplierListScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.inventory,
+                        title: 'Gestión de Inventario',
+                        color: const Color(0xFFFF6B9D), // Magenta
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ProductListScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.bar_chart,
+                        title: 'Reportes',
+                        color: const Color(0xFFFF6B6B), // Red
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ReportsScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.receipt_long,
+                        title: 'Gastos',
+                        color: const Color(0xFFFF8A65), // Coral
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ExpenseFormScreen())),
+                      ),
+                    ],
+                  ).animate().fade(duration: 300.ms, delay: 50.ms).slideY(
+                      begin: 0.1, end: 0, duration: 300.ms, delay: 50.ms),
+                  const SizedBox(height: 12),
+                  _buildSectionCard(
+                    title: 'FUNCIONALIDADES IMPORTANTES',
+                    items: [
+                      _MenuItemData(
+                        icon: Icons.sync,
+                        title: 'Sincronización y Compartir',
+                        color: const Color(0xFF4A90E2),
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Próximamente: Sincronización con Supabase')),
+                          );
+                        },
+                      ),
+                      _MenuItemData(
+                        icon: Icons.cloud_upload,
+                        title: 'Respaldo de Datos',
+                        color: const Color(0xFF4ECDC4),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const BackupManagerScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.build,
+                        title: 'Utilidades',
+                        color: const Color(0xFFF5A623),
+                        isNew: true,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const UtilitiesScreen())),
+                      ),
+                    ],
+                  ).animate().fade(duration: 300.ms, delay: 100.ms).slideY(
+                      begin: 0.1, end: 0, duration: 300.ms, delay: 100.ms),
+                  const SizedBox(height: 12),
+                  _buildSectionCard(
+                    title: 'OTROS',
+                    items: [
+                      _MenuItemData(
+                        icon: Icons.settings,
+                        title: 'Configuración',
+                        color: const Color(0xFFA0A8C1),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SettingsScreen())),
+                      ),
+                    ],
+                  ).animate().fade(duration: 300.ms, delay: 150.ms).slideY(
+                      begin: 0.1, end: 0, duration: 300.ms, delay: 150.ms),
+                  const SizedBox(height: 32),
+                  _buildFooter(),
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,12 +291,19 @@ class _MenuScreenState extends State<MenuScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.blue, // Fallback background
+                  color: Colors.white
+                      .withValues(alpha: 0.10), // Glassmorphism avatar
                   shape: BoxShape.circle,
                   border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.10), width: 2),
+                      color: Colors.white.withValues(alpha: 0.08), width: 1.5),
                 ),
-                child: const Icon(Icons.store, color: Colors.white, size: 28),
+                child: ClipOval(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child:
+                        const Icon(Icons.store, color: Colors.white, size: 28),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -328,25 +392,29 @@ class _MenuScreenState extends State<MenuScreen> {
         child: BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
+              color: const Color(0x1AFFFFFF), // Exactly 10% opacity Hex
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08), width: 1),
+                  color: const Color(0x14FFFFFF), width: 1.5), // 8% opacity Hex
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  title.toUpperCase(),
-                  style: const TextStyle(
-                    color: Color(0xFF6B7494),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    title.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFFA0A8C1), // Secondary color
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 ...items.asMap().entries.map((entry) {
                   int index = entry.key;
                   _MenuItemData item = entry.value;
@@ -354,13 +422,16 @@ class _MenuScreenState extends State<MenuScreen> {
 
                   return Column(
                     children: [
-                      _MenuItemWidget(item: item),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _MenuItemWidget(item: item),
+                      ),
                       if (!isLast)
                         Container(
                           height: 1,
-                          color: Colors.white.withValues(alpha: 0.05),
-                          margin: EdgeInsets
-                              .zero, // Edge to edge because pad is inside item
+                          color: Colors.white
+                              .withValues(alpha: 0.05), // 5% Soft Separator
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
                         ),
                     ],
                   );
@@ -415,7 +486,6 @@ class _MenuItemData {
   final Color color;
   final VoidCallback onTap;
   final bool isNew;
-  final bool isSecondary;
 
   _MenuItemData({
     required this.icon,
@@ -423,7 +493,6 @@ class _MenuItemData {
     required this.color,
     required this.onTap,
     this.isNew = false,
-    this.isSecondary = false,
   });
 }
 
@@ -470,24 +539,16 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
         child: Row(
           children: [
             // Icon Area
-            if (!widget.item.isSecondary)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: widget.item.color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    Icon(widget.item.icon, color: widget.item.color, size: 24),
-              )
-            else
-              SizedBox(
-                width: 40,
-                height: 40,
-                child:
-                    Icon(widget.item.icon, color: widget.item.color, size: 24),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: widget.item.color
+                    .withValues(alpha: 0.20), // 20% visible circle
+                shape: BoxShape.circle,
               ),
+              child: Icon(widget.item.icon, color: widget.item.color, size: 24),
+            ),
 
             const SizedBox(width: 16),
 

@@ -131,20 +131,17 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                   backgroundColor: isDark
                       ? const Color(0xFF0F172A).withValues(alpha: 0.7)
                       : Colors.white.withValues(alpha: 0.7),
-                  leading: IconButton(
-                    icon: Icon(Icons.arrow_back,
-                        color: isDark ? Colors.white : Colors.black87),
-                    onPressed: () => Navigator.pop(context),
+                  iconTheme: IconThemeData(
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: Text(
-                      'Compras Registradas',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  centerTitle: false,
+                  title: Text(
+                    'Compras Registradas',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    centerTitle: false,
                   ),
                   actions: [
                     IconButton(

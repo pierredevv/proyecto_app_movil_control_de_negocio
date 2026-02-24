@@ -383,16 +383,26 @@ class BackupService {
   }
 
   // Restore External
-  static Future<void> restoreFromExternalFile() async {
+  static Future<bool> restoreFromExternalFile() async {
     try {
       final result = await FilePicker.platform
           .pickFiles(type: FileType.custom, allowedExtensions: ['json']);
       if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.single.path!);
+        final path = result.files.single.path;
+        if (path == null) return false;
+
+        if (!path.toLowerCase().endsWith('.json')) {
+          throw Exception(
+              'El archivo importado no tiene el formato .json requerido.');
+        }
+
+        final file = File(path);
         await restoreBackup(file);
+        return true;
       }
+      return false; // User canceled or no file selected
     } catch (e) {
-      throw Exception('External Restore Error: $e');
+      throw Exception('Error al importar archivo: $e');
     }
   }
 

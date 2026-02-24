@@ -7,6 +7,7 @@ import '../models/transaction_model.dart';
 import '../models/invoice_item.dart';
 import '../models/category.dart';
 import '../models/supplier.dart';
+import '../models/note.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -35,18 +36,20 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 4,
+      return await openDatabase(_testDbPath!, version: 7,
           onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       }, onCreate: (db, version) async {
         await _createTables(db);
         await _createCategoriesTable(db);
         await _createSuppliersTable(db);
+        await _createNotesTable(db);
       }, onUpgrade: (db, old, newV) async {
         // For tests we usually start fresh, but logic here:
         // ... same upgrade logic if needed, but inMemory usually starts fresh
         if (old < 2) await _createCategoriesTable(db);
         if (old < 3) await _createSuppliersTable(db);
+        if (old < 7) await _createNotesTable(db);
         // ... etc
       });
     }
@@ -55,7 +58,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 6, // Updated to version 6
+      version: 7, // Updated to version 7
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -63,6 +66,7 @@ class DatabaseService {
         await _createTables(db);
         await _createCategoriesTable(db);
         await _createSuppliersTable(db); // Ensure fresh install gets suppliers
+        await _createNotesTable(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -107,8 +111,22 @@ class DatabaseService {
             debugPrint('Error adding is_active column: $e');
           }
         }
+        if (oldVersion < 7) {
+          await _createNotesTable(db);
+        }
       },
     );
+  }
+
+  Future<void> _createNotesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE notes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _createTables(Database db) async {
@@ -1088,6 +1106,7 @@ class DatabaseService {
     final invoiceItems = await db.query('transaction_items');
     final suppliers = await db.query('suppliers');
     final categories = await db.query('categories');
+    final notes = await db.query('notes');
 
     return {
       'timestamp': DateTime.now().toIso8601String(),
@@ -1099,6 +1118,7 @@ class DatabaseService {
         'invoice_items': invoiceItems,
         'suppliers': suppliers,
         'categories': categories,
+        'notes': notes,
       }
     };
   }
@@ -1131,6 +1151,40 @@ class DatabaseService {
     final db = await database;
     return await db.delete(
       'suppliers',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // NOTES OPERATIONS
+  // ---------------------------------------------------------------------------
+  Future<int> insertNote(Note note) async {
+    final db = await database;
+    return await db.insert('notes', note.toMap());
+  }
+
+  Future<List<Note>> getNotes() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('notes', orderBy: 'updated_at DESC');
+    return List.generate(maps.length, (i) => Note.fromMap(maps[i]));
+  }
+
+  Future<int> updateNote(Note note) async {
+    final db = await database;
+    return await db.update(
+      'notes',
+      note.toMap(),
+      where: 'id = ?',
+      whereArgs: [note.id],
+    );
+  }
+
+  Future<int> deleteNote(int id) async {
+    final db = await database;
+    return await db.delete(
+      'notes',
       where: 'id = ?',
       whereArgs: [id],
     );

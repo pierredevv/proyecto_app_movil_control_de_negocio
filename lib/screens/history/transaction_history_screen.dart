@@ -5,8 +5,7 @@ import '../../services/database_service.dart';
 import '../../models/transaction_model.dart';
 import 'dart:ui';
 import '../sales/sale_detail_screen.dart';
-import '../../services/pdf_generator_service.dart';
-import '../sales/invoice_preview_screen.dart';
+import '../utilities/print_preview_screen.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../purchases/purchase_details_screen.dart';
 import '../orders/order_details_screen.dart';
@@ -498,32 +497,18 @@ class _GlassTransactionCard extends StatelessWidget {
     if (transaction is! Sale) return;
 
     final sale = transaction as Sale;
-    final pdfService = PdfGeneratorService();
 
     try {
-      // Just showing a quick loading indicator could be nice, but for now navigate directly
-      // Or show a snackbar "Generating PDF..."
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Generando previsualización...'),
-            duration: Duration(milliseconds: 800)),
-      );
-
-      // Generate invoice
-      // If we want to preview it:
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => InvoicePreviewScreen(
-            title: 'Factura #${sale.id}',
-            buildPdf: (format) => pdfService.generateInvoice(sale),
-          ),
+          builder: (context) => PrintPreviewScreen(transaction: sale),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Error al generar PDF: $e'),
+            content: Text('Error al abrir la vista previa: $e'),
             backgroundColor: Colors.red),
       );
     }

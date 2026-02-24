@@ -6,6 +6,7 @@ import '../../models/transaction_model.dart';
 import 'package:intl/intl.dart';
 import '../../screens/history/transaction_history_screen.dart';
 import '../../screens/sales/sale_detail_screen.dart';
+import '../../screens/purchases/purchase_details_screen.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -116,36 +117,25 @@ class RecentActivityList extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
+        final heroTag = '${transaction.type.name}_${transaction.id}_icon';
         if (isSale && transaction is Sale) {
           Navigator.push(
             context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  SaleDetailScreen(sale: transaction),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                const begin = Offset(1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.easeInOut;
-
-                var tween = Tween(begin: begin, end: end)
-                    .chain(CurveTween(curve: curve)); // Slide from right
-
-                var offsetAnimation = animation.drive(tween);
-                var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeIn),
-                );
-
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: FadeTransition(
-                    opacity: fadeAnimation,
-                    child: child,
-                  ),
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 350),
-              reverseTransitionDuration: const Duration(milliseconds: 350),
+            MaterialPageRoute(
+              builder: (context) => SaleDetailScreen(
+                sale: transaction,
+                heroTag: heroTag,
+              ),
+            ),
+          );
+        } else if (transaction is Purchase) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PurchaseDetailsScreen(
+                purchase: transaction,
+                heroTag: heroTag,
+              ),
             ),
           );
         }
@@ -228,21 +218,29 @@ class RecentActivityList extends StatelessWidget {
                       // Row 2: Badge and Number
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: accentColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: accentColor.withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              type,
-                              style: TextStyle(
-                                color: accentColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                          Hero(
+                            tag:
+                                '${transaction.type.name}_${transaction.id}_icon',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color:
+                                          accentColor.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  type,
+                                  style: TextStyle(
+                                    color: accentColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
