@@ -8,6 +8,7 @@ import '../models/invoice_item.dart';
 import '../models/category.dart';
 import '../models/supplier.dart';
 import '../models/note.dart';
+import '../models/import_result.dart'; // Added for ImportResult
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -58,7 +59,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 7, // Updated to version 7
+      version: 8, // Updated to version 8 for wholesale base unit packing
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -114,6 +115,28 @@ class DatabaseService {
         if (oldVersion < 7) {
           await _createNotesTable(db);
         }
+        if (oldVersion < 8) {
+          // Add wholesale properties
+          try {
+            await db.execute(
+                "ALTER TABLE products ADD COLUMN packaging_info TEXT DEFAULT ''");
+            await db.execute(
+                "ALTER TABLE transaction_items ADD COLUMN sale_unit TEXT DEFAULT 'UNI'");
+            await db.execute(
+                "ALTER TABLE transaction_items ADD COLUMN units_per_sale_unit REAL DEFAULT 1.0");
+            await db.execute(
+                "ALTER TABLE transaction_items ADD COLUMN packaging_info TEXT DEFAULT ''");
+
+            // Critical migration for existing stock that was tracked in boxes!
+            await db.execute('''
+              UPDATE products 
+              SET stock = stock * units_per_box 
+              WHERE units_per_box > 1 AND is_active = 1
+            ''');
+          } catch (e) {
+            debugPrint('Error adding V8 properties: $e');
+          }
+        }
       },
     );
   }
@@ -142,8 +165,9 @@ class DatabaseService {
         min_stock INTEGER NOT NULL DEFAULT 0,
         category_id INTEGER,
         supplier_id INTEGER,
-        unit_type TEXT DEFAULT 'UN',
+        unit_type TEXT DEFAULT 'UNI',
         units_per_box REAL DEFAULT 1.0,
+        packaging_info TEXT DEFAULT '',
         created_at INTEGER,
         image_path TEXT,
         is_active INTEGER DEFAULT 1
@@ -193,6 +217,9 @@ class DatabaseService {
         quantity REAL NOT NULL,
         unit_price REAL NOT NULL,
         subtotal REAL NOT NULL,
+        sale_unit TEXT DEFAULT 'UNI',
+        units_per_sale_unit REAL DEFAULT 1.0,
+        packaging_info TEXT DEFAULT '',
         FOREIGN KEY (transaction_id) REFERENCES transactions (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id)
       )
@@ -395,6 +422,112 @@ class DatabaseService {
   }
 
   // ---------------------------------------------------------------------------
+  // IMPORT OPERATIONS
+  // ---------------------------------------------------------------------------
+  Future<Map<String, int>> insertImportedProducts(
+      List<ProductImportRow> rows) async {
+    final db = await database;
+    int insertedCount = 0;
+    int updatedCount = 0;
+    int errorCount = 0;
+
+    await db.transaction((txn) async {
+      for (final row in rows) {
+        try {
+          // 1. Resolve Category ID
+          int? categoryId;
+          final catQuery = row.category.trim();
+          if (catQuery.isNotEmpty) {
+            final existingCat = await txn.query(
+              'categories',
+              where: 'name LIKE ?',
+              whereArgs: [catQuery],
+              limit: 1,
+            );
+
+            if (existingCat.isNotEmpty) {
+              categoryId = existingCat.first['id'] as int;
+            } else {
+              categoryId = await txn.insert('categories', {
+                'name': catQuery,
+                'color': 0xFF4A90E2, // Default Blue
+                'icon': 'category',
+              });
+            }
+          }
+
+          // 2. Check Barcode Collision
+          final bcQuery = row.barcode.trim();
+          bool exists = false;
+          int? existingId;
+
+          if (bcQuery.isNotEmpty) {
+            final existingProd = await txn.query(
+              'products',
+              where: 'barcode = ?',
+              whereArgs: [bcQuery],
+              limit: 1,
+            );
+            if (existingProd.isNotEmpty) {
+              exists = true;
+              existingId = existingProd.first['id'] as int;
+            }
+          }
+
+          if (exists && existingId != null) {
+            // Update existing product stock
+            final existingItem = await txn.query('products',
+                where: 'id = ?', whereArgs: [existingId], limit: 1);
+            final currentStock =
+                (existingItem.first['stock'] as num).toDouble();
+
+            await txn.update(
+              'products',
+              {
+                'stock': currentStock + row.stockBase, // Add new stock natively
+                'price':
+                    row.price > 0 ? row.price : existingItem.first['price'],
+                'cost': row.cost > 0 ? row.cost : existingItem.first['cost'],
+              },
+              where: 'id = ?',
+              whereArgs: [existingId],
+            );
+            updatedCount++;
+          } else {
+            // Insert new product
+            await txn.insert('products', {
+              'name': row.name,
+              'barcode': row.barcode,
+              'price': row.price,
+              'cost': row.cost,
+              'stock': row.stockBase, // Always in base units
+              'min_stock': 0,
+              'category_id': categoryId,
+              'supplier_id': null,
+              'sale_unit': row.saleUnit,
+              'units_per_sale_unit': row.unitsPerSaleUnit,
+              'packaging_info': row.packagingInfo,
+              'created_at': DateTime.now().millisecondsSinceEpoch,
+              'image_path': null,
+              'is_active': 1,
+            });
+            insertedCount++;
+          }
+        } catch (e) {
+          debugPrint('Error inserting row \${row.name}: \$e');
+          errorCount++;
+        }
+      }
+    });
+
+    return {
+      'inserted': insertedCount,
+      'updated': updatedCount,
+      'errors': errorCount,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // CUSTOMER OPERATIONS
   // ---------------------------------------------------------------------------
   Future<int> insertCustomer(Customer customer) async {
@@ -452,10 +585,10 @@ class DatabaseService {
         final currentStock = (result.first['stock'] as num).toDouble();
         final productName = result.first['name'] as String;
 
-        // 2. Check availability
-        if (currentStock < item.quantity) {
+        // 2. Check availability (NUEVO: Validar contra baseUnitsTotal)
+        if (currentStock < item.baseUnitsTotal) {
           throw Exception(
-              'Stock insuficiente para "$productName". Disponible: $currentStock');
+              'Stock insuficiente para "$productName". Disponible: $currentStock unidades base');
         }
 
         // 3. Insert Item
@@ -466,12 +599,15 @@ class DatabaseService {
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
           'subtotal': item.subtotal,
+          'sale_unit': item.saleUnit,
+          'units_per_sale_unit': item.unitsPerSaleUnit,
+          'packaging_info': item.packagingInfo,
         });
 
-        // 4. Update Stock
+        // 4. Update Stock (NUEVO: Descontar baseUnitsTotal en lugar de quantity)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
-          [item.quantity, item.productId],
+          [item.baseUnitsTotal, item.productId],
         );
       }
       return saleId;
@@ -504,12 +640,16 @@ class DatabaseService {
 
       for (var item in items) {
         final productId = item['product_id'] as int;
-        final quantity = item['quantity'] as num;
+        final targetQty = item['quantity'] as num;
+        final targetUpx = item['units_per_sale_unit'] != null
+            ? (item['units_per_sale_unit'] as num).toDouble()
+            : 1.0;
+        final baseUnitsReturn = targetQty * targetUpx;
 
-        // 3. Restore Stock
+        // 3. Restore Stock (NUEVO: retornar base units completas)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock + ? WHERE id = ?',
-          [quantity, productId],
+          [baseUnitsReturn, productId],
         );
       }
 
@@ -537,11 +677,14 @@ class DatabaseService {
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
           'subtotal': item.subtotal,
+          'sale_unit': item.saleUnit,
+          'units_per_sale_unit': item.unitsPerSaleUnit,
+          'packaging_info': item.packagingInfo,
         });
 
         await txn.rawUpdate(
           'UPDATE products SET stock = stock + ?, cost = ? WHERE id = ?',
-          [item.quantity, item.unitPrice, item.productId],
+          [item.baseUnitsTotal, item.unitPrice, item.productId],
         );
       }
       return purchaseId;
@@ -574,12 +717,16 @@ class DatabaseService {
 
       for (var item in items) {
         final productId = item['product_id'] as int;
-        final quantity = item['quantity'] as num;
+        final targetQty = item['quantity'] as num;
+        final targetUpx = item['units_per_sale_unit'] != null
+            ? (item['units_per_sale_unit'] as num).toDouble()
+            : 1.0;
+        final baseUnitsDeduct = targetQty * targetUpx;
 
-        // 3. Decrease Stock
+        // 3. Decrease Stock (NUEVO: remover base units completas)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
-          [quantity, productId],
+          [baseUnitsDeduct, productId],
         );
       }
 

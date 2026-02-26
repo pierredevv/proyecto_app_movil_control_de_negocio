@@ -8,6 +8,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/invoice_service.dart';
 import '../../models/product.dart';
+import '../../models/sale_unit_option.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/input_validators.dart';
 
@@ -57,7 +58,17 @@ class _SalesScreenState extends State<SalesScreen> {
 
   void _addToCart(Product product) {
     try {
-      context.read<CartProvider>().addToCart(product);
+      // By default in this specific fast-add interface, add a single base unit
+      final defaultOption = SaleUnitOption(
+        label: 'Unidad',
+        unitCode: 'UNI',
+        unitsPerSaleUnit: 1.0,
+        price: product.price,
+      );
+
+      context
+          .read<CartProvider>()
+          .addToCart(product, option: defaultOption, qty: 1.0);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -7,6 +7,11 @@ class InvoiceItem {
   final double unitPrice;
   final double subtotal;
 
+  // NUEVO SISTEMA (Snapshot al momento de la venta):
+  final String saleUnit; // ej: 'CAJ', 'UNI', 'BOL'
+  final double unitsPerSaleUnit; // ej: 36 (36 uds base por cada venta)
+  final String packagingInfo; // ej: '36x32g'
+
   InvoiceItem({
     this.id,
     this.transactionId,
@@ -15,7 +20,13 @@ class InvoiceItem {
     required this.quantity,
     required this.unitPrice,
     double? subtotal,
+    this.saleUnit = 'UNI',
+    this.unitsPerSaleUnit = 1.0,
+    this.packagingInfo = '',
   }) : subtotal = subtotal ?? (quantity * unitPrice);
+
+  // Cálculo de unidades base para la lógica de stock (NUEVO)
+  double get baseUnitsTotal => quantity * unitsPerSaleUnit;
 
   InvoiceItem copyWith({
     int? id,
@@ -25,6 +36,9 @@ class InvoiceItem {
     double? quantity,
     double? unitPrice,
     double? subtotal,
+    String? saleUnit,
+    double? unitsPerSaleUnit,
+    String? packagingInfo,
   }) {
     return InvoiceItem(
       id: id ?? this.id,
@@ -37,6 +51,9 @@ class InvoiceItem {
           (quantity != null || unitPrice != null
               ? (quantity ?? this.quantity) * (unitPrice ?? this.unitPrice)
               : this.subtotal),
+      saleUnit: saleUnit ?? this.saleUnit,
+      unitsPerSaleUnit: unitsPerSaleUnit ?? this.unitsPerSaleUnit,
+      packagingInfo: packagingInfo ?? this.packagingInfo,
     );
   }
 
@@ -49,6 +66,9 @@ class InvoiceItem {
       'quantity': quantity,
       'unit_price': unitPrice,
       'subtotal': subtotal,
+      'sale_unit': saleUnit,
+      'units_per_sale_unit': unitsPerSaleUnit,
+      'packaging_info': packagingInfo,
     };
   }
 

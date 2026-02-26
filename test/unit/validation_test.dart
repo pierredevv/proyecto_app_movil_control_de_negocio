@@ -38,7 +38,9 @@ void main() {
         cost: 15.0, // Cost > Price
         stock: 100,
         minStock: 5,
-        unitType: 'UN',
+        supplierId: null,
+        saleUnit: 'UNI',
+        unitsPerSaleUnit: 1.0,
       );
 
       expect(

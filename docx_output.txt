@@ -1,0 +1,1233 @@
+📦 SISTEMA DE IMPORTACIÓN UNIVERSAL
+Guía de Implementación Técnica — Flutter / Dart / SQLite
+Gestión de Negocio App  •  Import de Productos / Inventario
+Resumen del Sistema
+Este documento detalla paso a paso la implementación del módulo de importación universal de productos para la app de gestión. Cubre la creación de todos los archivos necesarios, con el código completo exacto que debe ser copiado.
+El sistema está diseñado para aceptar archivos de cualquier app mayorista (Vyapar, Stocky, Excel manual, CSV exportado) sin requerir que el usuario reformatee sus datos.
+<w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Paso
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Archivo
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Descripción
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">1
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/models/sale_unit_option.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Modelo de opciones de venta
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">2
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/models/import_result.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Modelos de resultado de import
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">3
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/services/packaging_parser.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Parser de medidas &quot;18X250&quot;
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">4
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/services/import_service.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Engine de importación universal
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">5
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/services/database_service.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Método insertImportedProducts
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">6
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/providers/import_provider.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Provider de estado del import
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">7
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/screens/import/import_screen.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Pantalla principal de import
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">8
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/screens/import/import_preview_screen.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Pantalla de preview/confirmación
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">9
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">lib/screens/import/column_mapper_screen.dart
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Pantalla de mapeo de columnas
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">10
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">pubspec.yaml
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Dependencias nuevas a agregar
+PASO 1 — lib/models/sale_unit_option.dart
+Crear este archivo nuevo. Es el modelo que representa una presentación de venta (CAJ, BOL, UNI). Se usa tanto en el import como en el carrito.
+// lib/models/sale_unit_option.dart
+
+class SaleUnitOption {
+  final String label;            // &quot;Caja (18X250)&quot;, &quot;Bolsa suelta&quot;, &quot;Unidad&quot;
+  final String unitCode;         // &quot;CAJ&quot;, &quot;BOL&quot;, &quot;UNI&quot;, &quot;KG&quot;
+  final double unitsPerSaleUnit; // 18 para CAJ de 18, 1 para UNI
+  final double price;            // precio en esta presentación
+
+  const SaleUnitOption({
+    required this.label,
+    required this.unitCode,
+    required this.unitsPerSaleUnit,
+    required this.price,
+  });
+
+  // Precio por unidad base calculado
+  double get pricePerBaseUnit {
+    if (unitsPerSaleUnit &lt;= 0) return price;
+    return price / unitsPerSaleUnit;
+  }
+
+  @override
+  String toString() =&gt; &quot;$label ($unitCode) — $unitsPerSaleUnit u. — Bs. $price&quot;;
+}
+PASO 2 — lib/models/import_result.dart
+Crear este archivo nuevo. Define todos los modelos de datos que fluyen durante el proceso de importación: fila parseada, error, resultado final, estado de la sesión.
+// lib/models/import_result.dart
+
+// Una fila ya parseada y lista para insertar en la DB
+class ProductImportRow {
+  final String name;
+  final String barcode;
+  final double cost;
+  final double price;
+  final double stockBase;        // YA en unidades base (stock_excel × unitsPerSaleUnit)
+  final double stockOriginal;    // stock tal como vino en el archivo (para mostrar en preview)
+  final String category;
+  final String saleUnit;         // &quot;CAJ&quot;, &quot;BOL&quot;, &quot;UNI&quot;
+  final double unitsPerSaleUnit;
+  final String packagingInfo;    // &quot;18X250&quot; para display
+  bool selected;                 // para que el usuario desmarque filas en el preview
+
+  ProductImportRow({
+    required this.name,
+    required this.barcode,
+    required this.cost,
+    required this.price,
+    required this.stockBase,
+    required this.stockOriginal,
+    required this.category,
+    this.saleUnit = &quot;UNI&quot;,
+    this.unitsPerSaleUnit = 1.0,
+    this.packagingInfo = &quot;&quot;,
+    this.selected = true,
+  });
+
+  // Para mostrar en la tabla de preview
+  String get stockSummary {
+    if (unitsPerSaleUnit &lt;= 1) return &quot;${stockBase.toStringAsFixed(0)} unid.&quot;;
+    return &quot;${stockOriginal.toStringAsFixed(1)} $saleUnit → ${stockBase.toStringAsFixed(0)} u.&quot;;
+  }
+
+  // Copia con campo selected modificado
+  ProductImportRow copyWith({bool? selected}) {
+    return ProductImportRow(
+      name: name, barcode: barcode, cost: cost, price: price,
+      stockBase: stockBase, stockOriginal: stockOriginal,
+      category: category, saleUnit: saleUnit,
+      unitsPerSaleUnit: unitsPerSaleUnit, packagingInfo: packagingInfo,
+      selected: selected ?? this.selected,
+    );
+  }
+}
+
+// Un error en una fila específica
+class ImportRowError {
+  final int rowNumber;    // número de fila en el archivo (1-indexed)
+  final String field;     // campo que falló, ej: &quot;precio&quot;, &quot;medida&quot;
+  final String message;
+
+  const ImportRowError(this.rowNumber, this.field, this.message);
+}
+
+// Resultado completo del parse
+class ImportParseResult {
+  final List&lt;ProductImportRow&gt; rows;
+  final List&lt;ImportRowError&gt; errors;
+  final Map&lt;String, int?&gt; columnMap;  // mapeo detectado: campo→índice columna
+  final List&lt;String&gt; rawHeaders;      // headers originales del archivo
+
+  const ImportParseResult({
+    required this.rows,
+    required this.errors,
+    required this.columnMap,
+    required this.rawHeaders,
+  });
+
+  bool get hasErrors =&gt; errors.isNotEmpty;
+  int get validCount =&gt; rows.length;
+  int get selectedCount =&gt; rows.where((r) =&gt; r.selected).length;
+}
+
+// Resultado de la inserción en DB
+class ImportInsertResult {
+  final int inserted;
+  final int skipped;        // duplicados por barcode
+  final int categoriesCreated;
+  final List&lt;String&gt; warnings;
+
+  const ImportInsertResult({
+    required this.inserted,
+    required this.skipped,
+    required this.categoriesCreated,
+    required this.warnings,
+  });
+}
+PASO 3 — lib/services/packaging_parser.dart
+Crear este archivo nuevo. Es el parser inteligente que convierte cualquier string de medida/packaging en datos estructurados. Maneja todos los casos reales encontrados en el Excel del cliente.
+⚠  Este es el archivo más crítico. Maneja TODOS los casos reales: &quot;18X250&quot;, &quot;20X0,5&quot;, &quot;6X3 Lb&quot;, &quot;60X&quot;, null, y strings vacíos.
+// lib/services/packaging_parser.dart
+
+class PackagingParseResult {
+  final double unitsPerSaleUnit;  // el divisor para stock: 18 en &quot;18X250&quot;
+  final String packagingInfo;     // string limpio para display: &quot;18X250&quot;
+  final String? weightUnit;       // &quot;g&quot;, &quot;kg&quot;, &quot;Lb&quot;, null si no aplica
+  final bool wasGuessed;          // true si no se pudo parsear con certeza
+
+  const PackagingParseResult({
+    required this.unitsPerSaleUnit,
+    required this.packagingInfo,
+    this.weightUnit,
+    this.wasGuessed = false,
+  });
+
+  bool get isSimpleUnit =&gt; unitsPerSaleUnit &lt;= 1.0;
+}
+
+class PackagingParser {
+
+  // Palabras que indican unidades de peso (no cantidad)
+  static const _weightUnits = [&quot;G&quot;, &quot;GR&quot;, &quot;KG&quot;, &quot;LB&quot;, &quot;OZ&quot;, &quot;ML&quot;, &quot;L&quot;];
+
+  static PackagingParseResult parse(String? raw) {
+    // ── Caso 1: null o vacío ──
+    if (raw == null || raw.trim().isEmpty) {
+      return const PackagingParseResult(
+        unitsPerSaleUnit: 1.0,
+        packagingInfo: &quot;&quot;,
+      );
+    }
+
+    // ── Normalizar ──
+    final clean = raw.trim().toUpperCase()
+        .replaceAll(&quot;,&quot;, &quot;.&quot;)   // coma decimal → punto
+        .replaceAll(&quot; &quot;, &quot;&quot;)    // quitar espacios
+        .replaceAll(&quot;*&quot;, &quot;X&quot;); // asterisco → X (Bon Bon Bum usa 15*24)
+
+    // ── Caso 2: patrón NúmeroXNúmeroUnidad  → &quot;18X250&quot;, &quot;6X600G&quot;, &quot;20X0.5KG&quot; ──
+    final fullPattern = RegExp(r&quot;^(\d+\.?\d*)X(\d+\.?\d*)([A-Z]*)$&quot;);
+    final fullMatch = fullPattern.firstMatch(clean);
+    if (fullMatch != null) {
+      final outerStr = fullMatch.group(1)!;
+      final innerStr = fullMatch.group(2)!;
+      final suffix = fullMatch.group(3)!;
+
+      final outer = double.tryParse(outerStr) ?? 1.0;
+      final isWeight = _weightUnits.contains(suffix);
+
+      return PackagingParseResult(
+        // Si el sufijo es peso (g/kg), outer = cantidad de unidades por caja
+        // Si no tiene sufijo, outer = cantidad de bolsas/unidades por caja
+        unitsPerSaleUnit: outer,
+        packagingInfo: raw.trim().toUpperCase().replaceAll(&quot;*&quot;, &quot;X&quot;),
+        weightUnit: isWeight ? suffix : null,
+      );
+    }
+
+    // ── Caso 3: patrón NúmeroX sin segundo valor → &quot;60X&quot; ──
+    final singlePattern = RegExp(r&quot;^(\d+\.?\d*)X$&quot;);
+    final singleMatch = singlePattern.firstMatch(clean);
+    if (singleMatch != null) {
+      final outer = double.tryParse(singleMatch.group(1)!) ?? 1.0;
+      return PackagingParseResult(
+        unitsPerSaleUnit: outer,
+        packagingInfo: raw.trim().toUpperCase(),
+      );
+    }
+
+    // ── Caso 4: solo un número → &quot;24&quot; (24 unidades por caja) ──
+    final numOnly = double.tryParse(clean);
+    if (numOnly != null &amp;&amp; numOnly &gt; 1) {
+      return PackagingParseResult(
+        unitsPerSaleUnit: numOnly,
+        packagingInfo: raw.trim(),
+        wasGuessed: true,
+      );
+    }
+
+    // ── Caso 5: string no parseado (texto libre, unidades especiales) ──
+    // Guardamos el string tal como está pero tratamos como unidad simple
+    return PackagingParseResult(
+      unitsPerSaleUnit: 1.0,
+      packagingInfo: raw.trim().toUpperCase(),
+      wasGuessed: true,
+    );
+  }
+
+  // Genera el string de display para el producto en la UI
+  // Ej: (&quot;CAJ&quot;, &quot;18X250&quot;) → &quot;18X250 / CAJ&quot;
+  static String buildDisplayLabel(String saleUnit, String packagingInfo) {
+    if (packagingInfo.isEmpty) return saleUnit;
+    return &quot;$packagingInfo / $saleUnit&quot;;
+  }
+}
+ℹ  Casos reales del Excel del cliente y cómo los maneja este parser:
+<w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">String original
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">unitsPerSaleUnit
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">packagingInfo
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">nota
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;18X250&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">18.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;18X250&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">patrón estándar
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;20X0,5&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">20.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;20X0.5&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">coma → punto, OK
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;15 X 24&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">15.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;15X24&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">espacios removidos
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;15*24&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">15.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;15X24&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">asterisco → X
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;6X3 Lb&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">6.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;6X3LB&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">unidad de peso, outer=6
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;60X&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">60.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;60X&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">sin segundo valor
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">null / &quot;&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">1.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">producto simple, UNI
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;CAJA&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">1.0
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">&quot;CAJA&quot;
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">texto libre, wasGuessed=true
+PASO 4 — lib/services/import_service.dart
+Crear este archivo nuevo. Es el engine central. Lee el archivo (XLSX, XLS, CSV), detecta columnas automáticamente por aliases conocidos, parsea cada fila, y devuelve un ImportParseResult.
+⚠  Requiere la dependencia &quot;excel: ^4.0.3&quot; en pubspec.yaml y &quot;file_picker: ^8.0.0&quot; (ya debería existir en tu proyecto).
+// lib/services/import_service.dart
+
+import &quot;dart:io&quot;;
+import &quot;package:excel/excel.dart&quot;;
+import &quot;package:file_picker/file_picker.dart&quot;;
+import &quot;../models/import_result.dart&quot;;
+import &quot;packaging_parser.dart&quot;;
+
+class ImportService {
+
+  // ── Aliases de columnas (agregar más según se detecten otros formatos) ──
+  static const _nameAliases = [
+    &quot;descripcion&quot;,&quot;description&quot;,&quot;nombre&quot;,&quot;name&quot;,&quot;item&quot;,&quot;producto&quot;,&quot;product&quot;,&quot;articulo&quot;,
+    &quot;desc&quot;,&quot;prod&quot;,&quot;mercaderia&quot;,&quot;mercancia&quot;,
+  ];
+  static const _barcodeAliases = [
+    &quot;codigo&quot;,&quot;barcode&quot;,&quot;ean&quot;,&quot;sku&quot;,&quot;cod&quot;,&quot;code&quot;,&quot;codigobarra&quot;,&quot;barcodee&quot;,
+    &quot;codbarras&quot;,&quot;cod_barras&quot;,&quot;codbarra&quot;,&quot;gtin&quot;,&quot;upc&quot;,&quot;ref&quot;,&quot;referencia&quot;,
+  ];
+  static const _costAliases = [
+    &quot;pcosto&quot;,&quot;costo&quot;,&quot;cost&quot;,&quot;costprice&quot;,&quot;precio_costo&quot;,&quot;compra&quot;,&quot;p_costo&quot;,
+    &quot;preciocompra&quot;,&quot;costunit&quot;,&quot;costounitario&quot;,&quot;p.costo&quot;,
+  ];
+  static const _priceAliases = [
+    &quot;pventa&quot;,&quot;venta&quot;,&quot;price&quot;,&quot;saleprice&quot;,&quot;precio&quot;,&quot;precio_venta&quot;,&quot;p_venta&quot;,
+    &quot;precioventa&quot;,&quot;saleunit&quot;,&quot;p.venta&quot;,&quot;preciovta&quot;,
+  ];
+  static const _stockAliases = [
+    &quot;stock&quot;,&quot;cantidad&quot;,&quot;qty&quot;,&quot;quantity&quot;,&quot;existencia&quot;,&quot;inventario&quot;,&quot;cant&quot;,
+    &quot;saldo&quot;,&quot;disponible&quot;,&quot;existencias&quot;,&quot;stock_actual&quot;,
+  ];
+  static const _categoryAliases = [
+    &quot;categoria&quot;,&quot;category&quot;,&quot;tipo&quot;,&quot;type&quot;,&quot;grupo&quot;,&quot;group&quot;,&quot;cat&quot;,&quot;rubro&quot;,
+    &quot;linea&quot;,&quot;departamento&quot;,&quot;familia&quot;,
+  ];
+  static const _medidaAliases = [
+    &quot;medida&quot;,&quot;packaging&quot;,&quot;empaque&quot;,&quot;presentacion&quot;,&quot;formato&quot;,&quot;unidad&quot;,&quot;unit&quot;,
+    &quot;packing&quot;,&quot;contenido&quot;,&quot;descripcion_empaque&quot;,&quot;uom&quot;,&quot;um&quot;,
+  ];
+
+  // ── Punto de entrada: abre file picker y parsea ──
+  static Future&lt;ImportParseResult?&gt; pickAndParse() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [&quot;xlsx&quot;, &quot;xls&quot;, &quot;csv&quot;],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return null;
+    final file = result.files.first;
+    if (file.bytes == null &amp;&amp; file.path == null) return null;
+
+    final bytes = file.bytes ?? File(file.path!).readAsBytesSync();
+    final ext = (file.extension ?? &quot;&quot;).toLowerCase();
+
+    if (ext == &quot;csv&quot;) {
+      return _parseCsv(String.fromCharCodes(bytes));
+    } else {
+      return _parseExcel(bytes);
+    }
+  }
+
+  // ── Parser XLSX / XLS ──
+  static ImportParseResult _parseExcel(List&lt;int&gt; bytes) {
+    final excel = Excel.decodeBytes(bytes);
+    // Tomar la primera hoja con datos
+    Sheet? sheet;
+    for (final s in excel.sheets.values) {
+      if (s.rows.isNotEmpty) { sheet = s; break; }
+    }
+    if (sheet == null) {
+      return ImportParseResult(rows: [], errors: [
+        ImportRowError(0, &quot;archivo&quot;, &quot;El archivo está vacío o no tiene hojas con datos&quot;),
+      ], columnMap: {}, rawHeaders: []);
+    }
+    return _parseRows(sheet.rows);
+  }
+
+  // ── Parser CSV ──
+  static ImportParseResult _parseCsv(String content) {
+    // Detectar separador: coma, punto y coma, o tab
+    final sep = content.contains(&quot;;&quot;) ? &quot;;&quot; : (content.contains(&quot;\t&quot;) ? &quot;\t&quot; : &quot;,&quot;);
+    final lines = content.split(&quot;\n&quot;).where((l) =&gt; l.trim().isNotEmpty).toList();
+    if (lines.isEmpty) {
+      return ImportParseResult(rows: [], errors: [
+        ImportRowError(0, &quot;archivo&quot;, &quot;El CSV está vacío&quot;),
+      ], columnMap: {}, rawHeaders: []);
+    }
+    // Convertir a estructura compatible con _parseRows
+    final rawRows = lines.map((line) {
+      return line.split(sep).map((cell) {
+        // Crear objeto compatible con Data de Excel
+        return _CsvCell(cell.replaceAll(&apos;&quot;&apos;, &quot;&quot;).trim());
+      }).toList();
+    }).toList();
+    return _parseRows(rawRows);
+  }
+
+  // ── Lógica central de parseo (funciona para Excel y CSV) ──
+  static ImportParseResult _parseRows(List&lt;List&lt;dynamic&gt;&gt; rows) {
+    if (rows.isEmpty) return ImportParseResult(rows: [], errors: [], columnMap: {}, rawHeaders: []);
+
+    // 1. Extraer headers
+    final rawHeaders = rows.first
+        .map((c) =&gt; _cellStr(c))
+        .toList();
+
+    // 2. Detectar columnas
+    final headers = rawHeaders
+        .map((h) =&gt; h.toLowerCase().replaceAll(&quot; &quot;, &quot;&quot;).replaceAll(&quot;_&quot;, &quot;&quot;).replaceAll(&quot;.&quot;, &quot;&quot;))
+        .toList();
+
+    final colMap = {
+      &quot;name&quot;:     _findCol(headers, _nameAliases),
+      &quot;barcode&quot;:  _findCol(headers, _barcodeAliases),
+      &quot;cost&quot;:     _findCol(headers, _costAliases),
+      &quot;price&quot;:    _findCol(headers, _priceAliases),
+      &quot;stock&quot;:    _findCol(headers, _stockAliases),
+      &quot;category&quot;: _findCol(headers, _categoryAliases),
+      &quot;medida&quot;:   _findCol(headers, _medidaAliases),
+    };
+
+    // 3. Validar que al menos nombre esté presente
+    if (colMap[&quot;name&quot;] == null) {
+      return ImportParseResult(rows: [], errors: [
+        ImportRowError(1, &quot;nombre&quot;, &quot;No se encontró columna de nombre/descripción. Columnas detectadas: ${rawHeaders.join(&quot;, &quot;)}&quot;),
+      ], columnMap: colMap, rawHeaders: rawHeaders);
+    }
+
+    // 4. Parsear filas de datos (saltar header)
+    final validRows = &lt;ProductImportRow&gt;[];
+    final errors = &lt;ImportRowError&gt;[];
+
+    for (int i = 1; i &lt; rows.length; i++) {
+      final row = rows[i];
+      final rowNum = i + 1;
+
+      try {
+        final name = _cellStr2(row, colMap[&quot;name&quot;]);
+        if (name.isEmpty) continue; // fila vacía → ignorar
+
+        // Ignorar filas tipo &quot;Nota:&quot; al final del archivo
+        if (name.toLowerCase().startsWith(&quot;nota&quot;)) continue;
+
+        final barcode = _cellStr2(row, colMap[&quot;barcode&quot;]);
+        final cost    = _cellDouble(row, colMap[&quot;cost&quot;]) ?? 0.0;
+        final price   = _cellDouble(row, colMap[&quot;price&quot;]) ?? cost; // si no hay precio, usar costo
+        final stockRaw= _cellDouble(row, colMap[&quot;stock&quot;]) ?? 0.0;
+        final category= _cellStr2(row, colMap[&quot;category&quot;]);
+        final medida  = _cellStr2(row, colMap[&quot;medida&quot;]);
+
+        // Parsear packaging
+        final pkg = PackagingParser.parse(medida.isEmpty ? null : medida);
+
+        // Stock negativo → corregir a 0
+        final stockCorrected = stockRaw &lt; 0 ? 0.0 : stockRaw;
+
+        // ⚠ CONVERSIÓN CRÍTICA: stock en el Excel está en saleUnit (cajas)
+        // → hay que multiplicar por unitsPerSaleUnit para obtener unidades base
+        final stockBase = stockCorrected * pkg.unitsPerSaleUnit;
+
+        validRows.add(ProductImportRow(
+          name: name,
+          barcode: barcode,
+          cost: cost,
+          price: price,
+          stockBase: stockBase,
+          stockOriginal: stockCorrected,
+          category: category.isEmpty ? &quot;General&quot; : category,
+          saleUnit: pkg.unitsPerSaleUnit &gt; 1 ? &quot;CAJ&quot; : &quot;UNI&quot;,
+          unitsPerSaleUnit: pkg.unitsPerSaleUnit,
+          packagingInfo: pkg.packagingInfo,
+        ));
+
+        // Warning si el stock fue corregido
+        if (stockRaw &lt; 0) {
+          errors.add(ImportRowError(rowNum, &quot;stock&quot;,
+            &quot;Stock negativo ($stockRaw) en \&quot;$name\&quot; corregido a 0&quot;));
+        }
+        // Warning si packaging no se parseó con certeza
+        if (pkg.wasGuessed &amp;&amp; medida.isNotEmpty) {
+          errors.add(ImportRowError(rowNum, &quot;medida&quot;,
+            &quot;Medida \&quot;$medida\&quot; no reconocida en \&quot;$name\&quot;, tratada como unidad simple&quot;));
+        }
+
+      } catch (e) {
+        errors.add(ImportRowError(rowNum, &quot;general&quot;, &quot;Error en fila $rowNum: $e&quot;));
+      }
+    }
+
+    return ImportParseResult(
+      rows: validRows,
+      errors: errors,
+      columnMap: colMap,
+      rawHeaders: rawHeaders,
+    );
+  }
+
+  // ── Helpers ──
+
+  static int? _findCol(List&lt;String&gt; headers, List&lt;String&gt; aliases) {
+    for (int i = 0; i &lt; headers.length; i++) {
+      final h = headers[i];
+      if (aliases.any((a) =&gt; h.contains(a) || a.contains(h))) return i;
+    }
+    return null;
+  }
+
+  static String _cellStr(dynamic cell) {
+    if (cell == null) return &quot;&quot;;
+    // Data de Excel
+    if (cell is Data) return cell.value?.toString().trim() ?? &quot;&quot;;
+    // _CsvCell
+    if (cell is _CsvCell) return cell.value;
+    return cell.toString().trim();
+  }
+
+  static String _cellStr2(List&lt;dynamic&gt; row, int? col) {
+    if (col == null || col &gt;= row.length) return &quot;&quot;;
+    return _cellStr(row[col]);
+  }
+
+  static double? _cellDouble(List&lt;dynamic&gt; row, int? col) {
+    if (col == null || col &gt;= row.length) return null;
+    final cell = row[col];
+    String raw;
+    if (cell is Data) raw = cell.value?.toString() ?? &quot;&quot;;
+    else if (cell is _CsvCell) raw = cell.value;
+    else raw = cell?.toString() ?? &quot;&quot;;
+    if (raw.isEmpty) return null;
+    // Normalizar separadores
+    raw = raw.replaceAll(&quot;,&quot;, &quot;.&quot;);
+    return double.tryParse(raw);
+  }
+}
+
+// Wrapper interno para celdas CSV (imita la interfaz de Data de Excel)
+class _CsvCell {
+  final String value;
+  const _CsvCell(this.value);
+}
+PASO 5 — Método a agregar en lib/services/database_service.dart
+NO reemplazar el archivo. Solo agregar el siguiente método al final de la clase DatabaseService, antes del último cierre de llaves.
+⚠  Este método crea las categorías que no existen automáticamente y maneja duplicados por barcode. Si el barcode ya existe en la DB, el producto es ignorado (no sobreescrito).
+// Agregar este método dentro de la clase DatabaseService
+// Ubicación: al final del archivo, antes del último &quot;}&quot;
+
+// ---------------------------------------------------------------------------
+// IMPORT OPERATIONS
+// ---------------------------------------------------------------------------
+Future&lt;ImportInsertResult&gt; insertImportedProducts(
+  List&lt;ProductImportRow&gt; rows,
+) async {
+  final db = await database;
+  int inserted = 0;
+  int skipped = 0;
+  int categoriesCreated = 0;
+  final warnings = &lt;String&gt;[];
+
+  // Cache de categorías para no hacer query por cada fila
+  final existingCategories = await getCategories();
+  final categoryMap = &lt;String, int&gt;{};
+  for (final c in existingCategories) {
+    categoryMap[c.name.toLowerCase().trim()] = c.id!;
+  }
+
+  await db.transaction((txn) async {
+    for (final row in rows) {
+      // 1. Resolver categoría (crear si no existe)
+      int? categoryId;
+      final catKey = row.category.toLowerCase().trim();
+      if (catKey.isNotEmpty) {
+        if (categoryMap.containsKey(catKey)) {
+          categoryId = categoryMap[catKey];
+        } else {
+          categoryId = await txn.insert(&quot;categories&quot;, {&quot;name&quot;: row.category.trim()});
+          categoryMap[catKey] = categoryId;
+          categoriesCreated++;
+        }
+      }
+
+      // 2. Verificar duplicado por barcode (si tiene barcode)
+      if (row.barcode.isNotEmpty) {
+        final existing = await txn.query(
+          &quot;products&quot;,
+          where: &quot;barcode = ? AND is_active = 1&quot;,
+          whereArgs: [row.barcode],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          skipped++;
+          warnings.add(&quot;Skipped \&quot;${row.name}\&quot; — barcode ${row.barcode} ya existe&quot;);
+          continue;
+        }
+      }
+
+      // 3. Insertar producto
+      await txn.insert(&quot;products&quot;, {
+        &quot;name&quot;:             row.name,
+        &quot;barcode&quot;:          row.barcode,
+        &quot;price&quot;:            row.price,
+        &quot;cost&quot;:             row.cost,
+        &quot;stock&quot;:            row.stockBase,   // siempre en unidades base
+        &quot;min_stock&quot;:        0,
+        &quot;category_id&quot;:      categoryId,
+        &quot;supplier_id&quot;:      null,
+        &quot;unit_type&quot;:        row.saleUnit,
+        &quot;units_per_box&quot;:    row.unitsPerSaleUnit,
+        &quot;packaging_info&quot;:   row.packagingInfo,
+        &quot;created_at&quot;:       DateTime.now().millisecondsSinceEpoch,
+        &quot;image_path&quot;:       null,
+        &quot;is_active&quot;:        1,
+      });
+      inserted++;
+    }
+  });
+
+  return ImportInsertResult(
+    inserted: inserted,
+    skipped: skipped,
+    categoriesCreated: categoriesCreated,
+    warnings: warnings,
+  );
+}
+
+// Nota: agregar también el import en la parte superior del archivo:
+// import &quot;../models/import_result.dart&quot;;
+PASO 6 — lib/providers/import_provider.dart
+Crear este archivo nuevo. Maneja el estado del proceso completo de importación: carga del archivo, estado del parse, lista de filas para el preview, y ejecución del insert.
+// lib/providers/import_provider.dart
+
+import &quot;package:flutter/material.dart&quot;;
+import &quot;../models/import_result.dart&quot;;
+import &quot;../services/import_service.dart&quot;;
+import &quot;../services/database_service.dart&quot;;
+
+enum ImportStep { idle, picking, parsing, preview, inserting, done, error }
+
+class ImportProvider extends ChangeNotifier {
+  final DatabaseService _db = DatabaseService();
+
+  ImportStep _step = ImportStep.idle;
+  ImportParseResult? _parseResult;
+  ImportInsertResult? _insertResult;
+  String? _errorMessage;
+  String? _fileName;
+
+  ImportStep get step =&gt; _step;
+  ImportParseResult? get parseResult =&gt; _parseResult;
+  ImportInsertResult? get insertResult =&gt; _insertResult;
+  String? get errorMessage =&gt; _errorMessage;
+  String? get fileName =&gt; _fileName;
+
+  bool get isLoading =&gt; _step == ImportStep.picking
+      || _step == ImportStep.parsing
+      || _step == ImportStep.inserting;
+
+  // ── Paso 1: el usuario elige el archivo ──
+  Future&lt;void&gt; pickAndParse() async {
+    _step = ImportStep.picking;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _step = ImportStep.parsing;
+      notifyListeners();
+
+      final result = await ImportService.pickAndParse();
+      if (result == null) {
+        // Usuario canceló
+        _step = ImportStep.idle;
+        notifyListeners();
+        return;
+      }
+
+      _parseResult = result;
+      _step = ImportStep.preview;
+      notifyListeners();
+
+    } catch (e) {
+      _step = ImportStep.error;
+      _errorMessage = &quot;Error al leer el archivo: $e&quot;;
+      notifyListeners();
+    }
+  }
+
+  // ── Paso 2: el usuario marca/desmarca filas en el preview ──
+  void toggleRow(int index, bool selected) {
+    if (_parseResult == null) return;
+    _parseResult!.rows[index] = _parseResult!.rows[index].copyWith(selected: selected);
+    notifyListeners();
+  }
+
+  void selectAll(bool value) {
+    if (_parseResult == null) return;
+    for (int i = 0; i &lt; _parseResult!.rows.length; i++) {
+      _parseResult!.rows[i] = _parseResult!.rows[i].copyWith(selected: value);
+    }
+    notifyListeners();
+  }
+
+  // ── Paso 3: confirmar e insertar ──
+  Future&lt;void&gt; confirmImport() async {
+    if (_parseResult == null) return;
+
+    final selectedRows = _parseResult!.rows.where((r) =&gt; r.selected).toList();
+    if (selectedRows.isEmpty) return;
+
+    _step = ImportStep.inserting;
+    notifyListeners();
+
+    try {
+      _insertResult = await _db.insertImportedProducts(selectedRows);
+      _step = ImportStep.done;
+      notifyListeners();
+    } catch (e) {
+      _step = ImportStep.error;
+      _errorMessage = &quot;Error al guardar productos: $e&quot;;
+      notifyListeners();
+    }
+  }
+
+  // ── Reset para nueva importación ──
+  void reset() {
+    _step = ImportStep.idle;
+    _parseResult = null;
+    _insertResult = null;
+    _errorMessage = null;
+    _fileName = null;
+    notifyListeners();
+  }
+}
+PASO 7 — lib/screens/import/import_screen.dart
+Crear la carpeta lib/screens/import/ y este archivo. Es la pantalla inicial del flujo de importación. Muestra el botón para elegir archivo, el estado del proceso, y navega a la pantalla de preview cuando el parse termina.
+// lib/screens/import/import_screen.dart
+
+import &quot;package:flutter/material.dart&quot;;
+import &quot;package:provider/provider.dart&quot;;
+import &quot;../../providers/import_provider.dart&quot;;
+import &quot;import_preview_screen.dart&quot;;
+
+class ImportScreen extends StatelessWidget {
+  const ImportScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) =&gt; ImportProvider(),
+      child: const _ImportScreenBody(),
+    );
+  }
+}
+
+class _ImportScreenBody extends StatefulWidget {
+  const _ImportScreenBody();
+  @override
+  State&lt;_ImportScreenBody&gt; createState() =&gt; _ImportScreenBodyState();
+}
+
+class _ImportScreenBodyState extends State&lt;_ImportScreenBody&gt; {
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch&lt;ImportProvider&gt;();
+    final theme = Theme.of(context);
+
+    // Navegar a preview cuando el parse termina
+    if (provider.step == ImportStep.preview &amp;&amp; provider.parseResult != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =&gt; ChangeNotifierProvider.value(
+              value: provider,
+              child: const ImportPreviewScreen(),
+            ),
+          ),
+        ).then((_) {
+          // Al volver del preview, resetear si ya terminó
+          if (provider.step == ImportStep.done) provider.reset();
+        });
+      });
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(&quot;Importar Productos&quot;),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header descriptivo ──
+            Text(&quot;Importación Universal&quot;,
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text(
+              &quot;Importa tu inventario desde cualquier app (Vyapar, Stocky, Excel manual) &quot;
+              &quot;en formato .xlsx, .xls o .csv.&quot;,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 32),
+
+            // ── Formatos soportados ──
+            _buildFormatChips(),
+            const SizedBox(height: 32),
+
+            // ── Estado / Error ──
+            if (provider.isLoading) ...[
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 16),
+              Center(child: Text(_getLoadingText(provider.step))),
+            ] else if (provider.step == ImportStep.error) ...[
+              _buildErrorCard(provider.errorMessage ?? &quot;Error desconocido&quot;),
+              const SizedBox(height: 16),
+            ],
+
+            const Spacer(),
+
+            // ── Botón principal ──
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: provider.isLoading ? null : () =&gt; provider.pickAndParse(),
+                icon: const Icon(Icons.upload_file, size: 28),
+                label: const Text(&quot;ELEGIR ARCHIVO&quot;,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Nota de columnas mínimas ──
+            const Center(
+              child: Text(
+                &quot;Columna mínima requerida: Nombre/Descripción&quot;,
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormatChips() {
+    final formats = [
+      (&quot;xlsx&quot;, Icons.table_chart, Colors.green),
+      (&quot;xls&quot;, Icons.table_chart, Colors.green),
+      (&quot;csv&quot;, Icons.text_snippet, Colors.blue),
+      (&quot;Vyapar&quot;, Icons.store, Colors.orange),
+      (&quot;Manual&quot;, Icons.edit, Colors.purple),
+    ];
+    return Wrap(
+      spacing: 8, runSpacing: 8,
+      children: formats.map((f) =&gt; Chip(
+        avatar: Icon(f.$2, size: 16, color: f.$3),
+        label: Text(f.$1),
+      )).toList(),
+    );
+  }
+
+  Widget _buildErrorCard(String msg) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red),
+          const SizedBox(width: 12),
+          Expanded(child: Text(msg, style: const TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  String _getLoadingText(ImportStep step) {
+    switch (step) {
+      case ImportStep.picking: return &quot;Abriendo selector de archivos...&quot;;
+      case ImportStep.parsing: return &quot;Analizando archivo...&quot;;
+      case ImportStep.inserting: return &quot;Guardando productos...&quot;;
+      default: return &quot;Procesando...&quot;;
+    }
+  }
+}
+PASO 8 — lib/screens/import/import_preview_screen.dart
+Crear este archivo. Es la pantalla de preview antes de confirmar. Muestra la tabla con todos los productos parseados, las conversiones de stock, los warnings, y permite deseleccionar filas problemáticas.
+ℹ  Esta pantalla es la más importante para el usuario. Le muestra exactamente qué va a entrar a la DB antes de confirmar, con la conversión de stock visible.
+// lib/screens/import/import_preview_screen.dart
+
+import &quot;package:flutter/material.dart&quot;;
+import &quot;package:provider/provider.dart&quot;;
+import &quot;../../providers/import_provider.dart&quot;;
+import &quot;../../providers/inventory_provider.dart&quot;;
+
+class ImportPreviewScreen extends StatelessWidget {
+  const ImportPreviewScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch&lt;ImportProvider&gt;();
+    final parseResult = provider.parseResult!;
+    final theme = Theme.of(context);
+
+    // Si el insert terminó → mostrar resultado
+    if (provider.step == ImportStep.done) {
+      return _buildDoneScreen(context, provider);
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(&quot;Previsualización&quot;),
+        actions: [
+          // Seleccionar / deseleccionar todo
+          TextButton(
+            onPressed: () =&gt; provider.selectAll(true),
+            child: const Text(&quot;Todo&quot;),
+          ),
+          TextButton(
+            onPressed: () =&gt; provider.selectAll(false),
+            child: const Text(&quot;Ninguno&quot;),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // ── Barra de resumen ──
+          _buildSummaryBar(context, provider),
+
+          // ── Warnings del parse ──
+          if (parseResult.hasErrors)
+            _buildWarningsBanner(context, parseResult.errors),
+
+          // ── Tabla de productos ──
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: parseResult.rows.length,
+              itemBuilder: (context, index) {
+                final row = parseResult.rows[index];
+                return _buildProductCard(context, row, index, provider);
+              },
+            ),
+          ),
+        ],
+      ),
+
+      // ── Botón confirmar ──
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16,
+          MediaQuery.of(context).padding.bottom + 16),
+        child: SizedBox(
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: provider.isLoading || provider.parseResult!.selectedCount == 0
+              ? null
+              : () async {
+                  await provider.confirmImport();
+                  // Recargar inventario
+                  if (context.mounted) {
+                    context.read&lt;InventoryProvider&gt;().loadProducts(reset: true);
+                  }
+                },
+            icon: provider.isLoading
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.check_circle),
+            label: Text(
+              provider.isLoading
+                ? &quot;Guardando...&quot;
+                : &quot;CONFIRMAR ${provider.parseResult!.selectedCount} PRODUCTOS&quot;,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryBar(BuildContext context, ImportProvider provider) {
+    final r = provider.parseResult!;
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _Stat(&quot;Detectados&quot;, &quot;${r.validCount}&quot;, Colors.blue),
+          _Stat(&quot;Seleccionados&quot;, &quot;${r.selectedCount}&quot;, Colors.green),
+          _Stat(&quot;Warnings&quot;, &quot;${r.errors.length}&quot;, r.errors.isEmpty ? Colors.grey : Colors.orange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWarningsBanner(BuildContext context, List errors) {
+    return ExpansionTile(
+      leading: const Icon(Icons.warning_amber, color: Colors.orange),
+      title: Text(&quot;${errors.length} advertencias del parse — toca para ver&quot;),
+      children: errors.map&lt;Widget&gt;((e) =&gt; ListTile(
+        dense: true,
+        leading: const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+        title: Text(&quot;Fila ${e.rowNumber} [${e.field}]: ${e.message}&quot;,
+          style: const TextStyle(fontSize: 12)),
+      )).toList(),
+    );
+  }
+
+  Widget _buildProductCard(
+    BuildContext context,
+    ProductImportRow row,
+    int index,
+    ImportProvider provider,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: row.selected ? null : Colors.grey.shade100,
+      child: CheckboxListTile(
+        value: row.selected,
+        onChanged: (val) =&gt; provider.toggleRow(index, val ?? false),
+        title: Text(row.name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: row.selected ? null : Colors.grey,
+          )),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(children: [
+              _Tag(row.category, Colors.purple),
+              const SizedBox(width: 6),
+              if (row.packagingInfo.isNotEmpty) _Tag(row.packagingInfo, Colors.teal),
+              const SizedBox(width: 6),
+              _Tag(row.saleUnit, Colors.blue),
+            ]),
+            const SizedBox(height: 6),
+            // Conversión de stock visible
+            Text(&quot;Stock: ${row.stockSummary}&quot;,
+              style: const TextStyle(fontSize: 12, color: Colors.green)),
+            Text(&quot;Costo: Bs. ${row.cost.toStringAsFixed(2)}  •  Precio: Bs. ${row.price.toStringAsFixed(2)}&quot;,
+              style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        secondary: row.barcode.isNotEmpty
+          ? Text(row.barcode,
+              style: const TextStyle(fontSize: 10, color: Colors.grey))
+          : null,
+      ),
+    );
+  }
+
+  Widget _buildDoneScreen(BuildContext context, ImportProvider provider) {
+    final r = provider.insertResult!;
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, size: 80, color: Colors.green),
+              const SizedBox(height: 24),
+              const Text(&quot;¡Importación completada!&quot;, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              _ResultRow(&quot;Productos importados&quot;, &quot;${r.inserted}&quot;, Colors.green),
+              _ResultRow(&quot;Duplicados ignorados&quot;, &quot;${r.skipped}&quot;, Colors.orange),
+              _ResultRow(&quot;Categorías creadas&quot;, &quot;${r.categoriesCreated}&quot;, Colors.blue),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () {
+                  provider.reset();
+                  Navigator.popUntil(context, (route) =&gt; route.isFirst);
+                },
+                child: const Text(&quot;Volver al Inventario&quot;),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String label; final String value; final Color color;
+  const _Stat(this.label, this.value, this.color);
+  @override Widget build(BuildContext context) =&gt; Column(
+    children: [
+      Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+      Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+    ],
+  );
+}
+
+class _Tag extends StatelessWidget {
+  final String text; final Color color;
+  const _Tag(this.text, this.color);
+  @override Widget build(BuildContext context) =&gt; Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: color.withOpacity(0.3)),
+    ),
+    child: Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+  );
+}
+
+class _ResultRow extends StatelessWidget {
+  final String label; final String value; final Color color;
+  const _ResultRow(this.label, this.value, this.color);
+  @override Widget build(BuildContext context) =&gt; Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label), Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+    ]),
+  );
+}
+PASO 9 — Dependencias en pubspec.yaml
+Verificar que estas dependencias están presentes. file_picker ya debería estar. excel puede que no. Agregar las que falten bajo la sección &quot;dependencies&quot;:
+dependencies:
+  # ... las que ya tienes ...
+
+  # Para leer archivos Excel/XLS/XLSX
+  excel: ^4.0.3
+
+  # Para abrir el file picker (probablemente ya lo tienes)
+  file_picker: ^8.0.0
+
+  # Para leer archivos del sistema (probablemente ya lo tienes)
+  path_provider: ^2.1.0
+Después de modificar pubspec.yaml, ejecutar en la terminal:
+flutter pub get
+PASO 10 — Integrar la pantalla en la app
+Agregar el acceso a la pantalla de importación desde donde corresponda. El lugar más lógico es desde la pantalla de inventario (InventoryScreen) o desde el menú de utilidades.
+En el archivo que corresponda (InventoryScreen, UtilitiesScreen, o MainScreen), agregar el import y el botón de navegación:
+// 1. Agregar el import al archivo donde pongas el botón
+import &quot;../../screens/import/import_screen.dart&quot;;
+
+// 2. El botón de navegación
+IconButton(
+  icon: const Icon(Icons.upload_file),
+  tooltip: &quot;Importar Productos&quot;,
+  onPressed: () =&gt; Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) =&gt; const ImportScreen()),
+  ),
+),
+
+// O como ListTile en el menú:
+ListTile(
+  leading: const Icon(Icons.upload_file, color: Colors.green),
+  title: const Text(&quot;Importar Productos&quot;),
+  subtitle: const Text(&quot;Desde Excel, CSV, Vyapar&quot;),
+  trailing: const Icon(Icons.chevron_right),
+  onTap: () =&gt; Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) =&gt; const ImportScreen()),
+  ),
+),
+Verificación — Casos de prueba con el Excel del cliente
+Una vez implementado, probar con el archivo real del cliente. Estos son los casos esperados:
+<w:tblPr><w:tblW w:type="pct" w:w="100%"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/><w:gridCol w:w="100"/></w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Producto
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">MEDIDA
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Stock Excel
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">stockBase en DB
+<w:tcPr><w:shd w:fill="2B2D42" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:color w:val="FFFFFF"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">saleUnit
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Alka Chica (18*250)
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">18X250
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">1
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">18 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Animalitos Galleta Suprema
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">6X600
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">26
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">156 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Bon Bon Bum Fresa(15 X 24)
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">15X24
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">4
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">60 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Caramelo Watts Chico(20*0.5)
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">20X0,5
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">2
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">40 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Chicle Botellita Ch.
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">20X30
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">0.5
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">10 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Chisito Estrella (5x20)
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">5X20
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">-6
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">0 u. ⚠
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Cremosita Mini (60x)
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">60X
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">8
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">480 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">CAJ
+<w:trPr><w:tblHeader w:val="false"/></w:trPr><w:tc><w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">Chicle Whatsap Frasco
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">null
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">0
+<w:tcPr><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">0 u.
+<w:tcPr><w:shd w:fill="F8F9FA" w:val="clear"/><w:tcMar><w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/><w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:color w:val="212529"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">UNI
+✓  Todos los casos del Excel del cliente quedan cubiertos por el PackagingParser.
+Checklist de implementación
+lib/models/sale_unit_option.dart — NUEVO
+lib/models/import_result.dart — NUEVO
+lib/services/packaging_parser.dart — NUEVO
+lib/services/import_service.dart — NUEVO
+lib/services/database_service.dart — método insertImportedProducts agregado
+lib/providers/import_provider.dart — NUEVO
+lib/screens/import/import_screen.dart — NUEVO
+lib/screens/import/import_preview_screen.dart — NUEVO
+pubspec.yaml — dependencia excel: ^4.0.3 agregada
+flutter pub get ejecutado
+flutter analyze sin errores críticos

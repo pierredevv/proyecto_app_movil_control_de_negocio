@@ -58,6 +58,8 @@ dependencies:
   printing: ^5.12.0
   connectivity_plus: ^5.0.2
   android_intent_plus: ^6.0.0
+  shared_preferences: ^2.5.4
+  flutter_speed_dial: ^7.0.0
 
 dev_dependencies:
   flutter_test:

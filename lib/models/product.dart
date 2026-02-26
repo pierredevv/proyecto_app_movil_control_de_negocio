@@ -8,8 +8,11 @@ class Product {
   final int minStock;
   final int? categoryId;
   final int? supplierId;
-  final String unitType; // 'UN', 'BX', 'KG'
-  final double unitsPerBox; // Conversion factor, default 1.0
+  final String saleUnit; // 'CAJ', 'BOL', 'UNI', 'KG'
+  final double
+      unitsPerSaleUnit; // how many base units are in 1 saleUnit (ex: 36)
+  final String
+      packagingInfo; // visual string "36x32g", "18x250", "" if not applicable
   final DateTime createdAt;
   final String? imagePath;
 
@@ -23,11 +26,27 @@ class Product {
     this.minStock = 0,
     this.categoryId,
     this.supplierId,
-    this.unitType = 'UN',
-    this.unitsPerBox = 1.0,
+    this.saleUnit = 'UNI',
+    this.unitsPerSaleUnit = 1.0,
+    this.packagingInfo = '',
     DateTime? createdAt,
     this.imagePath,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  // Computed: how many "boxes" (saleUnits) are available in stock
+  double get stockInSaleUnits {
+    if (unitsPerSaleUnit <= 0) return stock;
+    return stock / unitsPerSaleUnit;
+  }
+
+  // Computed: display string for UI → "36x32g" or "" if it is simple UNI
+  String get displayPackaging {
+    if (packagingInfo.isNotEmpty) return packagingInfo;
+    if (saleUnit != 'UNI' && unitsPerSaleUnit > 1) {
+      return '${unitsPerSaleUnit.toInt()}u';
+    }
+    return '';
+  }
 
   Product copyWith({
     int? id,
@@ -39,8 +58,9 @@ class Product {
     int? minStock,
     int? categoryId,
     int? supplierId,
-    String? unitType,
-    double? unitsPerBox,
+    String? saleUnit,
+    double? unitsPerSaleUnit,
+    String? packagingInfo,
     DateTime? createdAt,
     String? imagePath,
   }) {
@@ -54,8 +74,9 @@ class Product {
       minStock: minStock ?? this.minStock,
       categoryId: categoryId ?? this.categoryId,
       supplierId: supplierId ?? this.supplierId,
-      unitType: unitType ?? this.unitType,
-      unitsPerBox: unitsPerBox ?? this.unitsPerBox,
+      saleUnit: saleUnit ?? this.saleUnit,
+      unitsPerSaleUnit: unitsPerSaleUnit ?? this.unitsPerSaleUnit,
+      packagingInfo: packagingInfo ?? this.packagingInfo,
       createdAt: createdAt ?? this.createdAt,
       imagePath: imagePath ?? this.imagePath,
     );
@@ -72,8 +93,9 @@ class Product {
       'min_stock': minStock,
       'category_id': categoryId,
       'supplier_id': supplierId,
-      'unit_type': unitType,
-      'units_per_box': unitsPerBox,
+      'unit_type': saleUnit, // same column name for backward compatibility
+      'units_per_box': unitsPerSaleUnit, // same column name
+      'packaging_info': packagingInfo, // NEW column
       'created_at': createdAt.millisecondsSinceEpoch,
       'image_path': imagePath,
     };
@@ -90,8 +112,9 @@ class Product {
       minStock: map['min_stock'] ?? 0,
       categoryId: map['category_id'],
       supplierId: map['supplier_id'],
-      unitType: map['unit_type'] ?? 'UN',
-      unitsPerBox: (map['units_per_box'] as num?)?.toDouble() ?? 1.0,
+      saleUnit: map['unit_type'] ?? 'UNI',
+      unitsPerSaleUnit: (map['units_per_box'] as num?)?.toDouble() ?? 1.0,
+      packagingInfo: map['packaging_info'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
       imagePath: map['image_path'],
     );

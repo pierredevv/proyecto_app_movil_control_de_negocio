@@ -699,12 +699,12 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   @override
   void initState() {
     super.initState();
-    if (widget.product.unitsPerBox > 1 &&
+    if (widget.product.unitsPerSaleUnit > 1 &&
         widget.item.quantity > 0 &&
-        widget.item.quantity % widget.product.unitsPerBox == 0) {
+        widget.item.quantity % widget.product.unitsPerSaleUnit == 0) {
       _isBox = true;
       _qtyController = TextEditingController(
-          text: (widget.item.quantity / widget.product.unitsPerBox)
+          text: (widget.item.quantity / widget.product.unitsPerSaleUnit)
               .toStringAsFixed(0));
     } else {
       _isBox = false;
@@ -725,7 +725,7 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   void _updateValues() {
     final rawQty = double.tryParse(_qtyController.text) ?? 0;
     final cost = double.tryParse(_costController.text) ?? 0.0;
-    final multiplier = _isBox ? widget.product.unitsPerBox : 1.0;
+    final multiplier = _isBox ? widget.product.unitsPerSaleUnit : 1.0;
     final totalQty = rawQty * multiplier;
 
     if (totalQty != widget.item.quantity || cost != widget.item.unitPrice) {

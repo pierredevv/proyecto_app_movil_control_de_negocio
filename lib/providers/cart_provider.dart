@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../models/sale_unit_option.dart';
 import '../models/invoice_item.dart';
 import '../models/transaction_model.dart';
 import '../models/customer.dart';
@@ -21,32 +22,49 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addToCart(Product product) {
-    // Check if already in cart
-    final index = _items.indexWhere((item) => item.productId == product.id);
+  // NUEVO: Agregado parametro 'option' y 'qty'
+  void addToCart(Product product,
+      {required SaleUnitOption option, double qty = 1.0}) {
+    // Check si ya existe con la misma presentación (saleUnit + unitsPerSaleUnit)
+    final index = _items.indexWhere((item) =>
+        item.productId == product.id &&
+        item.saleUnit == option.unitCode &&
+        item.unitsPerSaleUnit == option.unitsPerSaleUnit);
 
-    // Check available stock (current stock - quantity in cart)
-    final currentInCart = index != -1 ? _items[index].quantity : 0.0;
+    // Calc base units in cart para *todo* este producto (sumando todas las presentaciones)
+    final totalBaseUnitsInCart = _items
+        .where((item) => item.productId == product.id)
+        .fold(0.0, (sum, item) => sum + item.baseUnitsTotal);
 
-    if (currentInCart + 1 > product.stock) {
-      throw Exception('Stock insuficiente. Disponible: ${product.stock}');
+    // Calc de nuevas base units a agregar
+    final newBaseUnitsRequested = qty * option.unitsPerSaleUnit;
+
+    // Validación general de Stock usando UNIDADES BASE
+    if (totalBaseUnitsInCart + newBaseUnitsRequested > product.stock) {
+      final availableSaleUnits = product.stock / option.unitsPerSaleUnit;
+      throw Exception(
+          'Stock insuficiente. Disponible: ${availableSaleUnits.toStringAsFixed(1)} ${option.unitCode}');
     }
 
     if (index != -1) {
-      // Increment
+      // Incrementar cantidad de misma presentación
       final existing = _items[index];
+      final newQuantity = existing.quantity + qty;
       _items[index] = existing.copyWith(
-        quantity: existing.quantity + 1,
-        subtotal: (existing.quantity + 1) * existing.unitPrice,
+        quantity: newQuantity,
+        subtotal: newQuantity * existing.unitPrice,
       );
     } else {
-      // Add new
+      // Agregar nueva línea de producto
       _items.add(InvoiceItem(
         productId: product.id!,
         productName: product.name,
-        quantity: 1,
-        unitPrice: product.price,
-        subtotal: product.price,
+        quantity: qty,
+        unitPrice: option.price,
+        subtotal: qty * option.price,
+        saleUnit: option.unitCode,
+        unitsPerSaleUnit: option.unitsPerSaleUnit,
+        packagingInfo: product.packagingInfo, // Copiar el snapshot visual
       ));
     }
     notifyListeners();
@@ -57,20 +75,27 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateQuantity(int index, double newQuantity, double maxStock) {
+  // UPDATED: Cambiando maxStock referenciándolo a baseUnits
+  void updateQuantity(int index, double newQuantity, double maxBaseStock) {
     if (newQuantity <= 0) {
       removeFromCart(index);
       return;
     }
 
-    if (newQuantity > maxStock) {
-      throw Exception('Stock insuficiente. Máximo: $maxStock');
+    final targetItem = _items[index];
+    final baseUnitsRequested = newQuantity * targetItem.unitsPerSaleUnit;
+
+    // Validate using Base Units metrics
+    if (baseUnitsRequested > maxBaseStock) {
+      final maxAvailableOptionUnits =
+          maxBaseStock / targetItem.unitsPerSaleUnit;
+      throw Exception(
+          'Stock insuficiente. Máximo: ${maxAvailableOptionUnits.toStringAsFixed(1)} ${targetItem.saleUnit}');
     }
 
-    final item = _items[index];
-    _items[index] = item.copyWith(
+    _items[index] = targetItem.copyWith(
       quantity: newQuantity,
-      subtotal: newQuantity * item.unitPrice,
+      subtotal: newQuantity * targetItem.unitPrice,
     );
     notifyListeners();
   }

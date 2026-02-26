@@ -157,7 +157,7 @@ class _ProductListItemState extends State<ProductListItem>
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Stock: ${widget.product.stock.toStringAsFixed(0)} unid.',
+                                      'Stock: ${widget.product.stockInSaleUnits.toStringAsFixed(1)} ${widget.product.saleUnit}',
                                       style: TextStyle(
                                         color: stockColor,
                                         fontSize: 14,
@@ -231,6 +231,11 @@ class _ProductListItemState extends State<ProductListItem>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
+                                            _buildInfoRow(
+                                                'Empaque',
+                                                widget
+                                                    .product.displayPackaging),
+                                            const SizedBox(height: 8),
                                             _buildInfoRow('Min. Stock',
                                                 '${widget.product.minStock} unid.'),
                                             const SizedBox(height: 8),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/number_to_words.dart';
 
@@ -56,6 +57,30 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
   void initState() {
     super.initState();
     _loadPrinters();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _printMedia = prefs.getString('pref_print_media') ?? 'Papel normal';
+        _colorMode = prefs.getString('pref_color_mode') ?? 'Automático';
+        _printQuality =
+            prefs.getString('pref_print_quality') ?? 'Normal (600 x 600 dpi)';
+        _duplexPrinting = prefs.getBool('pref_duplex_printing') ?? false;
+        _tonerSaverMode = prefs.getBool('pref_toner_saver') ?? false;
+      });
+    }
+  }
+
+  Future<void> _savePreference<T>(String key, T value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is String) {
+      await prefs.setString(key, value);
+    } else if (value is bool) {
+      await prefs.setBool(key, value);
+    }
   }
 
   Future<void> _loadPrinters() async {
@@ -146,7 +171,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                           color: textColor,
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 8)),
-                  pw.Text('NRO. FACTURA: \${widget.transaction.id ?? 0}',
+                  pw.Text('NRO. FACTURA: ${widget.transaction.id ?? 0}',
                       style: pw.TextStyle(
                           color: textColor,
                           fontWeight: pw.FontWeight.bold,
@@ -246,7 +271,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                           pw.Expanded(
                               flex: 3,
                               child: pw.Text(
-                                  '1000\${item.productId} - \${item.productName}', // Mock Code
+                                  '1000${item.productId} - ${item.productName}', // Mock Code
                                   style: pw.TextStyle(
                                       color: textColor, fontSize: 7),
                                   maxLines: 2)),
@@ -336,7 +361,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                     ),
                   ),
                   pw.SizedBox(height: 4),
-                  pw.Text('Doc: FFA/000-000\${widget.transaction.id}',
+                  pw.Text('Doc: FFA/000-000${widget.transaction.id}',
                       style: pw.TextStyle(color: textColor, fontSize: 6)),
                   pw.Text('SalesSystem - v1.0',
                       style: pw.TextStyle(color: textColor, fontSize: 6)),
@@ -675,16 +700,27 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
           const Divider(color: Colors.white12, height: 1),
           // Advanced Setup specific to traditional Printers
           _buildDropdownRow('Soporte de imp.', _printMedia, _mediaOptions,
-              (val) => setState(() => _printMedia = val!)),
-          _buildDropdownRow('Color', _colorMode, _colorOptions,
-              (val) => setState(() => _colorMode = val!)),
-          _buildDropdownRow('Calidad', _printQuality, _qualityOptions,
-              (val) => setState(() => _printQuality = val!)),
+              (val) {
+            setState(() => _printMedia = val!);
+            _savePreference('pref_print_media', val);
+          }),
+          _buildDropdownRow('Color', _colorMode, _colorOptions, (val) {
+            setState(() => _colorMode = val!);
+            _savePreference('pref_color_mode', val);
+          }),
+          _buildDropdownRow('Calidad', _printQuality, _qualityOptions, (val) {
+            setState(() => _printQuality = val!);
+            _savePreference('pref_print_quality', val);
+          }),
           const Divider(color: Colors.white12, height: 1),
-          _buildSwitchRow('Impresión a doble cara', _duplexPrinting,
-              (val) => setState(() => _duplexPrinting = val)),
-          _buildSwitchRow('Ahorro de tóner', _tonerSaverMode,
-              (val) => setState(() => _tonerSaverMode = val)),
+          _buildSwitchRow('Impresión a doble cara', _duplexPrinting, (val) {
+            setState(() => _duplexPrinting = val);
+            _savePreference('pref_duplex_printing', val);
+          }),
+          _buildSwitchRow('Ahorro de tóner', _tonerSaverMode, (val) {
+            setState(() => _tonerSaverMode = val);
+            _savePreference('pref_toner_saver', val);
+          }),
           const SizedBox(height: 8),
         ],
       ),
@@ -764,7 +800,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                   fontWeight: FontWeight.bold,
                   fontSize: 10,
                   fontFamily: 'monospace')),
-          Text('NRO. FACTURA: \${widget.transaction.id ?? 0}',
+          Text('NRO. FACTURA: ${widget.transaction.id ?? 0}',
               style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,
@@ -881,7 +917,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                     Expanded(
                         flex: 3,
                         child: Text(
-                            '1000\${item.productId} - \${item.productName}',
+                            '1000${item.productId} - ${item.productName}',
                             style: TextStyle(
                                 color: textColor,
                                 fontSize: 10,
@@ -982,7 +1018,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
               size: 80, color: textColor), // Placeholder QR equivalent
 
           const SizedBox(height: 8),
-          Text('Doc: FFA/000-000\${widget.transaction.id}',
+          Text('Doc: FFA/000-000${widget.transaction.id}',
               style: TextStyle(
                   color: textColor, fontSize: 8, fontFamily: 'monospace')),
           Text('SalesSystem - v1.0',

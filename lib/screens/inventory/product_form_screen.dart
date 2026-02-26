@@ -42,7 +42,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   List<Supplier> _suppliers = [];
   int? _selectedCategoryId;
   int? _selectedSupplierId;
-  String _unitType = 'UN';
+  String _saleUnit = 'UNI';
   bool _isLoading = true;
   String? _imagePath;
   bool _showLowStockAlert = false;
@@ -59,9 +59,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _minStockController = TextEditingController(text: p?.minStock.toString());
     _selectedCategoryId = p?.categoryId;
     _selectedSupplierId = p?.supplierId;
-    _unitType = p?.unitType ?? 'UN';
+    _saleUnit = p?.saleUnit ?? 'UNI';
     _unitsPerBoxController =
-        TextEditingController(text: p?.unitsPerBox.toString() ?? '1.0');
+        TextEditingController(text: p?.unitsPerSaleUnit.toString() ?? '1.0');
     _imagePath = p?.imagePath;
     _showLowStockAlert = (p?.minStock ?? 0) > 0;
 
@@ -202,7 +202,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final stock = double.tryParse(_stockController.text) ?? 0;
     final minStock =
         _showLowStockAlert ? (int.tryParse(_minStockController.text) ?? 0) : 0;
-    final unitsPerBox = double.tryParse(_unitsPerBoxController.text) ?? 1.0;
+    final unitsPerSaleUnit =
+        double.tryParse(_unitsPerBoxController.text) ?? 1.0;
 
     final newProduct = Product(
       id: widget.product?.id,
@@ -214,8 +215,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       minStock: minStock,
       categoryId: _selectedCategoryId,
       supplierId: _selectedSupplierId,
-      unitType: _unitType,
-      unitsPerBox: unitsPerBox,
+      saleUnit: _saleUnit,
+      unitsPerSaleUnit: unitsPerSaleUnit,
+      packagingInfo: widget.product?.packagingInfo ?? '',
       createdAt: widget.product?.createdAt,
       imagePath: _imagePath,
     );
@@ -879,7 +881,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                         child: DropdownButtonFormField<String>(
                           initialValue:
-                              _unitType, // Change value to initialValue
+                              _saleUnit, // Change value to initialValue
                           dropdownColor: const Color(0xFF1E293B),
                           style: const TextStyle(
                               color: Colors.white, fontSize: 16),
@@ -905,18 +907,22 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                           ),
                           items: const [
                             DropdownMenuItem(
-                                value: 'UN', child: Text('Unidad')),
-                            DropdownMenuItem(value: 'BX', child: Text('Caja')),
-                            DropdownMenuItem(value: 'KG', child: Text('Kg')),
+                                value: 'UNI', child: Text('Unidad (UNI)')),
+                            DropdownMenuItem(
+                                value: 'CAJ', child: Text('Caja (CAJ)')),
+                            DropdownMenuItem(
+                                value: 'BOL', child: Text('Bolsa (BOL)')),
+                            DropdownMenuItem(
+                                value: 'KG', child: Text('Kg (KG)')),
                           ],
-                          onChanged: (val) => setState(() => _unitType = val!),
+                          onChanged: (val) => setState(() => _saleUnit = val!),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              if (_unitType != 'UN') ...[
+              if (_saleUnit != 'UNI') ...[
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildGlassTextField(

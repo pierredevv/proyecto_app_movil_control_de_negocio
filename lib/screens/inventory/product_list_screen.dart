@@ -12,6 +12,8 @@ import 'product_form_screen.dart';
 import 'inventory_filter_panel.dart';
 import '../../widgets/common/skeleton_list.dart';
 import '../notifications/notifications_screen.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import '../import/import_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -649,35 +651,47 @@ class _ProductListScreenState extends State<ProductListScreen>
   }
 
   Widget _buildFAB(BuildContext context) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFF6B6B), // Coral Light
-            Color(0xFFFF5757), // Coral Darker
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4DFF6B6B), // Coral 30% opacity
-            blurRadius: 16,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(32),
+    return SpeedDial(
+      icon: Icons.add,
+      activeIcon: Icons.close,
+      backgroundColor: const Color(0xFFFF6B6B),
+      foregroundColor: Colors.white,
+      activeBackgroundColor: Colors.grey.shade800,
+      activeForegroundColor: Colors.white,
+      visible: true,
+      closeManually: false,
+      curve: Curves.bounceIn,
+      overlayColor: Colors.black,
+      overlayOpacity: 0.6,
+      elevation: 12,
+      shape: const CircleBorder(),
+      children: [
+        SpeedDialChild(
+          child: const Icon(Icons.edit_document, color: Colors.white),
+          backgroundColor: const Color(0xFF4A90E2), // Blue
+          label: 'Agregar Manual',
+          labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600, color: Colors.black87),
           onTap: () => _navigateToForm(context, null),
-          child: const Icon(Icons.add, color: Colors.white, size: 32),
         ),
-      ),
+        SpeedDialChild(
+          child: const Icon(Icons.cloud_upload, color: Colors.white),
+          backgroundColor: const Color(0xFF10B981), // Green
+          label: 'Importar Excel/CSV',
+          labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600, color: Colors.black87),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ImportScreen()),
+            ).then((_) {
+              if (context.mounted) {
+                context.read<InventoryProvider>().loadProducts(reset: true);
+              }
+            });
+          },
+        ),
+      ],
     );
   }
 
