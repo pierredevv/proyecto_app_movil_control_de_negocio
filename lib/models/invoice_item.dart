@@ -78,9 +78,12 @@ class InvoiceItem {
       transactionId: map['transaction_id'],
       productId: map['product_id'],
       productName: map['product_name'],
-      quantity: (map['quantity'] as num).toDouble(), // Handle int from old DB
+      quantity: (map['quantity'] as num).toDouble(),
       unitPrice: (map['unit_price'] as num).toDouble(),
-      subtotal: map['subtotal'], // Load if exists, otherwise calc
+      subtotal: (map['subtotal'] as num).toDouble(),
+      saleUnit: map['sale_unit'] as String? ?? 'UNI',
+      unitsPerSaleUnit: (map['units_per_sale_unit'] as num?)?.toDouble() ?? 1.0,
+      packagingInfo: map['packaging_info'] as String? ?? '',
     );
   }
 }

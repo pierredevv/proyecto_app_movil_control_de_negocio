@@ -347,7 +347,7 @@ class InventoryProvider extends ChangeNotifier {
       if (index != -1) {
         final p = _products[index];
         _products[index] = p.copyWith(
-          stock: p.stock - item.quantity,
+          stock: p.stock - item.baseUnitsTotal,
         );
       }
     }

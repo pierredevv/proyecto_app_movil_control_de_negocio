@@ -450,8 +450,6 @@ class DatabaseService {
             } else {
               categoryId = await txn.insert('categories', {
                 'name': catQuery,
-                'color': 0xFF4A90E2, // Default Blue
-                'icon': 'category',
               });
             }
           }
@@ -504,8 +502,8 @@ class DatabaseService {
               'min_stock': 0,
               'category_id': categoryId,
               'supplier_id': null,
-              'sale_unit': row.saleUnit,
-              'units_per_sale_unit': row.unitsPerSaleUnit,
+              'unit_type': row.saleUnit,
+              'units_per_box': row.unitsPerSaleUnit,
               'packaging_info': row.packagingInfo,
               'created_at': DateTime.now().millisecondsSinceEpoch,
               'image_path': null,
