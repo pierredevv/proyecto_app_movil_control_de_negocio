@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/note.dart';
 import '../services/database_service.dart';
+import '../services/snackbar_service.dart';
 
 class NoteProvider extends ChangeNotifier {
   List<Note> _notes = [];
@@ -16,7 +17,8 @@ class NoteProvider extends ChangeNotifier {
     try {
       _notes = await DatabaseService().getNotes();
     } catch (e) {
-      debugPrint('Error loading notes: \$e');
+      debugPrint('Error loading notes: $e');
+      SnackbarService.showError('Error al cargar notas');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -30,8 +32,9 @@ class NoteProvider extends ChangeNotifier {
       _notes.insert(0, newNote); // Insert at top since descending
       notifyListeners();
     } catch (e) {
-      debugPrint('Error adding note: \$e');
-      rethrow;
+      debugPrint('Error adding note: $e');
+      SnackbarService.showError('Error al guardar la nota');
+      rethrow; // Changed from `return null;` to `rethrow;` to match original signature
     }
   }
 
@@ -46,8 +49,9 @@ class NoteProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error updating note: \$e');
-      rethrow;
+      debugPrint('Error updating note: $e');
+      SnackbarService.showError('Error al actualizar la nota');
+      rethrow; // Changed from `return false;` to `rethrow;` to match original signature
     }
   }
 
@@ -57,8 +61,9 @@ class NoteProvider extends ChangeNotifier {
       _notes.removeWhere((n) => n.id == id);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error deleting note: \$e');
-      rethrow;
+      debugPrint('Error deleting note: $e');
+      SnackbarService.showError('Error al eliminar la nota');
+      rethrow; // Changed from `return false;` to `rethrow;` to match original signature
     }
   }
 }

@@ -867,6 +867,9 @@ class DatabaseService {
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
           'subtotal': item.subtotal,
+          'sale_unit': item.saleUnit,
+          'units_per_sale_unit': item.unitsPerSaleUnit,
+          'packaging_info': item.packagingInfo,
         });
         // NOTE: We do NOT update stock here. Stock is updated when status -> RECEIVED.
       }
@@ -961,7 +964,7 @@ class DatabaseService {
           // Increase Stock and update Cost
           await txn.rawUpdate(
             'UPDATE products SET stock = stock + ?, cost = ? WHERE id = ?',
-            [item.quantity, item.unitPrice, item.productId],
+            [item.baseUnitsTotal, item.unitPrice, item.productId],
           );
 
           // NEW: Link this item to the Purchase Transaction
@@ -972,6 +975,9 @@ class DatabaseService {
             'quantity': item.quantity,
             'unit_price': item.unitPrice,
             'subtotal': item.subtotal,
+            'sale_unit': item.saleUnit,
+            'units_per_sale_unit': item.unitsPerSaleUnit,
+            'packaging_info': item.packagingInfo,
           });
         }
       }

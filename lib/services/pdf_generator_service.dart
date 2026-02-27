@@ -67,7 +67,7 @@ class PdfGeneratorService {
                                 pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text(
-                                  '${item.quantity} x ${item.unitPrice.toStringAsFixed(2)}'),
+                                  '${item.quantity} ${item.saleUnit} x ${item.unitPrice.toStringAsFixed(2)}'),
                               pw.Text(item.subtotal.toStringAsFixed(2)),
                             ],
                           )

@@ -38,7 +38,7 @@ class WhatsAppHelper {
 
     for (var item in order.items) {
       buffer.writeln(
-          '- ${item.quantity.toStringAsFixed(0)}x ${item.productName}');
+          '- ${item.quantity.toStringAsFixed(0)} ${item.saleUnit} x ${item.productName}');
     }
 
     buffer.writeln('');

@@ -50,9 +50,9 @@ class ImportPreviewScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildHeaderStat(
-                          'Filas Válidas', '\$totalRows', Colors.white),
+                          'Filas Válidas', '$totalRows', Colors.white),
                       _buildHeaderStat(
-                          'A Importar', '\$selectedCount', AppTheme.primary),
+                          'A Importar', '$selectedCount', AppTheme.primary),
                       if (result.errors.isNotEmpty)
                         _buildHeaderStat('Errores', '${result.errors.length}',
                             Colors.redAccent),
@@ -124,9 +124,10 @@ class ImportPreviewScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(12))),
                                   ),
-                                  child: const Text(
-                                    'Importar \$selectedCount',
-                                    style: TextStyle(
+                                  child: Text(
+                                    'Importar $selectedCount',
+                                    style: const TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16),
                                   ),
@@ -327,8 +328,10 @@ class ImportPreviewScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Text('Ir al Inventario',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
               ),
             ),
           ],

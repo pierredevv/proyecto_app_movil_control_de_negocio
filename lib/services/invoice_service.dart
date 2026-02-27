@@ -54,8 +54,8 @@ class InvoiceService {
                   child: pw.Row(
                     children: [
                       pw.SizedBox(
-                        width: 20,
-                        child: pw.Text('${item.quantity}',
+                        width: 35,
+                        child: pw.Text('${item.quantity} ${item.saleUnit}',
                             style: const pw.TextStyle(fontSize: 10)),
                       ),
                       pw.Expanded(

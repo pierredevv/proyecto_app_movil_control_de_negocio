@@ -407,8 +407,8 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
     } else {
       // Fallback to system dialog if no printer natively found
       await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) => pdfBytes,
-          name: 'Recibo_\${widget.transaction.id}');
+          onLayout: (PdfPageFormat format) async => pdfBytes,
+          name: 'Recibo_${widget.transaction.id}');
     }
   }
 

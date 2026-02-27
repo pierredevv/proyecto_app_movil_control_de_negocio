@@ -818,6 +818,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 child: BackdropFilter(
                   filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                   child: DropdownButtonFormField<int>(
+                    isExpanded: true,
                     initialValue:
                         _selectedSupplierId, // Change value to initialValue
                     dropdownColor: const Color(0xFF1E293B),
@@ -880,6 +881,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       child: BackdropFilter(
                         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue:
                               _saleUnit, // Change value to initialValue
                           dropdownColor: const Color(0xFF1E293B),
