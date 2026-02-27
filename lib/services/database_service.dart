@@ -333,11 +333,12 @@ class DatabaseService {
       List<String> statusClauses = [];
       for (var status in stockStatuses) {
         if (status == 'critical') {
-          statusClauses.add('(stock < 3)');
+          statusClauses.add('(stock / units_per_box < 3)');
         } else if (status == 'moderate') {
-          statusClauses.add('(stock >= 3 AND stock <= 10)');
+          statusClauses.add(
+              '(stock / units_per_box >= 3 AND stock / units_per_box <= 10)');
         } else if (status == 'sufficient') {
-          statusClauses.add('(stock > 10)');
+          statusClauses.add('(stock / units_per_box > 10)');
         }
       }
       if (statusClauses.isNotEmpty) {

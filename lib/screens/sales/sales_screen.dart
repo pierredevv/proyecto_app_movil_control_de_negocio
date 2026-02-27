@@ -8,7 +8,6 @@ import '../../providers/dashboard_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/invoice_service.dart';
 import '../../models/product.dart';
-import '../../models/sale_unit_option.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/input_validators.dart';
 
@@ -20,6 +19,7 @@ import '../../widgets/sales/frequent_products_list.dart';
 import '../../widgets/sales/cart_empty_state.dart';
 import '../../widgets/sales/cart_item_card.dart';
 import '../../widgets/sales/cart_total_footer.dart';
+import '../../widgets/sales/sale_unit_picker_sheet.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -57,24 +57,27 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _addToCart(Product product) {
-    try {
-      // By default in this specific fast-add interface, add a single base unit
-      final defaultOption = SaleUnitOption(
-        label: 'Unidad',
-        unitCode: 'UNI',
-        unitsPerSaleUnit: 1.0,
-        price: product.price,
-      );
-
-      context
-          .read<CartProvider>()
-          .addToCart(product, option: defaultOption, qty: 1.0);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(e.toString()), backgroundColor: AppTheme.redAccent),
-      );
-    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SaleUnitPickerSheet(
+        product: product,
+        onConfirm: (option, qty) {
+          try {
+            context
+                .read<CartProvider>()
+                .addToCart(product, option: option, qty: qty);
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(e.toString()),
+                  backgroundColor: AppTheme.redAccent),
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _processCheckout(BuildContext context) async {
