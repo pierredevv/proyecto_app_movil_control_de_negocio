@@ -197,6 +197,7 @@ class InventoryProvider extends ChangeNotifier {
 
       if (reset) {
         _products = newProducts;
+        _currentPage = 1; // Point to next page
       } else {
         _products.addAll(newProducts);
         _currentPage++;
@@ -275,16 +276,10 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  // ... updateProduct, deleteProduct, addPurchase ...
-
-  // ... existing methods ...
-
   // Category Definitions Wrappers (Optional, or use DB directly in Manager)
   Future<void> reloadCategories() async {
     await loadCategories();
   }
-
-  // ... (Rest of file)
 
   Future<void> updateProduct(Product product) async {
     try {
@@ -362,7 +357,7 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   List<Product> get lowStockProducts {
-    return _products.where((p) => p.stock <= p.minStock).toList();
+    return _products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
   }
 
   Future<void> updateStock(int productId, double quantity) async {

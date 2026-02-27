@@ -12,7 +12,6 @@ class DashboardProvider extends ChangeNotifier {
   double _totalSalesToday = 0.0;
   double _totalPurchasesToday = 0.0;
   double _netBalance = 0.0;
-  // TODO: Add low stock count integration from InventoryProvider if needed here
 
   double get totalSalesToday => _totalSalesToday;
   double get totalPurchasesToday => _totalPurchasesToday;

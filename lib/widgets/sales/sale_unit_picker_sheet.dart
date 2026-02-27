@@ -50,6 +50,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
+      height: MediaQuery.of(context).size.height * 0.55,
       padding: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -64,7 +65,6 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
       ),
       child: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Handle bar
@@ -82,12 +82,22 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                widget.product.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Stock disponible: ${widget.product.stockInSaleUnits.toStringAsFixed(1)} ${widget.product.saleUnit}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),

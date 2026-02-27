@@ -307,6 +307,7 @@ class BackupService {
     final data = root['data'] as Map<String, dynamic>;
 
     // Clean
+    await txn.delete('notes');
     await txn.delete('transaction_items');
     await txn.delete('transactions');
     await txn.delete('customers');
@@ -343,6 +344,11 @@ class BackupService {
     if (data.containsKey('invoice_items')) {
       for (final row in data['invoice_items']) {
         await txn.insert('transaction_items', row);
+      }
+    }
+    if (data.containsKey('notes')) {
+      for (final row in data['notes']) {
+        await txn.insert('notes', row);
       }
     }
   }

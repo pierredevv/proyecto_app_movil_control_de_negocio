@@ -5,8 +5,10 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../../services/database_service.dart';
-import '../../services/invoice_service.dart';
+import '../../services/pdf_generator_service.dart';
 import '../../models/product.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/input_validators.dart';
@@ -20,6 +22,7 @@ import '../../widgets/sales/cart_empty_state.dart';
 import '../../widgets/sales/cart_item_card.dart';
 import '../../widgets/sales/cart_total_footer.dart';
 import '../../widgets/sales/sale_unit_picker_sheet.dart';
+import '../../services/snackbar_service.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -132,8 +135,11 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _showSuccessSheet(BuildContext context, dynamic sale) async {
-    // Generate PDF
-    final file = await InvoiceService.generateInvoice(sale);
+    // Generate PDF bytes
+    final bytes = await PdfGeneratorService().generateInvoice(sale);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/Ticket_${sale.id}.pdf');
+    await file.writeAsBytes(bytes);
 
     if (!context.mounted) return;
 
@@ -316,13 +322,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     cart.updateQuantity(
                                         index, qty, product.stock);
                                   } catch (e) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(e.toString()),
-                                      backgroundColor: AppTheme.redAccent,
-                                      duration:
-                                          const Duration(milliseconds: 1000),
-                                    ));
+                                    SnackbarService.showError(e.toString());
                                   }
                                 },
                                 onRemove: () => cart.removeFromCart(index),

@@ -8,6 +8,7 @@ import '../widgets/dashboard/recent_activity_list.dart';
 import '../../screens/notifications/notifications_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/inventory_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -127,7 +128,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         balancePercentage: balancePct,
                       ),
                     ),
-                    const SizedBox(height: 24),
+
+                    // Conditionally render Low Stock Alert
+                    Consumer<InventoryProvider>(
+                      builder: (context, invProvider, child) {
+                        final lowStockCount =
+                            invProvider.lowStockProducts.length;
+                        if (lowStockCount == 0) return const SizedBox.shrink();
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationsScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF6B6B)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFFFF6B6B)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded,
+                                      color: Color(0xFFFF6B6B)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Tienes $lowStockCount producto(s) con stock bajo',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFF6B6B),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right,
+                                      color: Color(0xFFFF6B6B)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
                     // 2. Sales Last 7 Days
                     Padding(

@@ -37,7 +37,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 7,
+      return await openDatabase(_testDbPath!, version: 8,
           onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       }, onCreate: (db, version) async {
@@ -412,7 +412,7 @@ class DatabaseService {
     );
   }
 
-  Future<int> updateProductStock(int id, int newStock) async {
+  Future<int> updateProductStock(int id, double newStock) async {
     final db = await database;
     return await db.update(
       'products',
@@ -513,7 +513,7 @@ class DatabaseService {
             insertedCount++;
           }
         } catch (e) {
-          debugPrint('Error inserting row \${row.name}: \$e');
+          debugPrint('Error inserting row ${row.name}: $e');
           errorCount++;
         }
       }
@@ -1015,7 +1015,7 @@ class DatabaseService {
     final salesResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
       FROM transactions 
-      WHERE type = 'sale' AND date BETWEEN ? AND ?
+      WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
     // Expenses
@@ -1221,7 +1221,7 @@ class DatabaseService {
       final query = await db.rawQuery('''
         SELECT SUM(total_amount) as total 
         FROM transactions 
-        WHERE type = 'sale' AND date BETWEEN ? AND ?
+        WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
       ''', [start, end]);
 
       final total = (query.first['total'] as num?)?.toDouble() ?? 0.0;

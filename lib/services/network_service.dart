@@ -8,7 +8,6 @@ class NetworkService {
     return connectivityResult != ConnectivityResult.none;
   }
 
-  /// Stream to listen/monitor connection status
   static Stream<ConnectivityResult> get onConnectivityChanged {
     return Connectivity().onConnectivityChanged;
   }

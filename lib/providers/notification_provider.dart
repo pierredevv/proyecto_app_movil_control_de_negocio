@@ -16,7 +16,7 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final products = await _db.getProducts();
       final lowStockProducts =
-          products.where((p) => p.stock <= p.minStock).toList();
+          products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
 
       for (var product in lowStockProducts) {
         // Avoid duplicate notification if already exists for this product (simple check)

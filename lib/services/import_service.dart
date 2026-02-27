@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
+import 'package:csv/csv.dart';
 import '../models/import_result.dart';
 import 'packaging_parser.dart';
 
@@ -83,23 +84,12 @@ class ImportService {
   }
 
   static Future<ImportParseResult> _parseCsvContent(String content) async {
-    // Basic CSV split, assumes comma delimiter and newline.
-    // Robust CSV parsing requires a dedicated package (like `csv`),
-    // but a simple split suffices for basic formatting if quotes aren't heavily nested.
-    final lines = content.split('\n');
-    if (lines.isEmpty) throw Exception('El archivo CSV está vacío.');
+    final csvTable = const CsvToListConverter().convert(content);
+    if (csvTable.isEmpty) throw Exception('El archivo CSV está vacío.');
 
-    final headers = lines.first
-        .split(',')
-        .map((s) => s.trim().replaceAll('"', ''))
-        .toList();
-
-    final rowsData =
-        lines.skip(1).where((l) => l.trim().isNotEmpty).map((line) {
-      final cells = line.split(',');
-      // Note: A real CSV parser handles commas inside quotes.
-      // This is a basic fallback implementation.
-      return cells.map((c) => c.trim().replaceAll('"', '')).toList();
+    final headers = csvTable.first.map((e) => e.toString().trim()).toList();
+    final rowsData = csvTable.skip(1).map((row) {
+      return row.map((e) => e.toString().trim()).toList();
     }).toList();
 
     return _parseRowsStringOnly(headers, rowsData);

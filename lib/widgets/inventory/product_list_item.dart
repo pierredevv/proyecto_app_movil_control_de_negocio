@@ -28,15 +28,15 @@ class _ProductListItemState extends State<ProductListItem>
 
   @override
   Widget build(BuildContext context) {
-    final stock = widget.product.stock;
+    final stockSaleUnits = widget.product.stockInSaleUnits;
 
     // Stock Logic
     Color stockColor;
-    if (stock > 10) {
+    if (stockSaleUnits > 10) {
       stockColor = const Color(0xFF10B981); // Green
-    } else if (stock >= 5) {
+    } else if (stockSaleUnits >= 3) {
       stockColor = const Color(0xFFF59E0B); // Yellow
-    } else if (stock > 0) {
+    } else if (stockSaleUnits > 0) {
       stockColor = const Color(0xFFEF4444); // Red
     } else {
       stockColor = const Color(0xFF9CA3AF); // Gray

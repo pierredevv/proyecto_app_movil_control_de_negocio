@@ -220,33 +220,30 @@ class GlassTransactionCard extends StatelessWidget {
     }
   }
 
-  Widget _buildStatusBadge(String status) {
-    final badgeColor = _getBorderColor(status);
-    String label;
-
+  String _translateStatus(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        status = 'PENDIENTE';
-        break;
+        return 'PENDIENTE';
       case 'RECEIVED':
-        status = 'RECIBIDO';
-        break;
+        return 'RECIBIDO';
       case 'COMPLETED':
-        status = 'COMPLETADO';
-        break;
+        return 'COMPLETADO';
       case 'PAID':
-        status = 'PAGADO';
-        break;
+        return 'PAGADO';
       case 'CANCELLED':
-        status = 'CANCELADO';
-        break;
+        return 'CANCELADO';
       case 'CONFIRMED':
-        status = 'CONFIRMADO';
-        break;
+        return 'CONFIRMADO';
+      case 'VOIDED':
+        return 'ANULADO';
       default:
-        label = status;
+        return status;
     }
-    label = status;
+  }
+
+  Widget _buildStatusBadge(String status) {
+    final badgeColor = _getBorderColor(status);
+    final label = _translateStatus(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
