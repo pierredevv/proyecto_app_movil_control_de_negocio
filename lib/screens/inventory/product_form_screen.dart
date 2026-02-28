@@ -401,8 +401,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         _buildSectionTitle('Inventario & Alertas'),
                         _buildGlassTextField(
                           controller: _stockController,
-                          label: 'Stock Actual *',
-                          hintText: '0.00',
+                          label: 'Stock Actual (En Unidades Base) *',
+                          hintText: 'Ej. Si vende cajas de 24, ingrese 24',
                           icon: Icons.inventory_2_outlined,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
@@ -419,8 +419,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             padding: const EdgeInsets.only(top: 16),
                             child: _buildGlassTextField(
                               controller: _minStockController,
-                              label: 'Stock Mínimo',
-                              hintText: 'Ej. 5',
+                              label: 'Stock Mínimo (En Unidades Base)',
+                              hintText: 'Ej. Si vende cajas de 24, ingrese 24',
                               icon: Icons.warning_amber_rounded,
                               keyboardType: TextInputType.number,
                               validator: (val) {

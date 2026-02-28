@@ -48,6 +48,7 @@ class ImportProvider extends ChangeNotifier {
     try {
       _step = ImportStep.parsing;
       _errorMessage = null;
+      _deselectedRows.clear();
       notifyListeners();
 
       final result = await ImportService.pickAndParse();

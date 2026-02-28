@@ -127,12 +127,12 @@ class DatabaseService {
             await db.execute(
                 "ALTER TABLE transaction_items ADD COLUMN packaging_info TEXT DEFAULT ''");
 
-            // Critical migration for existing stock that was tracked in boxes!
-            await db.execute('''
-              UPDATE products 
-              SET stock = stock * units_per_box 
-              WHERE units_per_box > 1 AND is_active = 1
-            ''');
+            // Removed: V8 migration for stock was flawed because stock is ALWAYS stored in base units natively.
+            // await db.execute('''
+            //   UPDATE products
+            //   SET stock = stock * units_per_box
+            //   WHERE units_per_box > 1 AND is_active = 1
+            // ''');
           } catch (e) {
             debugPrint('Error adding V8 properties: $e');
           }

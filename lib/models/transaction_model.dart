@@ -74,7 +74,7 @@ class Sale extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
-      status: map['status'],
+      status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
       customerName: map['entity_name'],
       items: items,
@@ -111,7 +111,7 @@ class Purchase extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
-      status: map['status'],
+      status: map['status'] ?? 'COMPLETED',
       supplierName: map['entity_name'],
       items: items,
     );
@@ -146,7 +146,7 @@ class Payment extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
-      status: map['status'],
+      status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
     );
   }
@@ -180,7 +180,7 @@ class Expense extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
-      status: map['status'],
+      status: map['status'] ?? 'COMPLETED',
       description: map['entity_name'] ?? 'Gasto sin descripción',
     );
   }

@@ -357,7 +357,9 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   List<Product> get lowStockProducts {
-    return _products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
+    return _products
+        .where((p) => p.minStock > 0 && p.stock <= p.minStock)
+        .toList();
   }
 
   Future<void> updateStock(int productId, double quantity) async {
