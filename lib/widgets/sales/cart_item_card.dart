@@ -8,6 +8,7 @@ class CartItemCard extends StatefulWidget {
   final ValueChanged<double> onUpdateQty;
   final VoidCallback onRemove;
   final int index; // For staggered animation
+  final bool canIncrement;
 
   const CartItemCard({
     super.key,
@@ -15,6 +16,7 @@ class CartItemCard extends StatefulWidget {
     required this.onUpdateQty,
     required this.onRemove,
     required this.index,
+    this.canIncrement = true,
   });
 
   @override
@@ -136,8 +138,10 @@ class _CartItemCardState extends State<CartItemCard>
                   ),
                   _QtyButton(
                     icon: Icons.add,
-                    onTap: () => widget.onUpdateQty(widget.item.quantity + 1),
-                    isActive: true,
+                    onTap: widget.canIncrement
+                        ? () => widget.onUpdateQty(widget.item.quantity + 1)
+                        : null,
+                    isActive: widget.canIncrement,
                   ),
                   const SizedBox(width: 8),
                   _DeleteButton(onTap: _handleDelete),

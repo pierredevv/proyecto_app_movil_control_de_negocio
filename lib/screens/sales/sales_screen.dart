@@ -317,6 +317,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                     '${item.productId}_$index'), // Unique key for animation
                                 index: index,
                                 item: item,
+                                canIncrement: ((item.quantity + 1) *
+                                        item.unitsPerSaleUnit) <=
+                                    product.stock,
                                 onUpdateQty: (qty) {
                                   try {
                                     cart.updateQuantity(

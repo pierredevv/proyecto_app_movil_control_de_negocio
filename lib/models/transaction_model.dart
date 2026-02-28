@@ -83,6 +83,7 @@ class Sale extends Transaction {
 }
 
 class Purchase extends Transaction {
+  final int? supplierId;
   final String? supplierName;
 
   Purchase({
@@ -91,6 +92,7 @@ class Purchase extends Transaction {
     required super.totalAmount,
     super.status,
     super.items,
+    this.supplierId,
     this.supplierName,
   }) : super(type: TransactionType.purchase);
 
@@ -99,6 +101,7 @@ class Purchase extends Transaction {
     return {
       'id': id,
       'type': type.name, // 'purchase'
+      'entity_id': supplierId,
       'entity_name': supplierName, // Storing name directly for simple purchases
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
@@ -112,6 +115,7 @@ class Purchase extends Transaction {
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
       status: map['status'] ?? 'COMPLETED',
+      supplierId: map['entity_id'],
       supplierName: map['entity_name'],
       items: items,
     );

@@ -59,7 +59,7 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  void refresh() {
-    loadDashboardData();
+  Future<void> refresh() async {
+    await loadDashboardData();
   }
 }

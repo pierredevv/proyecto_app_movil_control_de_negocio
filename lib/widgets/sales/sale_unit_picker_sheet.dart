@@ -31,9 +31,13 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
   }
 
   void _increaseQty() {
-    setState(() {
-      _quantity += 1.0;
-    });
+    final nextQtyInBaseUnits =
+        (_quantity + 1) * _selectedOption.unitsPerSaleUnit;
+    if (nextQtyInBaseUnits <= widget.product.stock) {
+      setState(() {
+        _quantity += 1.0;
+      });
+    }
   }
 
   void _decreaseQty() {
@@ -115,6 +119,11 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                     onTap: () {
                       setState(() {
                         _selectedOption = option;
+                        // Reset quantity to 1 when changing option if the new unit doesn't fit the previous quantity
+                        if ((_quantity * option.unitsPerSaleUnit) >
+                            widget.product.stock) {
+                          _quantity = 1.0;
+                        }
                       });
                     },
                     child: Container(
@@ -207,9 +216,17 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        onPressed: _increaseQty,
+                        onPressed: ((_quantity + 1) *
+                                    _selectedOption.unitsPerSaleUnit) <=
+                                widget.product.stock
+                            ? _increaseQty
+                            : null,
                         icon: const Icon(Icons.add_circle_outline),
-                        color: AppTheme.primary,
+                        color: ((_quantity + 1) *
+                                    _selectedOption.unitsPerSaleUnit) <=
+                                widget.product.stock
+                            ? AppTheme.primary
+                            : Colors.grey,
                       ),
                     ],
                   ),

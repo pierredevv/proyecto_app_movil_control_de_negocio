@@ -46,12 +46,7 @@ class DatabaseService {
         await _createSuppliersTable(db);
         await _createNotesTable(db);
       }, onUpgrade: (db, old, newV) async {
-        // For tests we usually start fresh, but logic here:
-        // ... same upgrade logic if needed, but inMemory usually starts fresh
-        if (old < 2) await _createCategoriesTable(db);
-        if (old < 3) await _createSuppliersTable(db);
-        if (old < 7) await _createNotesTable(db);
-        // ... etc
+        await _runMigrations(db, old, newV);
       });
     }
     final dbPath = await getDatabasesPath();
@@ -70,75 +65,79 @@ class DatabaseService {
         await _createNotesTable(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await _createCategoriesTable(db);
-        }
-        if (oldVersion < 3) {
-          await _createSuppliersTable(db);
-          // Add supplier_id to products table
-          try {
-            await db
-                .execute('ALTER TABLE products ADD COLUMN supplier_id INTEGER');
-          } catch (e) {
-            // Column might already exist if dev re-ran code
-            debugPrint('Error adding supplier_id column: $e');
-          }
-        }
-        if (oldVersion < 4) {
-          // Add unit_type and units_per_box
-          try {
-            await db.execute(
-                "ALTER TABLE products ADD COLUMN unit_type TEXT DEFAULT 'UN'");
-            await db.execute(
-                "ALTER TABLE products ADD COLUMN units_per_box REAL DEFAULT 1.0");
-          } catch (e) {
-            debugPrint('Error adding V4 columns: $e');
-          }
-        }
-        if (oldVersion < 5) {
-          // Add image_path
-          try {
-            await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
-          } catch (e) {
-            debugPrint('Error adding image_path column: $e');
-          }
-        }
-        if (oldVersion < 6) {
-          // Soft delete support
-          try {
-            await db.execute(
-                "ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1");
-          } catch (e) {
-            debugPrint('Error adding is_active column: $e');
-          }
-        }
-        if (oldVersion < 7) {
-          await _createNotesTable(db);
-        }
-        if (oldVersion < 8) {
-          // Add wholesale properties
-          try {
-            await db.execute(
-                "ALTER TABLE products ADD COLUMN packaging_info TEXT DEFAULT ''");
-            await db.execute(
-                "ALTER TABLE transaction_items ADD COLUMN sale_unit TEXT DEFAULT 'UNI'");
-            await db.execute(
-                "ALTER TABLE transaction_items ADD COLUMN units_per_sale_unit REAL DEFAULT 1.0");
-            await db.execute(
-                "ALTER TABLE transaction_items ADD COLUMN packaging_info TEXT DEFAULT ''");
-
-            // Removed: V8 migration for stock was flawed because stock is ALWAYS stored in base units natively.
-            // await db.execute('''
-            //   UPDATE products
-            //   SET stock = stock * units_per_box
-            //   WHERE units_per_box > 1 AND is_active = 1
-            // ''');
-          } catch (e) {
-            debugPrint('Error adding V8 properties: $e');
-          }
-        }
+        await _runMigrations(db, oldVersion, newVersion);
       },
     );
+  }
+
+  Future<void> _runMigrations(
+      Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createCategoriesTable(db);
+    }
+    if (oldVersion < 3) {
+      await _createSuppliersTable(db);
+      // Add supplier_id to products table
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN supplier_id INTEGER');
+      } catch (e) {
+        // Column might already exist if dev re-ran code
+        debugPrint('Error adding supplier_id column: \$e');
+      }
+    }
+    if (oldVersion < 4) {
+      // Add unit_type and units_per_box
+      try {
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN unit_type TEXT DEFAULT 'UNI'");
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN units_per_box REAL DEFAULT 1.0");
+      } catch (e) {
+        debugPrint('Error adding V4 columns: \$e');
+      }
+    }
+    if (oldVersion < 5) {
+      // Add image_path
+      try {
+        await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
+      } catch (e) {
+        debugPrint('Error adding image_path column: \$e');
+      }
+    }
+    if (oldVersion < 6) {
+      // Soft delete support
+      try {
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1");
+      } catch (e) {
+        debugPrint('Error adding is_active column: \$e');
+      }
+    }
+    if (oldVersion < 7) {
+      await _createNotesTable(db);
+    }
+    if (oldVersion < 8) {
+      // Add wholesale properties
+      try {
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN packaging_info TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE transaction_items ADD COLUMN sale_unit TEXT DEFAULT 'UNI'");
+        await db.execute(
+            "ALTER TABLE transaction_items ADD COLUMN units_per_sale_unit REAL DEFAULT 1.0");
+        await db.execute(
+            "ALTER TABLE transaction_items ADD COLUMN packaging_info TEXT DEFAULT ''");
+
+        // Removed: V8 migration for stock was flawed because stock is ALWAYS stored in base units natively.
+        // await db.execute('''
+        //   UPDATE products
+        //   SET stock = stock * units_per_box
+        //   WHERE units_per_box > 1 AND is_active = 1
+        // ''');
+      } catch (e) {
+        debugPrint('Error adding V8 properties: \$e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -333,12 +332,12 @@ class DatabaseService {
       List<String> statusClauses = [];
       for (var status in stockStatuses) {
         if (status == 'critical') {
-          statusClauses.add('(stock / units_per_box < 3)');
+          statusClauses.add('(stock / units_per_box <= min_stock)');
         } else if (status == 'moderate') {
           statusClauses.add(
-              '(stock / units_per_box >= 3 AND stock / units_per_box <= 10)');
+              '(stock / units_per_box > min_stock AND stock / units_per_box <= min_stock * 2)');
         } else if (status == 'sufficient') {
-          statusClauses.add('(stock / units_per_box > 10)');
+          statusClauses.add('(stock / units_per_box > min_stock * 2)');
         }
       }
       if (statusClauses.isNotEmpty) {
@@ -609,6 +608,15 @@ class DatabaseService {
           [item.baseUnitsTotal, item.productId],
         );
       }
+
+      // 5. Update Customer Debt (NUEVO: Incrementar total_debt)
+      if (sale.customerId != null) {
+        await txn.rawUpdate(
+          'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
+          [sale.totalAmount, sale.customerId],
+        );
+      }
+
       return saleId;
     });
   }
@@ -620,7 +628,7 @@ class DatabaseService {
       // 1. Check if already voided
       final List<Map<String, dynamic>> transaction = await txn.query(
         'transactions',
-        columns: ['status'],
+        columns: ['status', 'entity_id', 'total_amount'],
         where: 'id = ?',
         whereArgs: [saleId],
       );
@@ -659,6 +667,16 @@ class DatabaseService {
         where: 'id = ?',
         whereArgs: [saleId],
       );
+
+      // 5. Decrease Customer Debt if it was a credit sale (NUEVO)
+      final customerId = transaction.first['entity_id'];
+      if (customerId != null) {
+        final totalAmount = transaction.first['total_amount'] as num;
+        await txn.rawUpdate(
+          'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
+          [totalAmount, customerId],
+        );
+      }
     });
   }
 
@@ -764,7 +782,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
-      where: 'entity_id = ? AND (type = ? OR type = ?)',
+      where: "entity_id = ? AND status != 'VOIDED' AND (type = ? OR type = ?)",
       whereArgs: [customerId, 'sale', 'payment'],
       orderBy: 'date DESC',
     );
@@ -795,7 +813,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
-      where: 'type = ?',
+      where: "type = ? AND status != 'VOIDED'",
       whereArgs: ['sale'],
       orderBy: 'date DESC',
       limit: limit,
@@ -825,7 +843,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
-      where: 'type = ?',
+      where: "type = ? AND status != 'VOIDED'",
       whereArgs: ['purchase'],
       orderBy: 'date DESC',
       limit: limit,
@@ -1022,7 +1040,7 @@ class DatabaseService {
     final expensesResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
       FROM transactions 
-      WHERE type = 'expense' AND date BETWEEN ? AND ?
+      WHERE type = 'expense' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
     // Payments
@@ -1036,7 +1054,7 @@ class DatabaseService {
     final purchasesResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
       FROM transactions 
-      WHERE type = 'purchase' AND date BETWEEN ? AND ?
+      WHERE type = 'purchase' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
     final totalSales = (salesResult.first['total'] as num?)?.toDouble() ?? 0.0;
@@ -1070,7 +1088,7 @@ class DatabaseService {
     final db = await database;
 
     // Build Query
-    String whereClause = '1=1';
+    String whereClause = "status != 'VOIDED'";
     List<dynamic> args = [];
 
     if (type != null) {
@@ -1167,6 +1185,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
+      where: "status != 'VOIDED'",
       orderBy: 'date DESC',
       limit: limit,
     );
@@ -1241,7 +1260,7 @@ class DatabaseService {
       SELECT ti.product_id, COUNT(ti.product_id) as frequency
       FROM transaction_items ti
       JOIN transactions t ON ti.transaction_id = t.id
-      WHERE t.type = 'sale'
+      WHERE t.type = 'sale' AND t.status != 'VOIDED'
       GROUP BY ti.product_id
       ORDER BY frequency DESC
       LIMIT ?
@@ -1260,9 +1279,11 @@ class DatabaseService {
     final categories = await db.query('categories');
     final notes = await db.query('notes');
 
+    final version = await db.getVersion();
+
     return {
       'timestamp': DateTime.now().toIso8601String(),
-      'version': 1,
+      'version': version,
       'data': {
         'products': products,
         'customers': customers,
