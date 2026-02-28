@@ -204,7 +204,7 @@ class InventoryProvider extends ChangeNotifier {
       }
 
       // Also load categories if they haven't been loaded or simple reload
-      if (_categories.isEmpty) {
+      if (reset || _categories.isEmpty) {
         _categories = await _db.getCategories();
       }
     } catch (e) {

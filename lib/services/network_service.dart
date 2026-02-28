@@ -8,7 +8,8 @@ class NetworkService {
     return connectivityResult != ConnectivityResult.none;
   }
 
-  static Stream<ConnectivityResult> get onConnectivityChanged {
-    return Connectivity().onConnectivityChanged;
+  static Stream<List<ConnectivityResult>> get onConnectivityChanged {
+    // If the package returns a single ConnectivityResult, we wrap it in a list to match the new type signature
+    return Connectivity().onConnectivityChanged.map((event) => [event]);
   }
 }

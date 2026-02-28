@@ -37,7 +37,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 8,
+      return await openDatabase(_testDbPath!, version: 9,
           onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       }, onCreate: (db, version) async {
@@ -54,7 +54,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 8, // Updated to version 8 for wholesale base unit packing
+      version: 9, // Updated to version 9 for order-purchase link
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -138,6 +138,14 @@ class DatabaseService {
         debugPrint('Error adding V8 properties: \$e');
       }
     }
+    if (oldVersion < 9) {
+      try {
+        await db.execute(
+            "ALTER TABLE transactions ADD COLUMN reference_id INTEGER");
+      } catch (e) {
+        debugPrint('Error adding reference_id: \$e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -193,6 +201,7 @@ class DatabaseService {
         type TEXT NOT NULL,
         entity_id INTEGER,
         entity_name TEXT,
+        reference_id INTEGER,
         date INTEGER NOT NULL,
         total_amount REAL NOT NULL,
         status TEXT,
@@ -715,7 +724,7 @@ class DatabaseService {
       // 1. Check if already voided
       final List<Map<String, dynamic>> transaction = await txn.query(
         'transactions',
-        columns: ['status'],
+        columns: ['status', 'reference_id'],
         where: 'id = ?',
         whereArgs: [purchaseId],
       );
@@ -754,6 +763,24 @@ class DatabaseService {
         where: 'id = ?',
         whereArgs: [purchaseId],
       );
+
+      // 5. If linked to an order, revert the order to PENDING
+      final refId = transaction.first['reference_id'];
+      if (refId != null) {
+        final orderQuery = await txn.query(
+          'transactions',
+          where: 'id = ? AND type = ?',
+          whereArgs: [refId, 'order'],
+        );
+        if (orderQuery.isNotEmpty) {
+          await txn.update(
+            'transactions',
+            {'status': 'PENDING'},
+            where: 'id = ?',
+            whereArgs: [refId],
+          );
+        }
+      }
     });
   }
 
@@ -972,6 +999,7 @@ class DatabaseService {
         final purchaseId = await txn.insert('transactions', {
           'type': 'purchase',
           'entity_name': supplierName,
+          'reference_id': orderId,
           'date': DateTime.now().millisecondsSinceEpoch,
           'total_amount': totalAmount,
           'status': 'COMPLETED',

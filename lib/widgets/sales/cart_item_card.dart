@@ -16,7 +16,7 @@ class CartItemCard extends StatefulWidget {
     required this.onUpdateQty,
     required this.onRemove,
     required this.index,
-    this.canIncrement = true,
+    required this.canIncrement,
   });
 
   @override

@@ -98,7 +98,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Stock disponible: ${widget.product.stockInSaleUnits.toStringAsFixed(1)} ${widget.product.saleUnit}',
+                    'Stock disponible: ${(widget.product.stock / _selectedOption.unitsPerSaleUnit).toStringAsFixed(1)} ${_selectedOption.label}',
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                 ],
