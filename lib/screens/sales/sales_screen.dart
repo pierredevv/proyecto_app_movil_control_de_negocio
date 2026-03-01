@@ -402,9 +402,17 @@ class _ProductSearchModal extends StatefulWidget {
 
 class _ProductSearchModalState extends State<_ProductSearchModal> {
   final _searchController = TextEditingController();
+  InventoryProvider? _inventoryProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _inventoryProvider = context.read<InventoryProvider>();
+  }
 
   @override
   void dispose() {
+    _inventoryProvider?.setSearchQuery('');
     _searchController.dispose();
     super.dispose();
   }
