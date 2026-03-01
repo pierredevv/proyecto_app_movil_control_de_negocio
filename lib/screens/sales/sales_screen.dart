@@ -482,7 +482,8 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                           title: Text(p.name,
                               style: TextStyle(
                                   color: theme.colorScheme.onSurface)),
-                          subtitle: Text('Stock: ${p.stock} | Ps. ${p.price}',
+                          subtitle: Text(
+                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${p.price.toStringAsFixed(2)}',
                               style: TextStyle(
                                   color: theme.colorScheme.onSurface
                                       .withValues(alpha: 0.6))),

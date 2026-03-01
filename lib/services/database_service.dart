@@ -341,12 +341,14 @@ class DatabaseService {
       List<String> statusClauses = [];
       for (var status in stockStatuses) {
         if (status == 'critical') {
-          statusClauses.add('(stock / units_per_box <= min_stock)');
+          statusClauses
+              .add('(min_stock > 0 AND stock / units_per_box <= min_stock)');
         } else if (status == 'moderate') {
           statusClauses.add(
-              '(stock / units_per_box > min_stock AND stock / units_per_box <= min_stock * 2)');
+              '(min_stock > 0 AND stock / units_per_box > min_stock AND stock / units_per_box <= min_stock * 2)');
         } else if (status == 'sufficient') {
-          statusClauses.add('(stock / units_per_box > min_stock * 2)');
+          statusClauses
+              .add('(min_stock = 0 OR stock / units_per_box > min_stock * 2)');
         }
       }
       if (statusClauses.isNotEmpty) {
