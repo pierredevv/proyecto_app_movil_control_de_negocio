@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/product.dart';
-import '../../providers/settings_provider.dart';
-import 'package:provider/provider.dart';
 
 class ProductListItem extends StatefulWidget {
   final Product product;
@@ -31,19 +29,22 @@ class _ProductListItemState extends State<ProductListItem>
   @override
   Widget build(BuildContext context) {
     final stockSaleUnits = widget.product.stockInSaleUnits;
-    final threshold =
-        context.watch<SettingsProvider>().profile.lowStockThreshold;
+    final minStock = widget.product.minStock;
 
-    // Stock Logic
+    // Stock Logic aligned with DB statuses
     Color stockColor;
-    if (stockSaleUnits > threshold * 3) {
-      stockColor = const Color(0xFF10B981); // Green
-    } else if (stockSaleUnits >= threshold) {
-      stockColor = const Color(0xFFF59E0B); // Yellow
-    } else if (stockSaleUnits > 0) {
-      stockColor = const Color(0xFFEF4444); // Red
+    if (stockSaleUnits <= 0) {
+      stockColor = const Color(0xFF9CA3AF); // Gray (Out of stock)
+    } else if (minStock > 0) {
+      if (stockSaleUnits <= minStock) {
+        stockColor = const Color(0xFFEF4444); // Red (Critical)
+      } else if (stockSaleUnits <= minStock * 2) {
+        stockColor = const Color(0xFFF59E0B); // Yellow (Moderate)
+      } else {
+        stockColor = const Color(0xFF10B981); // Green (Sufficient)
+      }
     } else {
-      stockColor = const Color(0xFF9CA3AF); // Gray
+      stockColor = const Color(0xFF10B981); // Green (Sufficient, no alert)
     }
 
     return GestureDetector(

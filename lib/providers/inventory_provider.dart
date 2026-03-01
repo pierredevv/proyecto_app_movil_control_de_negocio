@@ -44,6 +44,7 @@ class InventoryProvider extends ChangeNotifier {
   RangeValues? get stockRange => _stockRange;
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
+  String get searchQuery => _searchQuery;
 
   // Legacy getter compatibility if needed, though we should migrate usage
   int? get selectedCategoryId =>
@@ -65,6 +66,18 @@ class InventoryProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   List<Product> _frequentProducts = [];
+  List<Product> _lowStockProducts = [];
+
+  List<Product> get lowStockProducts => _lowStockProducts;
+
+  Future<void> loadLowStockProducts() async {
+    try {
+      _lowStockProducts = await _db.getProducts(stockStatuses: ['critical']);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading low stock products: $e");
+    }
+  }
 
   List<Product> get filteredProducts {
     // Logic moved to SQL. Returning _products directly.
@@ -207,6 +220,10 @@ class InventoryProvider extends ChangeNotifier {
       if (reset || _categories.isEmpty) {
         _categories = await _db.getCategories();
       }
+
+      if (reset) {
+        _lowStockProducts = await _db.getProducts(stockStatuses: ['critical']);
+      }
     } catch (e) {
       debugPrint("Error loading products/categories: $e");
       SnackbarService.showError("Error al cargar inventario");
@@ -319,6 +336,7 @@ class InventoryProvider extends ChangeNotifier {
         }
       }
       notifyListeners();
+      loadLowStockProducts();
     } catch (e) {
       debugPrint("Error adding purchase: $e");
       rethrow;
@@ -347,6 +365,7 @@ class InventoryProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+    loadLowStockProducts();
   }
 
   // Valuation: Sum (Stock * Cost)
@@ -354,12 +373,6 @@ class InventoryProvider extends ChangeNotifier {
     return _products.fold(0.0, (sum, product) {
       return sum + (product.stock * product.cost);
     });
-  }
-
-  List<Product> get lowStockProducts {
-    return _products
-        .where((p) => p.minStock > 0 && p.stockInSaleUnits <= p.minStock)
-        .toList();
   }
 
   Future<void> updateStock(int productId, double quantity) async {

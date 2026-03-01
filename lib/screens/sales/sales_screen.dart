@@ -403,16 +403,24 @@ class _ProductSearchModal extends StatefulWidget {
 class _ProductSearchModalState extends State<_ProductSearchModal> {
   final _searchController = TextEditingController();
   InventoryProvider? _inventoryProvider;
+  String _savedInventoryQuery = '';
 
   @override
   void initState() {
     super.initState();
     _inventoryProvider = context.read<InventoryProvider>();
+    _savedInventoryQuery = _inventoryProvider?.searchQuery ?? '';
+    if (_savedInventoryQuery.isNotEmpty) {
+      // Clear immediately to show all products initially in modal
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _inventoryProvider?.setSearchQuery('');
+      });
+    }
   }
 
   @override
   void dispose() {
-    _inventoryProvider?.setSearchQuery('');
+    _inventoryProvider?.setSearchQuery(_savedInventoryQuery);
     _searchController.dispose();
     super.dispose();
   }

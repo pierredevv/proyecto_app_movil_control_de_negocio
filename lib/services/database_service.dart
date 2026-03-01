@@ -1291,6 +1291,15 @@ class DatabaseService {
         final items = List.generate(
             itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
         transactions.add(Purchase.fromMap(map, items));
+      } else if (type == 'order') {
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id = ?',
+          whereArgs: [id],
+        );
+        final items = List.generate(
+            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
+        transactions.add(Order.fromMap(map, items));
       } else if (type == 'payment') {
         transactions.add(Payment.fromMap(map));
       } else if (type == 'expense') {
