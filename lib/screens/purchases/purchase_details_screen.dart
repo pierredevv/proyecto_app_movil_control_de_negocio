@@ -6,6 +6,7 @@ import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../../utils/haptic_feedback_helper.dart';
+import 'purchase_form_screen.dart';
 
 class PurchaseDetailsScreen extends StatefulWidget {
   final Purchase purchase;
@@ -67,10 +68,25 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                 context: context,
                 backgroundColor: Colors.transparent,
                 builder: (context) => TransactionOptionsBottomSheet(
-                  onEdit: () {},
-                  onCancel: () => _handleVoidPurchase(),
-                  onSharePdf: () {},
-                  onDuplicate: () {},
+                  isVoided: _purchase.status == 'VOIDED',
+                  showSharePdf: false,
+                  onEdit: () {
+                    _handleEditPurchase();
+                  },
+                  onCancel: () {
+                    if (_purchase.status == 'VOIDED') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Esta transacción ya está anulada')),
+                      );
+                      return;
+                    }
+                    _handleVoidPurchase();
+                  },
+                  onSharePdf: () {}, // Not needed
+                  onDuplicate: () {
+                    _handleDuplicatePurchase();
+                  },
                 ),
               );
             },
@@ -359,18 +375,12 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   }
 
   Future<void> _handleVoidPurchase() async {
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    // Close options sheet
-    navigator.pop();
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Anular Compra'),
         content: const Text(
-            '¿Estás seguro de anular esta compra? El stock de los productos será reducido.'),
+            '¿Estás seguro de anular esta compra? El stock de los productos será reducido y el balance revertido.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -391,23 +401,110 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         HapticFeedbackHelper.heavyImpact();
 
         if (mounted) {
-          messenger.showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Compra anulada correctamente'),
               backgroundColor: Colors.green,
             ),
           );
-          navigator.pop(); // Return to list
+          Navigator.pop(context); // Return to list
         }
       } catch (e) {
         if (mounted) {
-          messenger.showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error al anular: $e'),
               backgroundColor: Colors.red,
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _handleDuplicatePurchase() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicar Transacción'),
+        content: const Text(
+            '¿Deseas duplicar esta Compra?\n\nSe abrirá el formulario de compra cargado con los datos para que procedas a revisarla.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, Duplicar',
+                style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PurchaseFormScreen(
+          initialTransactionToDuplicate: _purchase,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleEditPurchase() async {
+    if (_purchase.status == 'VOIDED') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se puede editar una compra anulada.')),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar Transacción'),
+        content: const Text(
+            'Para editar esta transacción, primero se anulará (revirtiendo inventario y balances) y luego se te llevará al formulario para que puedas guardarla corregida.\n\n¿Deseas continuar?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child:
+                const Text('Continuar', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      await _db.deletePurchase(_purchase.id!); // Void the previous one
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transacción anterior anulada. Cargando editor...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      await _handleDuplicatePurchase();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al editar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

@@ -804,6 +804,49 @@ class DatabaseService {
     });
   }
 
+  Future<void> deletePayment(int paymentId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Get payment details
+      final results = await txn.query(
+        'transactions',
+        where: 'id = ? AND status != ?',
+        whereArgs: [paymentId, 'VOIDED'],
+      );
+      if (results.isEmpty) return;
+
+      final payment = results.first;
+      final amount = payment['total_amount'] as double;
+      final customerId = payment['entity_id'] as int?;
+
+      // 2. Revert customer debt (they owe us again since payment was voided)
+      if (customerId != null) {
+        await txn.rawUpdate(
+          'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
+          [amount, customerId],
+        );
+      }
+
+      // 3. Mark as VOIDED
+      await txn.update(
+        'transactions',
+        {'status': 'VOIDED'},
+        where: 'id = ?',
+        whereArgs: [paymentId],
+      );
+    });
+  }
+
+  Future<void> deleteExpense(int expenseId) async {
+    final db = await database;
+    await db.update(
+      'transactions',
+      {'status': 'VOIDED'},
+      where: 'id = ? AND type = ?',
+      whereArgs: [expenseId, 'expense'],
+    );
+  }
+
   Future<List<Transaction>> getCustomerHistory(int customerId) async {
     final db = await database;
 

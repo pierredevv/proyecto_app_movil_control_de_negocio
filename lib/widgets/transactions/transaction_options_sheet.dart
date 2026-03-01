@@ -6,6 +6,9 @@ class TransactionOptionsBottomSheet extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onSharePdf;
   final VoidCallback? onDuplicate;
+  final bool isVoided;
+  final bool showSharePdf;
+  final bool showDuplicate;
 
   const TransactionOptionsBottomSheet({
     super.key,
@@ -13,6 +16,9 @@ class TransactionOptionsBottomSheet extends StatelessWidget {
     this.onCancel,
     this.onSharePdf,
     this.onDuplicate,
+    this.isVoided = false,
+    this.showSharePdf = true,
+    this.showDuplicate = true,
   });
 
   @override
@@ -56,45 +62,48 @@ class TransactionOptionsBottomSheet extends StatelessWidget {
             ),
 
             // Options
-            _buildOption(
-              context,
-              icon: Icons.edit,
-              label: 'Editar Transacción',
-              color: Colors.blue.shade100,
-              iconColor: Colors.blue,
-              onTap: onEdit,
-              delay: 0,
-            ),
+            if (!isVoided) ...[
+              _buildOption(
+                context,
+                icon: Icons.edit,
+                label: 'Editar Transacción',
+                color: Colors.blue.shade100,
+                iconColor: Colors.blue,
+                onTap: onEdit,
+                delay: 0,
+              ),
+              _buildOption(
+                context,
+                icon: Icons.cancel_outlined,
+                label: 'Anular/Cancelar',
+                color: Colors.red.shade100,
+                iconColor: Colors.red,
+                onTap: onCancel,
+                delay: 50,
+              ),
+            ],
 
-            _buildOption(
-              context,
-              icon: Icons.cancel_outlined,
-              label: 'Anular/Cancelar',
-              color: Colors.red.shade100,
-              iconColor: Colors.red,
-              onTap: onCancel,
-              delay: 50,
-            ),
+            if (showSharePdf)
+              _buildOption(
+                context,
+                icon: Icons.picture_as_pdf_outlined,
+                label: 'Compartir como PDF',
+                color: Colors.purple.shade100,
+                iconColor: Colors.purple,
+                onTap: onSharePdf,
+                delay: 100,
+              ),
 
-            _buildOption(
-              context,
-              icon: Icons.picture_as_pdf_outlined,
-              label: 'Compartir como PDF',
-              color: Colors.purple.shade100,
-              iconColor: Colors.purple,
-              onTap: onSharePdf,
-              delay: 100,
-            ),
-
-            _buildOption(
-              context,
-              icon: Icons.copy_rounded,
-              label: 'Duplicar Transacción',
-              color: Colors.green.shade100,
-              iconColor: Colors.green,
-              onTap: onDuplicate,
-              delay: 150,
-            ),
+            if (showDuplicate)
+              _buildOption(
+                context,
+                icon: Icons.copy_rounded,
+                label: 'Duplicar Transacción',
+                color: Colors.green.shade100,
+                iconColor: Colors.green,
+                onTap: onDuplicate,
+                delay: 150,
+              ),
 
             const SizedBox(height: 24),
 

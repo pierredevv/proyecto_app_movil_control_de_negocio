@@ -14,9 +14,14 @@ import '../../models/product.dart';
 import '../../theme/app_theme.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
+  final Transaction? initialTransactionToDuplicate;
   final bool initialIsOrder;
 
-  const PurchaseFormScreen({super.key, this.initialIsOrder = false});
+  const PurchaseFormScreen({
+    super.key,
+    this.initialIsOrder = false,
+    this.initialTransactionToDuplicate,
+  });
 
   @override
   State<PurchaseFormScreen> createState() => _PurchaseFormScreenState();
@@ -32,8 +37,39 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   void initState() {
     super.initState();
     _isOrder = widget.initialIsOrder;
+
+    // Load data from duplicate transaction if necessary
+    if (widget.initialTransactionToDuplicate != null) {
+      final t = widget.initialTransactionToDuplicate!;
+      _isOrder = t.type == TransactionType.order;
+      // We keep the date as today, since they are duplicating to create a NEW record right now,
+      // not backdating it to the original date.
+
+      _items.addAll(t.items.map((i) => i.copyWith()));
+
+      // We will need to set the supplier after the provider loads
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SupplierProvider>().loadSuppliers();
+      final supplierProvider = context.read<SupplierProvider>();
+      supplierProvider.loadSuppliers().then((_) {
+        if (widget.initialTransactionToDuplicate != null && mounted) {
+          final supplierName = widget.initialTransactionToDuplicate! is Purchase
+              ? (widget.initialTransactionToDuplicate as Purchase).supplierName
+              : (widget.initialTransactionToDuplicate as Order).supplierName;
+
+          if (supplierName != null && supplierName != 'Proveedor General') {
+            try {
+              final match = supplierProvider.suppliers
+                  .firstWhere((s) => s.name == supplierName);
+              setState(() {
+                _selectedSupplier = match;
+              });
+            } catch (e) {
+              // Supplier might have been deleted, ignore
+            }
+          }
+        }
+      });
     });
   }
 

@@ -64,7 +64,9 @@ class CartProvider extends ChangeNotifier {
         subtotal: qty * option.price,
         saleUnit: option.unitCode,
         unitsPerSaleUnit: option.unitsPerSaleUnit,
-        packagingInfo: product.packagingInfo, // Copiar el snapshot visual
+        packagingInfo: option.unitCode == 'UNI'
+            ? ''
+            : product.packagingInfo, // Copiar solo si no es unidad simple
       ));
     }
     notifyListeners();

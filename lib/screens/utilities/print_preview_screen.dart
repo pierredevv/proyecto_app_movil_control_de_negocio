@@ -264,7 +264,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                           pw.Expanded(
                               flex: 1,
                               child: pw.Text(
-                                  '${item.quantity.toStringAsFixed(2)} CAJ',
+                                  '${item.quantity.toStringAsFixed(2)} ${item.saleUnit}',
                                   textAlign: pw.TextAlign.center,
                                   style: pw.TextStyle(
                                       color: textColor, fontSize: 7))),
@@ -908,7 +908,8 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                   children: [
                     Expanded(
                         flex: 1,
-                        child: Text('${item.quantity.toStringAsFixed(2)} CAJ',
+                        child: Text(
+                            '${item.quantity.toStringAsFixed(2)} ${item.saleUnit}',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: textColor,

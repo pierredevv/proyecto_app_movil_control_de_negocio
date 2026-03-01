@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
+import '../../models/sale_unit_option.dart';
 import '../../utils/haptic_feedback_helper.dart';
 import '../../services/network_service.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../utilities/print_preview_screen.dart';
-import '../../services/database_service.dart'; // Import DatabaseService
+import '../../services/database_service.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../main_screen.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final Sale sale;
@@ -63,10 +68,26 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 context: context,
                 backgroundColor: Colors.transparent,
                 builder: (context) => TransactionOptionsBottomSheet(
-                  onEdit: () {},
-                  onCancel: () => _handleVoidSale(),
-                  onSharePdf: () {},
-                  onDuplicate: () {},
+                  isVoided: widget.sale.status == 'VOIDED',
+                  onEdit: () {
+                    _handleEditSale();
+                  },
+                  onCancel: () {
+                    if (widget.sale.status == 'VOIDED') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Esta transacción ya está anulada')),
+                      );
+                      return;
+                    }
+                    _handleVoidSale();
+                  },
+                  onSharePdf: () {
+                    _handleGeneratePdf();
+                  },
+                  onDuplicate: () {
+                    _handleDuplicateSale();
+                  },
                 ),
               );
             },
@@ -609,18 +630,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Future<void> _handleVoidSale() async {
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    // Close options sheet
-    navigator.pop();
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Anular Venta'),
         content: const Text(
-            '¿Estás seguro de anular esta venta? El stock de los productos será restaurado.'),
+            '¿Estás seguro de anular esta venta? El stock de los productos será restaurado y la deuda revertida.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -636,30 +651,156 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
     if (confirm == true) {
       try {
-        final dbService =
-            DatabaseService(); // Or use Provider if available, but simple instance is fine here or context.read if using provider
+        final dbService = DatabaseService();
         await dbService.deleteSale(widget.sale.id!);
 
         HapticFeedbackHelper.heavyImpact();
 
         if (mounted) {
-          messenger.showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Venta anulada correctamente'),
               backgroundColor: Colors.green,
             ),
           );
-          navigator.pop(); // Return to list
+          Navigator.pop(context); // Return to history
         }
       } catch (e) {
         if (mounted) {
-          messenger.showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error al anular: $e'),
               backgroundColor: Colors.red,
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _handleDuplicateSale() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicar Transacción'),
+        content: const Text(
+            '¿Deseas duplicar esta Venta?\n\nSe cargarán los productos en el carrito para que puedas revisarlos y procesarlos nuevamente.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, Duplicar',
+                style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    final cart = context.read<CartProvider>();
+    final inventory = context.read<InventoryProvider>();
+
+    cart.clearCart();
+
+    // Set Customer
+    if (widget.sale.customerId != null) {
+      final db = DatabaseService();
+      final customers = await db.getCustomers();
+      try {
+        final cust =
+            customers.firstWhere((c) => c.id == widget.sale.customerId);
+        cart.setCustomer(cust);
+      } catch (_) {}
+    }
+
+    // Load items
+    for (var item in widget.sale.items) {
+      try {
+        final product =
+            inventory.products.firstWhere((p) => p.id == item.productId);
+        final option = SaleUnitOption(
+          unitCode: item.saleUnit,
+          price: item.unitPrice,
+          unitsPerSaleUnit: item.unitsPerSaleUnit,
+          label: item.saleUnit == 'CAJ'
+              ? 'Caja'
+              : item.saleUnit == 'BOL'
+                  ? 'Bolsa'
+                  : 'Unidad',
+        );
+
+        cart.addToCart(product, qty: item.quantity, option: option);
+      } catch (e) {
+        // Skip product if not found
+      }
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Venta cargada en el carrito')),
+    );
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _handleEditSale() async {
+    if (widget.sale.status == 'VOIDED') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se puede editar una venta anulada.')),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar Transacción'),
+        content: const Text(
+            'Para editar esta transacción, primero se anulará (revirtiendo el inventario y balances) y luego se cargará en el carrito para que la corrijas de forma segura.\n\n¿Deseas continuar?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child:
+                const Text('Continuar', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      final db = DatabaseService();
+      await db.deleteSale(widget.sale.id!); // Void the previous one
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transacción anterior anulada. Cargando editor...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      await _handleDuplicateSale();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al editar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

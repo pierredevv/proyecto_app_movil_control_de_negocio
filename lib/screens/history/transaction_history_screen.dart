@@ -9,6 +9,14 @@ import '../utilities/print_preview_screen.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../purchases/purchase_details_screen.dart';
 import '../orders/order_details_screen.dart';
+import 'package:provider/provider.dart';
+import '../../models/customer.dart';
+import '../../models/sale_unit_option.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../main_screen.dart';
+import '../purchases/purchase_form_screen.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -53,6 +61,217 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _voidTransaction(Transaction t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Anular Transacción'),
+        content: Text(
+            '¿Estás seguro de que deseas anular esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'} por Bs. ${t.totalAmount.toStringAsFixed(2)}?\n\nEl inventario y el balance del cliente/proveedor se revertirán.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child:
+                const Text('Sí, Anular', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      if (t.type == TransactionType.sale) {
+        await _db.deleteSale(t.id!);
+      } else if (t.type == TransactionType.purchase ||
+          t.type == TransactionType.order) {
+        await _db.deletePurchase(t.id!);
+      } else if (t.type == TransactionType.expense) {
+        await _db.deleteExpense(t.id!);
+      } else if (t.type == TransactionType.payment) {
+        await _db.deletePayment(t.id!);
+      } else {
+        throw Exception('No soportado para este tipo de transacción');
+      }
+
+      if (mounted) {
+        context.read<DashboardProvider>().loadDashboardData();
+        _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Transacción anulada exitosamente'),
+              backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error al anular: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _duplicateTransaction(Transaction t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicar Transacción'),
+        content: Text(
+            '¿Deseas duplicar esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'}?\n\nSe cargarán los productos en el carrito para que puedas revisarlos y procesarlos nuevamente.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, Duplicar',
+                style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    if (t.type == TransactionType.sale) {
+      final cart = context.read<CartProvider>();
+      final inventory = context.read<InventoryProvider>();
+
+      cart.clearCart();
+
+      // Load customer if exists
+      if ((t as Sale).customerId != null) {
+        try {
+          final db = await _db.database;
+          final results = await db
+              .query('customers', where: 'id = ?', whereArgs: [t.customerId]);
+          if (results.isNotEmpty) {
+            cart.setCustomer(Customer.fromMap(results.first));
+          }
+        } catch (e) {
+          // Let it fail silently, cart just won't have customer
+        }
+      }
+
+      // Build dynamic stock options correctly from the DB items
+      for (var i in t.items) {
+        final productMatch =
+            inventory.products.where((p) => p.id == i.productId).firstOrNull;
+        if (productMatch != null) {
+          final double unitCodePrice = i.unitPrice; // Use historical price
+          final double qtyMatched = i.quantity;
+
+          // Manually form the SaleUnitOption ignoring product limits to avoid missing mappings
+          final option = SaleUnitOption(
+            label: '${i.productName} (${i.saleUnit})',
+            unitCode: i.saleUnit,
+            unitsPerSaleUnit: i.unitsPerSaleUnit,
+            price: unitCodePrice,
+          );
+          try {
+            cart.addToCart(productMatch, option: option, qty: qtyMatched);
+          } catch (e) {
+            // Ignore stock error temporarily, just fill cart
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Advertencia: ${e.toString()}'),
+                    backgroundColor: Colors.orange),
+              );
+            }
+          }
+        }
+      }
+
+      // Send user to POS
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+          (route) => false,
+        );
+      }
+    } else if (t.type == TransactionType.purchase ||
+        t.type == TransactionType.order) {
+      // Purchases and Orders use PurchaseFormScreen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PurchaseFormScreen(
+            initialTransactionToDuplicate: t,
+          ),
+        ),
+      ).then((_) {
+        _loadData();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Duplicado no soportado para este tipo de transacción')),
+      );
+    }
+  }
+
+  Future<void> _editTransaction(Transaction t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar Transacción'),
+        content: const Text(
+            'Para mantener la consistencia contable, la edición funciona anulando la transacción actual y enviando sus datos al carrito para que puedas guardarla como una nueva transacción corregida.\n\n¿Deseas continuar?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Editar',
+                style:
+                    TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    // Run Void, but silently ignore UI success. Then Run Duplicate directly.
+    try {
+      if (t.type == TransactionType.sale) {
+        await _db.deleteSale(t.id!);
+      } else if (t.type == TransactionType.purchase ||
+          t.type == TransactionType.order) {
+        await _db.deletePurchase(t.id!);
+      } else {
+        throw Exception('No soportado para este tipo de transacción');
+      }
+
+      // If void succeeded, we duplicate
+      if (t.type != TransactionType.expense &&
+          t.type != TransactionType.payment) {
+        await _duplicateTransaction(t);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('No se pudo inicializar la edición: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -144,6 +363,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   return _GlassTransactionCard(
                                     transaction: t,
                                     isDark: isDark,
+                                    onVoid: () => _voidTransaction(t),
+                                    onDuplicate: () => _duplicateTransaction(t),
+                                    onEdit: () => _editTransaction(t),
                                   ).animate().fadeIn(duration: 300.ms).slideY(
                                       begin: 0.2,
                                       end: 0,
@@ -373,21 +595,21 @@ class _GlassFilterTabs extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildTab(null, 'Todos'),
+          _buildTab(type: null, label: 'Todos'),
           const SizedBox(width: 12),
-          _buildTab('sale', 'Ventas'),
+          _buildTab(type: 'sale', label: 'Ventas'),
           const SizedBox(width: 12),
-          _buildTab('purchase', 'Compras'),
+          _buildTab(type: 'purchase', label: 'Compras'),
           const SizedBox(width: 12),
-          _buildTab('expense', 'Gastos'),
+          _buildTab(type: 'expense', label: 'Gastos'),
           const SizedBox(width: 12),
-          _buildTab('payment', 'Pagos'),
+          _buildTab(type: 'payment', label: 'Pagos'),
         ],
       ),
     );
   }
 
-  Widget _buildTab(String? type, String label) {
+  Widget _buildTab({String? type, required String label}) {
     final bool isActive = selectedType == type;
 
     // Active Styles (Glass)
@@ -455,9 +677,17 @@ class _GlassFilterTabs extends StatelessWidget {
 class _GlassTransactionCard extends StatelessWidget {
   final Transaction transaction;
   final bool isDark;
+  final VoidCallback onVoid;
+  final VoidCallback onDuplicate;
+  final VoidCallback onEdit;
 
-  const _GlassTransactionCard(
-      {required this.transaction, required this.isDark});
+  const _GlassTransactionCard({
+    required this.transaction,
+    required this.isDark,
+    required this.onVoid,
+    required this.onDuplicate,
+    required this.onEdit,
+  });
 
   void _navigateToDetail(BuildContext context, String heroTag) {
     if (transaction is Sale) {
@@ -522,15 +752,27 @@ class _GlassTransactionCard extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => TransactionOptionsBottomSheet(
+        isVoided: transaction.status == 'VOIDED',
+        showDuplicate: transaction.type != TransactionType.expense &&
+            transaction.type != TransactionType.payment,
+        showSharePdf: transaction.type == TransactionType.sale,
         onEdit: () {
-          // TODO: Navigate to Edit screen or POS with loaded data
+          onEdit();
         },
         onCancel: () {
-          // TODO: Implement cancel logic
+          if (transaction.status == 'VOIDED') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Esta transacción ya está anulada')),
+            );
+            return;
+          }
+          onVoid();
         },
-        onSharePdf: () => _handlePrint(context), // Reuse print logic
+        onSharePdf: () {
+          _handlePrint(context);
+        },
         onDuplicate: () {
-          // TODO: Implement duplicate logic
+          onDuplicate();
         },
       ),
     );
@@ -666,13 +908,14 @@ class _GlassTransactionCard extends StatelessWidget {
                             // Actions
                             Row(
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.print,
-                                      size: 22, color: Color(0xFFFF6B6B)),
-                                  onPressed: () => _handlePrint(context),
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(8),
-                                ),
+                                if (transaction.type == TransactionType.sale)
+                                  IconButton(
+                                    icon: const Icon(Icons.print,
+                                        size: 22, color: Color(0xFFFF6B6B)),
+                                    onPressed: () => _handlePrint(context),
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(8),
+                                  ),
                                 IconButton(
                                   icon: const Icon(Icons.more_vert,
                                       size: 22, color: secondaryGray),
