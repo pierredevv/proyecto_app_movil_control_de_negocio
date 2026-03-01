@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/dashboard_provider.dart';
@@ -117,7 +118,9 @@ class _SalesScreenState extends State<SalesScreen> {
     if (confirm != true || !context.mounted) return;
 
     try {
-      final sale = await cart.checkout(db);
+      final autoClear =
+          context.read<SettingsProvider>().profile.autoClearCartAfterSale;
+      final sale = await cart.checkout(db, autoClear: autoClear);
       inventory.processSale(sale.items);
 
       if (context.mounted) {
@@ -136,7 +139,8 @@ class _SalesScreenState extends State<SalesScreen> {
 
   void _showSuccessSheet(BuildContext context, dynamic sale) async {
     // Generate PDF bytes
-    final bytes = await PdfGeneratorService().generateInvoice(sale);
+    final profile = context.read<SettingsProvider>().profile;
+    final bytes = await PdfGeneratorService().generateInvoice(sale, profile);
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/Ticket_${sale.id}.pdf');
     await file.writeAsBytes(bytes);
@@ -220,7 +224,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 builder: (context, cart, _) => SalesHeader(
                   cartItemCount:
                       cart.items.fold(0, (sum, i) => sum + i.quantity.toInt()),
-                  onClearCart: () => cart.clearCart(),
+                  onClearCart: () => _handleClearCart(context, cart),
                 ),
               ),
 
@@ -282,7 +286,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                     fontWeight: FontWeight.bold),
                               ),
                               TextButton.icon(
-                                onPressed: () => cart.clearCart(),
+                                onPressed: () =>
+                                    _handleClearCart(context, cart),
                                 icon: const Icon(Icons.delete_outline,
                                     size: 16, color: AppTheme.redAccent),
                                 label: const Text('Vaciar',
@@ -353,6 +358,37 @@ class _SalesScreenState extends State<SalesScreen> {
         ],
       ),
     );
+  }
+
+  void _handleClearCart(BuildContext context, CartProvider cart) {
+    if (context.read<SettingsProvider>().profile.confirmClearCart) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Vaciar Carrito'),
+          content: const Text(
+              '¿Está seguro de eliminar todos los productos del carrito?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                cart.clearCart();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Carrito vaciado')),
+                );
+              },
+              child: const Text('Vaciar', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      cart.clearCart();
+    }
   }
 }
 

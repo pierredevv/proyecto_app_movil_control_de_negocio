@@ -14,6 +14,8 @@ import 'providers/supplier_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/note_provider.dart';
 import 'providers/import_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/settings_provider.dart';
 
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
@@ -64,15 +66,22 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => NoteProvider()..loadNotes()),
         ChangeNotifierProvider(create: (_) => ImportProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+            create: (_) => SettingsProvider()..loadProfile()),
       ],
-      child: MaterialApp(
-        scaffoldMessengerKey: SnackbarService.messengerKey,
-        title: 'Gestion de Negocio App',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const MainScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            scaffoldMessengerKey: SnackbarService.messengerKey,
+            title: 'Gestion de Negocio App',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const MainScreen(),
+          );
+        },
       ),
     );
   }

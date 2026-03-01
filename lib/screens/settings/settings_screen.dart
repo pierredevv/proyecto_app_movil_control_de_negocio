@@ -1,84 +1,161 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
+import '../../providers/settings_provider.dart';
+import 'business_profile_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  String _dateFormat = 'dd/mm/yyyy';
-  double _fontSize = 1.0;
-  bool _darkMode = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeProvider = context.watch<ThemeProvider>();
+    final settingsProvider = context.watch<SettingsProvider>();
+
+    if (!settingsProvider.isLoaded) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final profile = settingsProvider.profile;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configuración')),
+      appBar: AppBar(
+        title: const Text('Configuración'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Preferencias de Usuario',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold, color: theme.hintColor),
+          // BUSINESS PROFILE SECTION
+          _SectionTitle('Perfil del Negocio', theme: theme),
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              leading: const Icon(Icons.store, color: Colors.blue),
+              title: const Text('Editar Perfil y Facturación'),
+              subtitle: Text(profile.businessName),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const BusinessProfileScreen()),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 24),
+
+          // APPEARANCE SECTION
+          _SectionTitle('Apariencia', theme: theme),
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: RadioGroup<ThemeMode>(
+              groupValue: themeProvider.themeMode,
+              onChanged: (v) => themeProvider.setThemeMode(v!),
+              child: const Column(
+                children: [
+                  RadioListTile<ThemeMode>(
+                    title: Text('Seguir al sistema'),
+                    secondary: Icon(Icons.brightness_auto),
+                    value: ThemeMode.system,
+                  ),
+                  Divider(height: 1),
+                  RadioListTile<ThemeMode>(
+                    title: Text('Modo Claro'),
+                    secondary: Icon(Icons.light_mode),
+                    value: ThemeMode.light,
+                  ),
+                  Divider(height: 1),
+                  RadioListTile<ThemeMode>(
+                    title: Text('Modo Oscuro'),
+                    secondary: Icon(Icons.dark_mode),
+                    value: ThemeMode.dark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // POS & INVENTORY BEHAVIOR
+          _SectionTitle('Comportamiento POS e Inventario', theme: theme),
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Modo Oscuro'),
-                  secondary: const Icon(Icons.dark_mode),
-                  value: _darkMode,
-                  onChanged: (val) {
-                    setState(() => _darkMode = val);
+                  title: const Text('Confirmar antes de vaciar carrito'),
+                  secondary: const Icon(Icons.delete_sweep),
+                  value: profile.confirmClearCart,
+                  onChanged: (v) {
+                    settingsProvider
+                        .updateProfile(profile.copyWith(confirmClearCart: v));
                   },
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.text_fields),
-                  title: const Text('Tamaño de Fuente'),
-                  subtitle: Slider(
-                    value: _fontSize,
-                    min: 0.8,
-                    max: 1.4,
-                    divisions: 6,
-                    label: '${(_fontSize * 100).round()}%',
-                    onChanged: (val) {
-                      setState(() => _fontSize = val);
-                    },
-                  ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Limpiar carrito tras venta exitosa'),
+                  secondary: const Icon(Icons.shopping_cart_checkout),
+                  value: profile.autoClearCartAfterSale,
+                  onChanged: (v) {
+                    settingsProvider.updateProfile(
+                        profile.copyWith(autoClearCartAfterSale: v));
+                  },
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('Formato de Fecha'),
-                  trailing: DropdownButton<String>(
-                    value: _dateFormat,
-                    underline: Container(),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'dd/mm/yyyy', child: Text('dd/mm/yyyy')),
-                      DropdownMenuItem(
-                          value: 'mm/dd/yyyy', child: Text('mm/dd/yyyy')),
-                      DropdownMenuItem(
-                          value: 'yyyy/mm/dd', child: Text('yyyy/mm/dd')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _dateFormat = val);
-                    },
-                  ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Mostrar pdts sin stock en POS'),
+                  secondary: const Icon(Icons.visibility_off),
+                  value: profile.showOutOfStockInPOS,
+                  onChanged: (v) {
+                    settingsProvider.updateProfile(
+                        profile.copyWith(showOutOfStockInPOS: v));
+                  },
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Alertas por stock bajo'),
+                  secondary: const Icon(Icons.notifications_active),
+                  value: profile.lowStockAlertsEnabled,
+                  onChanged: (v) {
+                    settingsProvider.updateProfile(
+                        profile.copyWith(lowStockAlertsEnabled: v));
+                  },
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final ThemeData theme;
+  const _SectionTitle(this.title, {required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }

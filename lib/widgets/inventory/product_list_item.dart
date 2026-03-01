@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/product.dart';
+import '../../providers/settings_provider.dart';
+import 'package:provider/provider.dart';
 
 class ProductListItem extends StatefulWidget {
   final Product product;
@@ -29,12 +31,14 @@ class _ProductListItemState extends State<ProductListItem>
   @override
   Widget build(BuildContext context) {
     final stockSaleUnits = widget.product.stockInSaleUnits;
+    final threshold =
+        context.read<SettingsProvider>().profile.lowStockThreshold;
 
     // Stock Logic
     Color stockColor;
-    if (stockSaleUnits > 10) {
+    if (stockSaleUnits > threshold * 3) {
       stockColor = const Color(0xFF10B981); // Green
-    } else if (stockSaleUnits >= 3) {
+    } else if (stockSaleUnits >= threshold) {
       stockColor = const Color(0xFFF59E0B); // Yellow
     } else if (stockSaleUnits > 0) {
       stockColor = const Color(0xFFEF4444); // Red

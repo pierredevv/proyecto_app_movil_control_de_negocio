@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/whatsapp_helper.dart';
-import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/settings_provider.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final Order order;
@@ -94,8 +95,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
+              final phone = context.read<SettingsProvider>().whatsapp;
+              if (phone.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text(
+                          'Configure su número de WhatsApp en Ajustes primero.'),
+                      backgroundColor: Colors.orange),
+                );
+                return;
+              }
               final message = WhatsAppHelper.generateOrderMessage(_order);
-              WhatsAppHelper.launchWhatsApp('59100000000', message);
+              WhatsAppHelper.launchWhatsApp(phone, message);
             },
           ),
         ],

@@ -2,14 +2,26 @@ import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'dart:io';
 import '../models/transaction_model.dart';
+import '../models/business_profile.dart';
 
 class PdfGeneratorService {
-  Future<Uint8List> generateInvoice(Sale sale) async {
+  Future<Uint8List> generateInvoice(Sale sale, BusinessProfile profile) async {
     final pdf = pw.Document();
     final currencyFormat = NumberFormat.currency(
         symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'es_BO');
+
+    pw.ImageProvider? logoImage;
+    if (profile.showLogoOnInvoice &&
+        profile.logoPath != null &&
+        profile.logoPath!.isNotEmpty) {
+      final file = File(profile.logoPath!);
+      if (file.existsSync()) {
+        logoImage = pw.MemoryImage(file.readAsBytesSync());
+      }
+    }
 
     pdf.addPage(
       pw.Page(
@@ -21,17 +33,39 @@ class PdfGeneratorService {
             children: [
               // Header
               pw.Center(
-                child: pw.Text('MI NEGOCIO',
-                    style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                child: pw.Column(
+                  children: [
+                    if (logoImage != null)
+                      pw.Container(
+                        height: 50,
+                        margin: const pw.EdgeInsets.only(bottom: 8),
+                        child: pw.Image(logoImage),
+                      ),
+                    pw.Text(
+                      profile.businessName,
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 16),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    if (profile.showNitOnInvoice && profile.nit.isNotEmpty)
+                      pw.Text('NIT: ${profile.nit}',
+                          textAlign: pw.TextAlign.center),
+                    if (profile.address.isNotEmpty)
+                      pw.Text('Dirección: ${profile.address}',
+                          textAlign: pw.TextAlign.center,
+                          style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('${profile.city}, ${profile.department}',
+                        textAlign: pw.TextAlign.center,
+                        style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
               ),
-              pw.Center(child: pw.Text('NIT: 123456789')),
-              pw.Center(child: pw.Text('Dirección: Av. Principal #123')),
               pw.SizedBox(height: 10),
               pw.Divider(),
 
               // Sale Info
-              pw.Text('Nro. Venta: #${sale.id}'),
+              pw.Text(
+                  'Nro. Venta: ${profile.invoicePrefix}-${sale.id?.toString().padLeft(4, '0')}'),
               pw.Text('Fecha: ${dateFormat.format(sale.date)}'),
               pw.Text('Cliente: ${sale.customerName ?? "Cliente Ocasional"}'),
               pw.Divider(),
@@ -90,9 +124,11 @@ class PdfGeneratorService {
               ),
 
               pw.SizedBox(height: 20),
-              pw.Center(
-                  child: pw.Text('¡Gracias por su compra!',
-                      style: const pw.TextStyle(fontSize: 10))),
+              if (profile.invoiceFooter.isNotEmpty)
+                pw.Center(
+                    child: pw.Text(profile.invoiceFooter,
+                        textAlign: pw.TextAlign.center,
+                        style: const pw.TextStyle(fontSize: 10))),
             ],
           );
         },

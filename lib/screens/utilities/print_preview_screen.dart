@@ -7,6 +7,8 @@ import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/number_to_words.dart';
+import 'package:provider/provider.dart';
+import '../../providers/settings_provider.dart';
 
 class PrintPreviewScreen extends StatefulWidget {
   final Transaction transaction;
@@ -100,9 +102,11 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
   }
 
   Future<Uint8List> _generatePdfReceipt() async {
+    final profile = context.read<SettingsProvider>().profile;
+
     final pdf = pw.Document(
         title: 'Factura ${widget.transaction.id}',
-        author: 'MI NEGOCIO S.A.',
+        author: profile.businessName,
         compress: false);
 
     // Dynamic Options Mapping
@@ -146,32 +150,33 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                           color: textColor,
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 14)),
-                  pw.Text('CON DERECHO A CRÉDITO FISCAL',
-                      style: pw.TextStyle(
-                          color: textColor,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10)),
-                  pw.Text('MI NEGOCIO S.A.',
+                  if (profile.showLogoOnInvoice)
+                    pw.Text('CON DERECHO A CRÉDITO FISCAL',
+                        style: pw.TextStyle(
+                            color: textColor,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10)),
+                  pw.Text(profile.businessName,
                       style: pw.TextStyle(
                           color: textColor,
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 12)),
                   pw.Text('SUCURSAL NO. 1',
                       style: pw.TextStyle(color: textColor, fontSize: 8)),
-                  pw.Text('Punto de Venta No. 1',
+                  pw.Text('ZONA: ${profile.city}, CALLE: ${profile.address}',
                       style: pw.TextStyle(color: textColor, fontSize: 8)),
-                  pw.Text('ZONA: Centro, CALLE: Bolivar #123',
+                  pw.Text('Teléfono: ${profile.phone}',
                       style: pw.TextStyle(color: textColor, fontSize: 8)),
-                  pw.Text('Teléfono: 70010203',
+                  pw.Text(profile.department,
                       style: pw.TextStyle(color: textColor, fontSize: 8)),
-                  pw.Text('SANTA CRUZ',
-                      style: pw.TextStyle(color: textColor, fontSize: 8)),
-                  pw.Text('NIT: 1020304050',
-                      style: pw.TextStyle(
-                          color: textColor,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 8)),
-                  pw.Text('NRO. FACTURA: ${widget.transaction.id ?? 0}',
+                  if (profile.showNitOnInvoice && profile.nit.isNotEmpty)
+                    pw.Text('NIT: ${profile.nit}',
+                        style: pw.TextStyle(
+                            color: textColor,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 8)),
+                  pw.Text(
+                      'NRO. FACTURA: ${profile.invoicePrefix}-${widget.transaction.id ?? 0}',
                       style: pw.TextStyle(
                           color: textColor,
                           fontWeight: pw.FontWeight.bold,

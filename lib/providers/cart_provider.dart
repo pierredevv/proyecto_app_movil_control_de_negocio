@@ -108,7 +108,7 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Sale> checkout(DatabaseService db) async {
+  Future<Sale> checkout(DatabaseService db, {bool autoClear = true}) async {
     if (_items.isEmpty) throw Exception('El carrito está vacío');
 
     _isLoading = true;
@@ -127,7 +127,9 @@ class CartProvider extends ChangeNotifier {
       final id = await db.insertSale(sale);
       final completedSale = sale.copyWith(id: id);
 
-      clearCart();
+      if (autoClear) {
+        clearCart();
+      }
       return completedSale;
     } finally {
       _isLoading = false;

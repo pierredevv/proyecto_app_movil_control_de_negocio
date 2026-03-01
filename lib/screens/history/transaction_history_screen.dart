@@ -271,6 +271,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           t.type != TransactionType.payment) {
         await _loadToCartAndNavigate(t);
       }
+
+      if (mounted) {
+        context.read<DashboardProvider>().loadDashboardData();
+        context.read<InventoryProvider>().loadProducts(reset: true);
+        _loadData(); // Reload to reflect the voided value
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -754,8 +760,6 @@ class _GlassTransactionCard extends StatelessWidget {
   }
 
   Future<void> _handlePrint(BuildContext context) async {
-    if (transaction is! Sale) return;
-
     final sale = transaction as Sale;
 
     try {

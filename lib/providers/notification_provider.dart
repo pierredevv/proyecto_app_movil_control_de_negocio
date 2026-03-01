@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../services/database_service.dart';
 
 import '../models/app_notification.dart';
+import '../services/settings_service.dart';
 
 class NotificationProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -14,6 +15,9 @@ class NotificationProvider extends ChangeNotifier {
 
   Future<void> checkLowStock() async {
     try {
+      final profile = await SettingsService.getProfile();
+      if (!profile.lowStockAlertsEnabled) return;
+
       final products = await _db.getProducts();
       final lowStockProducts =
           products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
