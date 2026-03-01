@@ -19,8 +19,9 @@ class NotificationProvider extends ChangeNotifier {
       if (!profile.lowStockAlertsEnabled) return;
 
       final products = await _db.getProducts();
-      final lowStockProducts =
-          products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
+      final lowStockProducts = products
+          .where((p) => p.minStock > 0 && p.stockInSaleUnits <= p.minStock)
+          .toList();
 
       for (var product in lowStockProducts) {
         final notifId = 'low_stock_${product.id}';

@@ -241,7 +241,7 @@ class _ProductListItemState extends State<ProductListItem>
                                                     .product.displayPackaging),
                                             const SizedBox(height: 8),
                                             _buildInfoRow('Min. Stock',
-                                                '${widget.product.minStock} unid.'),
+                                                '${widget.product.minStock} ${widget.product.saleUnit}'),
                                             const SizedBox(height: 8),
                                             _buildInfoRow(
                                               'Última Act.',

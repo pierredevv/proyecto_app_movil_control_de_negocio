@@ -424,8 +424,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             padding: const EdgeInsets.only(top: 16),
                             child: _buildGlassTextField(
                               controller: _minStockController,
-                              label: 'Stock Mínimo (En Unidades Base)',
-                              hintText: 'Ej. Si vende cajas de 24, ingrese 24',
+                              label: 'Stock Mínimo (En Unidades de Venta)',
+                              hintText:
+                                  'Ej. Alertar cuando queden menos de 3 cajas',
                               icon: Icons.warning_amber_rounded,
                               keyboardType: TextInputType.number,
                               validator: (val) {
