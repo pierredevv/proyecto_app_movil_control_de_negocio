@@ -81,29 +81,5 @@ class SupplierProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> sendWhatsApp(String phone, String message) async {
-    // Basic formatting for WhatsApp URL
-    // Removing non-numeric chars from phone except +
-    String cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
-
-    // If local number without country code, you might want to prepend one.
-    // For now assuming user enters valid format or local number.
-    // Ideally user enters 591... or we append '591' if length is 8.
-    if (!cleanPhone.startsWith('+') && cleanPhone.length == 8) {
-      cleanPhone = '591$cleanPhone';
-    }
-
-    final Uri url = Uri.parse(
-        'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
-
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        debugPrint('Could not launch WhatsApp');
-      }
-    } catch (e) {
-      debugPrint('Error launching WhatsApp: $e');
-    }
-  }
+  // WhatsApp sending logic moved to WhatsAppHelper
 }

@@ -816,7 +816,7 @@ class DatabaseService {
       if (results.isEmpty) return;
 
       final payment = results.first;
-      final amount = payment['total_amount'] as double;
+      final amount = (payment['total_amount'] as num).toDouble();
       final customerId = payment['entity_id'] as int?;
 
       // 2. Revert customer debt (they owe us again since payment was voided)
@@ -1155,11 +1155,15 @@ class DatabaseService {
     String? type,
     int? startDate,
     int? endDate,
+    bool hideVoided = false,
   }) async {
     final db = await database;
 
     // Build Query
-    String whereClause = "status != 'VOIDED'";
+    String whereClause = "1=1";
+    if (hideVoided) {
+      whereClause += " AND status != 'VOIDED'";
+    }
     List<dynamic> args = [];
 
     if (type != null) {

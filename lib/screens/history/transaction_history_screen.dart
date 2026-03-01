@@ -15,7 +15,7 @@ import '../../models/sale_unit_option.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/inventory_provider.dart';
-import '../main_screen.dart';
+
 import '../purchases/purchase_form_screen.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
@@ -105,6 +105,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
       if (mounted) {
         context.read<DashboardProvider>().loadDashboardData();
+        context.read<InventoryProvider>().loadProducts(reset: true);
         _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -146,6 +147,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (confirm != true) return;
     if (!mounted) return;
 
+    await _loadToCartAndNavigate(t);
+  }
+
+  Future<void> _loadToCartAndNavigate(Transaction t) async {
     if (t.type == TransactionType.sale) {
       final cart = context.read<CartProvider>();
       final inventory = context.read<InventoryProvider>();
@@ -184,25 +189,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           try {
             cart.addToCart(productMatch, option: option, qty: qtyMatched);
           } catch (e) {
-            // Ignore stock error temporarily, just fill cart
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: Text('Advertencia: ${e.toString()}'),
+                    content: Text(
+                        'Advertencia: No hay stock suficiente para ${productMatch.name}'),
                     backgroundColor: Colors.orange),
               );
             }
+            cart.clearCart();
+            return; // Exit and don't navigate
           }
         }
       }
 
       // Send user to POS
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-          (route) => false,
-        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } else if (t.type == TransactionType.purchase ||
         t.type == TransactionType.order) {
@@ -215,14 +218,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
         ),
       ).then((_) {
-        _loadData();
+        if (mounted) _loadData();
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('Duplicado no soportado para este tipo de transacción')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Duplicado no soportado para este tipo de transacción')),
+        );
+      }
     }
   }
 
@@ -264,7 +269,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       // If void succeeded, we duplicate
       if (t.type != TransactionType.expense &&
           t.type != TransactionType.payment) {
-        await _duplicateTransaction(t);
+        await _loadToCartAndNavigate(t);
       }
     } catch (e) {
       if (mounted) {
@@ -720,6 +725,31 @@ class _GlassTransactionCard extends StatelessWidget {
           ),
         ),
       );
+    } else if (transaction is Expense || transaction is Payment) {
+      showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+                  title: Text(transaction is Expense
+                      ? 'Detalle de Gasto'
+                      : 'Detalle de Pago'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          'Monto: Bs. ${transaction.totalAmount.toStringAsFixed(2)}'),
+                      Text(
+                          'Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(transaction.date)}'),
+                      if (transaction is Expense)
+                        Text(
+                            'Descripción: ${(transaction as Expense).description}'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cerrar')),
+                  ]));
     }
   }
 

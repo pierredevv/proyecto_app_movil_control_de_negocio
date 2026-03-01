@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/whatsapp_helper.dart';
+import 'package:provider/provider.dart';
+import '../../providers/inventory_provider.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final Order order;
@@ -59,6 +61,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           items: _order.items,
         );
       });
+      if (newStatus == 'RECEIVED' && mounted) {
+        await context.read<InventoryProvider>().loadProducts(reset: true);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

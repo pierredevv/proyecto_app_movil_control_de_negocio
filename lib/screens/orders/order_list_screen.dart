@@ -8,6 +8,8 @@ import '../../widgets/common/skeleton_list.dart';
 import '../../utils/whatsapp_helper.dart';
 import 'order_details_screen.dart';
 import '../purchases/purchase_form_screen.dart';
+import 'package:provider/provider.dart';
+import '../../providers/inventory_provider.dart';
 
 class OrderListScreen extends StatefulWidget {
   const OrderListScreen({super.key});
@@ -60,6 +62,9 @@ class _OrderListScreenState extends State<OrderListScreen> {
   Future<void> _updateStatus(Order order, String newStatus) async {
     try {
       await _db.updateOrderStatus(order.id!, newStatus);
+      if (newStatus == 'RECEIVED' && mounted) {
+        await context.read<InventoryProvider>().loadProducts(reset: true);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -65,6 +65,11 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeNotification(String id) {
+    _notifications.removeWhere((n) => n.id == id);
+    notifyListeners();
+  }
+
   void clearAll() {
     _notifications.clear();
     notifyListeners();

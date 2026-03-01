@@ -138,6 +138,41 @@ class RecentActivityList extends StatelessWidget {
               ),
             ),
           );
+        } else if (transaction is Expense || transaction is Payment) {
+          showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                      title: Text(transaction is Expense
+                          ? 'Detalle de Gasto'
+                          : 'Detalle de Pago'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              'Monto: Bs. ${transaction.totalAmount.toStringAsFixed(2)}'),
+                          Text(
+                              'Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(transaction.date)}'),
+                          if (transaction is Expense)
+                            Text('Descripción: ${transaction.description}'),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cerrar')),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const TransactionHistoryScreen()));
+                          },
+                          child: const Text('Ir al Historial'),
+                        )
+                      ]));
         }
       },
       child: Container(

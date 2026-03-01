@@ -7,6 +7,7 @@ import '../../providers/supplier_provider.dart';
 import '../../models/supplier.dart';
 import 'supplier_form_screen.dart';
 import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
+import '../../utils/whatsapp_helper.dart';
 
 class SupplierListScreen extends StatefulWidget {
   const SupplierListScreen({super.key});
@@ -508,7 +509,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                               Icons.message, // Use message as WhatsApp fallback
                           color: const Color(0xFF51CF66), // Green
                           onTap: () {
-                            context.read<SupplierProvider>().sendWhatsApp(
+                            WhatsAppHelper.launchWhatsApp(
                                 widget.supplier.phone!,
                                 "Hola ${widget.supplier.name}, quisiera hacer un pedido.");
                           },
