@@ -158,4 +158,31 @@ class BusinessProfile {
       lowStockAlertsEnabled: map['lowStockAlertsEnabled'] ?? true,
     );
   }
+
+  BusinessProfile clearLogo() {
+    return BusinessProfile(
+      businessName: businessName,
+      ownerName: ownerName,
+      businessType: businessType,
+      logoPath: null, // Clear the logo
+      nit: nit,
+      ci: ci,
+      invoicePrefix: invoicePrefix,
+      phone: phone,
+      whatsapp: whatsapp,
+      email: email,
+      city: city,
+      department: department,
+      address: address,
+      invoiceFooter: invoiceFooter,
+      showNitOnInvoice: showNitOnInvoice,
+      showLogoOnInvoice: showLogoOnInvoice,
+      defaultMinStock: defaultMinStock,
+      lowStockThreshold: lowStockThreshold,
+      confirmClearCart: confirmClearCart,
+      autoClearCartAfterSale: autoClearCartAfterSale,
+      showOutOfStockInPOS: showOutOfStockInPOS,
+      lowStockAlertsEnabled: lowStockAlertsEnabled,
+    );
+  }
 }

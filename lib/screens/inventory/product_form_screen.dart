@@ -12,6 +12,7 @@ import '../../models/category.dart';
 import '../../providers/inventory_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/supplier.dart';
+import '../../providers/settings_provider.dart';
 
 import '../../utils/input_validators.dart';
 import 'barcode_scanner_view.dart';
@@ -51,12 +52,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   void initState() {
     super.initState();
     final p = widget.product;
+    final defaultMinStock =
+        context.read<SettingsProvider>().profile.defaultMinStock;
+
     _nameController = TextEditingController(text: p?.name);
     _barcodeController = TextEditingController(text: p?.barcode);
     _priceController = TextEditingController(text: p?.price.toString());
     _costController = TextEditingController(text: p?.cost.toString());
     _stockController = TextEditingController(text: p?.stock.toString());
-    _minStockController = TextEditingController(text: p?.minStock.toString());
+    _minStockController = TextEditingController(
+        text: p?.minStock.toString() ?? defaultMinStock.toString());
     _selectedCategoryId = p?.categoryId;
     _selectedSupplierId = p?.supplierId;
     _saleUnit = p?.saleUnit ?? 'UNI';

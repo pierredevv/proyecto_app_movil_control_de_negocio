@@ -17,7 +17,10 @@ class NetworkService {
   }
 
   static Stream<List<ConnectivityResult>> get onConnectivityChanged {
-    // If the package returns a single ConnectivityResult, we wrap it in a list to match the new type signature
-    return Connectivity().onConnectivityChanged.map((event) => [event]);
+    return Connectivity().onConnectivityChanged.map((dynamic event) {
+      if (event is List<ConnectivityResult>) return event;
+      if (event is ConnectivityResult) return [event];
+      return <ConnectivityResult>[];
+    });
   }
 }

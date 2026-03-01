@@ -26,8 +26,12 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateLogoPath(String path) async {
-    _profile = _profile.copyWith(logoPath: path);
+  Future<void> updateLogoPath(String? path) async {
+    final cleanPath =
+        (path == null || path.trim().isEmpty) ? null : path.trim();
+    _profile = cleanPath == null
+        ? _profile.clearLogo()
+        : _profile.copyWith(logoPath: cleanPath);
     await SettingsService.saveProfile(_profile);
     notifyListeners();
   }

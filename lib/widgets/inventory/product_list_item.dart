@@ -32,7 +32,7 @@ class _ProductListItemState extends State<ProductListItem>
   Widget build(BuildContext context) {
     final stockSaleUnits = widget.product.stockInSaleUnits;
     final threshold =
-        context.read<SettingsProvider>().profile.lowStockThreshold;
+        context.watch<SettingsProvider>().profile.lowStockThreshold;
 
     // Stock Logic
     Color stockColor;

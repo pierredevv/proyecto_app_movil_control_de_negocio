@@ -1,9 +1,11 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 // Providers
+import '../providers/settings_provider.dart';
 import '../providers/notification_provider.dart';
 
 // Screens
@@ -263,7 +265,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildHeader(BuildContext context) {
     final notificationProvider = context.watch<NotificationProvider>();
+    final settingsProvider = context.watch<SettingsProvider>();
     final unreadCount = notificationProvider.unreadCount;
+    final profile = settingsProvider.profile;
 
     return ClipRRect(
       child: BackdropFilter(
@@ -301,23 +305,35 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: BackdropFilter(
                     filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                     child:
-                        const Icon(Icons.store, color: Colors.white, size: 28),
+                        profile.logoPath != null && profile.logoPath!.isNotEmpty
+                            ? Image.file(
+                                File(profile.logoPath!),
+                                fit: BoxFit.cover,
+                                width: 56,
+                                height: 56,
+                                errorBuilder: (ctx, err, stack) => const Icon(
+                                    Icons.store,
+                                    color: Colors.white,
+                                    size: 28),
+                              )
+                            : const Icon(Icons.store,
+                                color: Colors.white, size: 28),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pierre PB',
-                      style: TextStyle(
+                      profile.businessName,
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold),
                     ),
-                    Text(
+                    const Text(
                       'Business Management',
                       style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
                     ),

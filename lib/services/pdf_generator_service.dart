@@ -18,8 +18,9 @@ class PdfGeneratorService {
         profile.logoPath != null &&
         profile.logoPath!.isNotEmpty) {
       final file = File(profile.logoPath!);
-      if (file.existsSync()) {
-        logoImage = pw.MemoryImage(file.readAsBytesSync());
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        logoImage = pw.MemoryImage(bytes);
       }
     }
 

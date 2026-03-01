@@ -406,9 +406,12 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showOutOfStock =
+        context.read<SettingsProvider>().profile.showOutOfStockInPOS;
     final provider = context.watch<InventoryProvider>();
-    final products =
-        provider.filteredProducts.where((p) => p.stock > 0).toList();
+    final products = showOutOfStock
+        ? provider.filteredProducts
+        : provider.filteredProducts.where((p) => p.stock > 0).toList();
 
     return Padding(
       padding: EdgeInsets.only(

@@ -23,13 +23,12 @@ class NotificationProvider extends ChangeNotifier {
           products.where((p) => p.stockInSaleUnits <= p.minStock).toList();
 
       for (var product in lowStockProducts) {
-        // Avoid duplicate notification if already exists for this product (simple check)
-        // Ideally we track this better, but for now specific title check works
-        final alreadyNotified = _notifications
-            .any((n) => n.type == 'low_stock' && n.body.contains(product.name));
+        final notifId = 'low_stock_${product.id}';
+        final alreadyNotified = _notifications.any((n) => n.id == notifId);
 
         if (!alreadyNotified) {
           _addNotification(
+            id: notifId,
             title: 'Alerta de Stock Bajo',
             body:
                 'Tienes poco stock de "${product.name}", ¡por favor reabastece!',
@@ -42,10 +41,14 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
-  void _addNotification(
-      {required String title, required String body, String? type}) {
+  void _addNotification({
+    String? id,
+    required String title,
+    required String body,
+    String? type,
+  }) {
     final notification = AppNotification(
-      id: const Uuid().v4(),
+      id: id ?? const Uuid().v4(),
       title: title,
       body: body,
       date: DateTime.now(),
