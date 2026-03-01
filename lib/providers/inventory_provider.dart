@@ -358,7 +358,7 @@ class InventoryProvider extends ChangeNotifier {
 
   List<Product> get lowStockProducts {
     return _products
-        .where((p) => p.minStock > 0 && p.stock <= p.minStock)
+        .where((p) => p.minStock > 0 && p.stockInSaleUnits <= p.minStock)
         .toList();
   }
 

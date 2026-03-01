@@ -404,14 +404,22 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
   final _searchController = TextEditingController();
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final showOutOfStock =
-        context.read<SettingsProvider>().profile.showOutOfStockInPOS;
+        context.watch<SettingsProvider>().profile.showOutOfStockInPOS;
     final provider = context.watch<InventoryProvider>();
     final products = showOutOfStock
         ? provider.filteredProducts
-        : provider.filteredProducts.where((p) => p.stock > 0).toList();
+        : provider.filteredProducts
+            .where((p) => p.stockInSaleUnits >= 1)
+            .toList();
 
     return Padding(
       padding: EdgeInsets.only(

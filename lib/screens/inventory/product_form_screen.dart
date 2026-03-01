@@ -68,7 +68,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _unitsPerBoxController =
         TextEditingController(text: p?.unitsPerSaleUnit.toString() ?? '1.0');
     _imagePath = p?.imagePath;
-    _showLowStockAlert = (p?.minStock ?? 0) > 0;
+    _showLowStockAlert = p != null ? p.minStock > 0 : defaultMinStock > 0;
 
     _loadInitialData();
   }
