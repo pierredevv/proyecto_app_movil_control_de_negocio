@@ -36,6 +36,7 @@ class _MenuScreenState extends State<MenuScreen> {
     // Check for low stock notifications when menu loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationProvider>().checkLowStock();
+      context.read<NotificationProvider>().checkOverdueSales();
     });
   }
 

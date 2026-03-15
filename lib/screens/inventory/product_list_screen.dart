@@ -38,6 +38,7 @@ class _ProductListScreenState extends State<ProductListScreen>
       context.read<SupplierProvider>().loadSuppliers();
       // Update notifications for the badge
       context.read<NotificationProvider>().checkLowStock();
+      context.read<NotificationProvider>().checkOverdueSales();
     });
 
     _searchController.addListener(() {

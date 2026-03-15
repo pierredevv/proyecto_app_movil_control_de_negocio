@@ -23,6 +23,7 @@ import '../../widgets/sales/cart_empty_state.dart';
 import '../../widgets/sales/cart_item_card.dart';
 import '../../widgets/sales/cart_total_footer.dart';
 import '../../widgets/sales/sale_unit_picker_sheet.dart';
+import '../../widgets/sales/checkout_sheet.dart'; // NEW IMPORT
 import '../../services/snackbar_service.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -92,35 +93,28 @@ class _SalesScreenState extends State<SalesScreen> {
     if (cart.items.isEmpty) return;
 
     // Direct checkout or Confirmation Dialog? Dialog is safer.
-    final confirm = await showDialog<bool>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2432),
-        title: const Text('Confirmar Venta',
-            style: TextStyle(color: Colors.white)),
-        content: Text('Total a cobrar: Bs. ${cart.total.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-              child: const Text('Cobrar',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.white))),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) => CheckoutSheet(totalAmount: cart.total),
     );
 
-    if (confirm != true || !context.mounted) return;
+    if (result == null || !context.mounted) return;
+
+    final amountReceived = result['amountReceived'] as double?;
+    final paymentDueDate = result['paymentDueDate'] as DateTime?;
 
     try {
       final autoClear =
           context.read<SettingsProvider>().profile.autoClearCartAfterSale;
-      final sale = await cart.checkout(db, autoClear: autoClear);
+      final sale = await cart.checkout(db,
+          autoClear: autoClear,
+          amountReceived: amountReceived,
+          paymentDueDate: paymentDueDate);
       inventory.processSale(sale.items);
 
       if (context.mounted) {

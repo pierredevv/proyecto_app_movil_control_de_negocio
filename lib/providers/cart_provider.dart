@@ -108,20 +108,33 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Sale> checkout(DatabaseService db, {bool autoClear = true}) async {
+  Future<Sale> checkout(DatabaseService db,
+      {bool autoClear = true,
+      double? amountReceived,
+      DateTime? paymentDueDate}) async {
     if (_items.isEmpty) throw Exception('El carrito está vacío');
 
     _isLoading = true;
     notifyListeners();
 
     try {
+      final saleTotal = total;
+      final received = amountReceived ?? saleTotal;
+      final String saleStatus = received >= saleTotal
+          ? 'COMPLETED'
+          : received > 0
+              ? 'PARTIAL'
+              : 'CREDIT';
+
       final sale = Sale(
         date: DateTime.now(),
-        totalAmount: total,
+        totalAmount: saleTotal,
+        amountPaid: received,
+        paymentDueDate: paymentDueDate,
         customerId: _selectedCustomer?.id,
         customerName: _selectedCustomer?.name,
         items: List.from(_items),
-        status: 'COMPLETED',
+        status: saleStatus,
       );
 
       final id = await db.insertSale(sale);

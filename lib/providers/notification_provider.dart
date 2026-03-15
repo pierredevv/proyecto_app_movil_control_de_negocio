@@ -42,6 +42,37 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> checkOverdueSales() async {
+    try {
+      final overdueSales = await _db.getOverdueSales();
+
+      for (var map in overdueSales) {
+        final saleId = map['id'] as int;
+        final customerName = map['entity_name'] as String? ?? 'Cliente';
+        final totalAmount = (map['total_amount'] as num).toDouble();
+        final amountPaid = (map['amount_paid'] as num?)?.toDouble() ?? 0.0;
+        final pending = totalAmount - amountPaid;
+
+        if (pending <= 0) continue;
+
+        final notifId = 'overdue_sale_$saleId';
+        final alreadyNotified = _notifications.any((n) => n.id == notifId);
+
+        if (!alreadyNotified) {
+          _addNotification(
+            id: notifId,
+            title: 'Cobro Vencido',
+            body:
+                'La venta #$saleId de $customerName tiene un saldo pendiente de Bs. ${pending.toStringAsFixed(2)} que ya venció.',
+            type: 'overdue_payment',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking overdue sales: $e');
+    }
+  }
+
   void _addNotification({
     String? id,
     required String title,

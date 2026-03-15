@@ -37,7 +37,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 9,
+      return await openDatabase(_testDbPath!, version: 10,
           onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       }, onCreate: (db, version) async {
@@ -54,7 +54,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 9, // Updated to version 9 for order-purchase link
+      version: 10, // Updated to version 10 for bill-wise payments
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -146,6 +146,29 @@ class DatabaseService {
         debugPrint('Error adding reference_id: \$e');
       }
     }
+    if (oldVersion < 10) {
+      try {
+        await db.execute(
+            "ALTER TABLE transactions ADD COLUMN amount_paid REAL DEFAULT 0");
+        await db.execute(
+            "ALTER TABLE transactions ADD COLUMN payment_due_date INTEGER");
+        await db.execute('''
+          CREATE TABLE sale_payments(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            date INTEGER NOT NULL,
+            note TEXT,
+            FOREIGN KEY (sale_id) REFERENCES transactions(id)
+          )
+        ''');
+        // Mark existing sales as fully paid (backwards compatibility)
+        await db.execute(
+            "UPDATE transactions SET amount_paid = total_amount WHERE type = 'sale' AND status = 'COMPLETED'");
+      } catch (e) {
+        debugPrint('Error adding V10 details: \$e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -204,6 +227,8 @@ class DatabaseService {
         reference_id INTEGER,
         date INTEGER NOT NULL,
         total_amount REAL NOT NULL,
+        amount_paid REAL DEFAULT 0,
+        payment_due_date INTEGER,
         status TEXT,
         FOREIGN KEY (entity_id) REFERENCES customers (id) ON DELETE SET NULL
       )
@@ -230,6 +255,18 @@ class DatabaseService {
         packaging_info TEXT DEFAULT '',
         FOREIGN KEY (transaction_id) REFERENCES transactions (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id)
+      )
+    ''');
+
+    // Sale Payments Table
+    await db.execute('''
+      CREATE TABLE sale_payments(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        date INTEGER NOT NULL,
+        note TEXT,
+        FOREIGN KEY (sale_id) REFERENCES transactions(id)
       )
     ''');
   }
@@ -620,12 +657,23 @@ class DatabaseService {
         );
       }
 
-      // 5. Update Customer Debt (NUEVO: Incrementar total_debt)
-      if (sale.customerId != null) {
+      // 5. Update Customer Debt
+      final pendingAmount = sale.totalAmount - sale.amountPaid;
+      if (sale.customerId != null && pendingAmount > 0) {
         await txn.rawUpdate(
           'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
-          [sale.totalAmount, sale.customerId],
+          [pendingAmount, sale.customerId],
         );
+      }
+
+      // 6. If a down payment is recorded, create entry in sale_payments
+      if (sale.amountPaid > 0) {
+        await txn.insert('sale_payments', {
+          'sale_id': saleId,
+          'amount': sale.amountPaid,
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'note': 'Pago inicial',
+        });
       }
 
       return saleId;
@@ -639,7 +687,7 @@ class DatabaseService {
       // 1. Check if already voided
       final List<Map<String, dynamic>> transaction = await txn.query(
         'transactions',
-        columns: ['status', 'entity_id', 'total_amount'],
+        columns: ['status', 'entity_id', 'total_amount', 'amount_paid'],
         where: 'id = ?',
         whereArgs: [saleId],
       );
@@ -683,9 +731,74 @@ class DatabaseService {
       final customerId = transaction.first['entity_id'];
       if (customerId != null) {
         final totalAmount = transaction.first['total_amount'] as num;
+        final amountPaid = transaction.first['amount_paid'] as num? ?? 0.0;
+        final pendingAmount = (totalAmount - amountPaid).toDouble();
+
+        if (pendingAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
+            [pendingAmount, customerId],
+          );
+        }
+      }
+    });
+  }
+
+  Future<void> receiveSalePayment(int saleId, double amount,
+      {String? note}) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // 1. Get Sale
+      final List<Map<String, dynamic>> transaction = await txn.query(
+        'transactions',
+        columns: ['status', 'entity_id', 'total_amount', 'amount_paid'],
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+
+      if (transaction.isEmpty) throw Exception('Venta no encontrada');
+      if (transaction.first['status'] == 'VOIDED') {
+        throw Exception('Esta venta está anulada');
+      }
+
+      final total = transaction.first['total_amount'] as num;
+      final currentPaid = transaction.first['amount_paid'] as num? ?? 0.0;
+      final pending = total - currentPaid;
+
+      // Allows a small tolerance for floating point errors
+      if (amount > pending + 0.01) {
+        throw Exception(
+            'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
+      }
+
+      // 2. Insert Payment Record
+      await txn.insert('sale_payments', {
+        'sale_id': saleId,
+        'amount': amount,
+        'date': DateTime.now().millisecondsSinceEpoch,
+        'note': note ?? 'Abono',
+      });
+
+      // 3. Update Sale Status & amount_paid
+      final newPaid = currentPaid + amount;
+      final newStatus = (newPaid >= total - 0.01) ? 'COMPLETED' : 'PARTIAL';
+      await txn.update(
+        'transactions',
+        {
+          'amount_paid': newPaid,
+          'status': newStatus,
+        },
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+
+      // 4. Decrease Customer Debt
+      final customerId = transaction.first['entity_id'];
+      if (customerId != null) {
         await txn.rawUpdate(
           'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
-          [totalAmount, customerId],
+          [amount, customerId],
         );
       }
     });
@@ -1353,6 +1466,77 @@ class DatabaseService {
     ''', [limit]);
 
     return result.map((row) => row['product_id'] as int).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getOverdueSales() async {
+    final db = await database;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    return await db.query(
+      'transactions',
+      where:
+          "(status = 'PARTIAL' OR status = 'CREDIT') AND type = 'sale' AND payment_due_date IS NOT NULL AND payment_due_date < ?",
+      whereArgs: [nowMs],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAgingReport() async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: "(status = 'PARTIAL' OR status = 'CREDIT') AND type = 'sale'",
+    );
+
+    final now = DateTime.now();
+    final Map<int, Map<String, dynamic>> reportMap = {};
+
+    for (var map in maps) {
+      final customerId = map['entity_id'] as int?;
+      if (customerId == null) continue;
+
+      final customerName = map['entity_name'] as String? ?? 'Desconocido';
+      final totalAmount = (map['total_amount'] as num).toDouble();
+      final amountPaid = (map['amount_paid'] as num?)?.toDouble() ?? 0.0;
+      final pending = totalAmount - amountPaid;
+
+      if (pending <= 0) continue;
+
+      final dueDateMs = map['payment_due_date'] as int?;
+      final dateMs = map['date'] as int;
+      final baseDate = DateTime.fromMillisecondsSinceEpoch(dueDateMs ?? dateMs);
+
+      final difference = now.difference(baseDate).inDays;
+
+      if (!reportMap.containsKey(customerId)) {
+        reportMap[customerId] = {
+          'customer_id': customerId,
+          'customer_name': customerName,
+          'current': 0.0,
+          'days_30_60': 0.0,
+          'days_60_plus': 0.0,
+          'total': 0.0,
+        };
+      }
+
+      if (difference > 60) {
+        reportMap[customerId]!['days_60_plus'] =
+            (reportMap[customerId]!['days_60_plus'] as double) + pending;
+      } else if (difference > 30) {
+        reportMap[customerId]!['days_30_60'] =
+            (reportMap[customerId]!['days_30_60'] as double) + pending;
+      } else {
+        reportMap[customerId]!['current'] =
+            (reportMap[customerId]!['current'] as double) + pending;
+      }
+      reportMap[customerId]!['total'] =
+          (reportMap[customerId]!['total'] as double) + pending;
+    }
+
+    final result = reportMap.values.toList();
+    result
+        .sort((a, b) => (b['total'] as double).compareTo(a['total'] as double));
+    return result;
   }
 
   Future<Map<String, dynamic>> exportDatabase() async {

@@ -25,6 +25,8 @@ abstract class Transaction {
 class Sale extends Transaction {
   final int? customerId;
   final String? customerName;
+  final double amountPaid;
+  final DateTime? paymentDueDate;
 
   Sale({
     super.id,
@@ -34,7 +36,17 @@ class Sale extends Transaction {
     super.items,
     this.customerId,
     this.customerName,
+    this.amountPaid = 0.0,
+    this.paymentDueDate,
   }) : super(type: TransactionType.sale);
+
+  double get pendingAmount => totalAmount - amountPaid;
+  bool get isFullyPaid => pendingAmount <= 0;
+  String get paymentStatus {
+    if (amountPaid <= 0) return 'CREDIT';
+    if (pendingAmount > 0) return 'PARTIAL';
+    return 'COMPLETED';
+  }
 
   Sale copyWith({
     int? id,
@@ -44,6 +56,8 @@ class Sale extends Transaction {
     List<InvoiceItem>? items,
     int? customerId,
     String? customerName,
+    double? amountPaid,
+    DateTime? paymentDueDate,
   }) {
     return Sale(
       id: id ?? this.id,
@@ -53,6 +67,8 @@ class Sale extends Transaction {
       items: items ?? this.items,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
+      amountPaid: amountPaid ?? this.amountPaid,
+      paymentDueDate: paymentDueDate ?? this.paymentDueDate,
     );
   }
 
@@ -65,6 +81,8 @@ class Sale extends Transaction {
       'entity_name': customerName,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'amount_paid': amountPaid,
+      'payment_due_date': paymentDueDate?.millisecondsSinceEpoch,
       'status': status,
     };
   }
@@ -77,6 +95,10 @@ class Sale extends Transaction {
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
       customerName: map['entity_name'],
+      amountPaid: (map['amount_paid'] ?? map['total_amount']).toDouble(),
+      paymentDueDate: map['payment_due_date'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])
+          : null,
       items: items,
     );
   }

@@ -8,6 +8,7 @@ import 'customer_form_screen.dart';
 import 'customer_history_screen.dart';
 import '../../utils/input_validators.dart';
 import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
+import 'customer_ledger_screen.dart';
 
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({super.key});
@@ -190,6 +191,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                               );
                             },
                             onEditTap: () => _navigateToForm(context, customer),
+                            onLedgerTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomerLedgerScreen(
+                                    customerId: customer.id!,
+                                    customerName: customer.name,
+                                  ),
+                                ),
+                              );
+                            },
                           );
 
                           if (index < 5) {
@@ -392,6 +404,7 @@ class _CustomerGlassCard extends StatefulWidget {
   final VoidCallback onPaymentTap;
   final VoidCallback onHistoryTap;
   final VoidCallback onEditTap;
+  final VoidCallback onLedgerTap;
 
   const _CustomerGlassCard({
     required this.customer,
@@ -399,6 +412,7 @@ class _CustomerGlassCard extends StatefulWidget {
     required this.onPaymentTap,
     required this.onHistoryTap,
     required this.onEditTap,
+    required this.onLedgerTap,
   });
 
   @override
@@ -555,6 +569,7 @@ class _CustomerGlassCardState extends State<_CustomerGlassCard> {
                             customer: widget.customer,
                             onEdit: widget.onEditTap,
                             onHistory: widget.onHistoryTap,
+                            onLedger: widget.onLedgerTap,
                           ),
                         ],
                       ),
@@ -642,9 +657,13 @@ class _CardPopupActions extends StatelessWidget {
   final Customer customer;
   final VoidCallback onEdit;
   final VoidCallback onHistory;
+  final VoidCallback onLedger;
 
   const _CardPopupActions(
-      {required this.customer, required this.onEdit, required this.onHistory});
+      {required this.customer,
+      required this.onEdit,
+      required this.onHistory,
+      required this.onLedger});
 
   @override
   Widget build(BuildContext context) {
@@ -652,6 +671,7 @@ class _CardPopupActions extends StatelessWidget {
       onSelected: (value) {
         if (value == 'edit') onEdit();
         if (value == 'history') onHistory();
+        if (value == 'ledger') onLedger();
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: const Color(0xFF1E2433), // Dark dropdown menu
@@ -669,6 +689,11 @@ class _CardPopupActions extends StatelessWidget {
         const PopupMenuItem<String>(
           value: 'edit',
           child: Text('Editar', style: TextStyle(color: Colors.white)),
+        ),
+        const PopupMenuItem<String>(
+          value: 'ledger',
+          child:
+              Text('Estado de Cuenta', style: TextStyle(color: Colors.white)),
         ),
         const PopupMenuItem<String>(
           value: 'history',

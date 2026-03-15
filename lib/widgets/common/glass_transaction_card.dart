@@ -186,6 +186,10 @@ class GlassTransactionCard extends StatelessWidget {
       case 'PAID':
       case 'RECEIVED':
         return const Color(0xFF51CF66); // Green
+      case 'PARTIAL':
+        return const Color(0xFFF59F00); // Orange
+      case 'CREDIT':
+        return const Color(0xFF1C7ED6); // Blue
       case 'PENDING':
         return const Color(0xFFFFA94D); // Yellow
       case 'OVERDUE':
@@ -206,6 +210,10 @@ class GlassTransactionCard extends StatelessWidget {
       case 'PAID':
       case 'RECEIVED':
         return Icons.check_circle;
+      case 'PARTIAL':
+        return Icons.monetization_on;
+      case 'CREDIT':
+        return Icons.account_balance_wallet;
       case 'PENDING':
         return Icons.schedule;
       case 'EXPIRED':
@@ -228,6 +236,10 @@ class GlassTransactionCard extends StatelessWidget {
         return 'RECIBIDO';
       case 'COMPLETED':
         return 'COMPLETADO';
+      case 'PARTIAL':
+        return 'PARCIAL';
+      case 'CREDIT':
+        return 'CRÉDITO';
       case 'PAID':
         return 'PAGADO';
       case 'CANCELLED':

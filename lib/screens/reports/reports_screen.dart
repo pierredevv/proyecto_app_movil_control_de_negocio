@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../providers/dashboard_provider.dart';
+import 'aging_report_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -58,6 +59,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       .animate()
                       .fade(duration: 400.ms)
                       .slideY(begin: 0.1, end: 0, delay: 50.ms),
+                  const SizedBox(height: 16),
+                  // AGING REPORT ACTION
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AgingReportScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.assessment),
+                    label: const Text('Ver Antigüedad de Deuda'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E2432),
+                      foregroundColor: const Color(0xFF4A90E2),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                            color:
+                                const Color(0xFF4A90E2).withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  )
+                      .animate()
+                      .fade(duration: 400.ms)
+                      .slideY(begin: 0.1, end: 0, delay: 75.ms),
                   const SizedBox(height: 24),
                   const AnimatedOpacity(
                     opacity: 1.0,
