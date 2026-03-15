@@ -1480,6 +1480,14 @@ class DatabaseService {
     );
   }
 
+  Future<int> getPendingSalesCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      "SELECT COUNT(*) as count FROM transactions WHERE (status='PARTIAL' OR status='CREDIT') AND type='sale'",
+    );
+    return (result.first['count'] as int?) ?? 0;
+  }
+
   Future<List<Map<String, dynamic>>> getAgingReport() async {
     final db = await database;
 

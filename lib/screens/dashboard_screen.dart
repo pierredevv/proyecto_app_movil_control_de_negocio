@@ -9,6 +9,7 @@ import '../../screens/notifications/notifications_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/inventory_provider.dart';
+import 'reports/aging_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,6 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Load data when screen init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardProvider>().loadDashboardData();
+      context.read<NotificationProvider>().checkPendingSales();
     });
   }
 
@@ -127,6 +129,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         purchasesTotal: provider.totalPurchasesToday,
                         balancePercentage: balancePct,
                       ),
+                    ),
+
+                    // ── Pending Sales Alert (Vyapar style) ──────────────
+                    Consumer<NotificationProvider>(
+                      builder: (context, notifProvider, child) {
+                        final pendingCount = notifProvider.pendingSalesCount;
+                        if (pendingCount == 0) return const SizedBox.shrink();
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgingReportScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4A90E2)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFF4A90E2)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4A90E2)
+                                          .withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                        Icons.account_balance_wallet_rounded,
+                                        color: Color(0xFF4A90E2),
+                                        size: 18),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Tienes $pendingCount venta(s) pendiente(s) de cobro',
+                                          style: const TextStyle(
+                                            color: Color(0xFF4A90E2),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Toca para ver el estado de la cartera',
+                                          style: TextStyle(
+                                              color: Color(0xFF4A90E2),
+                                              fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right,
+                                      color: Color(0xFF4A90E2)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                     // Conditionally render Low Stock Alert

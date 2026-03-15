@@ -11,6 +11,9 @@ class NotificationProvider extends ChangeNotifier {
   List<AppNotification> _notifications = [];
   List<AppNotification> get notifications => _notifications;
 
+  int _pendingSalesCount = 0;
+  int get pendingSalesCount => _pendingSalesCount;
+
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
   Future<void> checkLowStock() async {
@@ -42,8 +45,18 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> checkPendingSales() async {
+    try {
+      _pendingSalesCount = await _db.getPendingSalesCount();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error checking pending sales: $e');
+    }
+  }
+
   Future<void> checkOverdueSales() async {
     try {
+      _pendingSalesCount = await _db.getPendingSalesCount();
       final overdueSales = await _db.getOverdueSales();
 
       for (var map in overdueSales) {
@@ -68,6 +81,10 @@ class NotificationProvider extends ChangeNotifier {
           );
         }
       }
+
+      // Also refresh count whenever we check overdue
+      _pendingSalesCount = await _db.getPendingSalesCount();
+      notifyListeners();
     } catch (e) {
       debugPrint('Error checking overdue sales: $e');
     }

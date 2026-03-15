@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../screens/history/transaction_history_screen.dart';
 import '../../screens/sales/sale_detail_screen.dart';
 import '../../screens/purchases/purchase_details_screen.dart';
+import '../../screens/customers/customer_ledger_screen.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -69,7 +70,13 @@ class RecentActivityList extends StatelessWidget {
 
               if (t is Sale) {
                 name = t.customerName ?? 'Cliente Ocasional';
-                typeLabel = 'VENTA';
+                if (t.status == 'PARTIAL') {
+                  typeLabel = 'VENTA · PARCIAL';
+                } else if (t.status == 'CREDIT') {
+                  typeLabel = 'VENTA · CRÉDITO';
+                } else {
+                  typeLabel = 'VENTA';
+                }
                 isSale = true;
               } else if (t is Purchase) {
                 name = t.supplierName ?? 'Proveedor Ocasional';
@@ -111,7 +118,20 @@ class RecentActivityList extends StatelessWidget {
       required String total,
       required bool isSale,
       required int delay}) {
-    final accentColor = isSale ? AppTheme.greenAccent : AppTheme.redAccent;
+    
+    Color accentColor;
+    if (isSale) {
+      if (transaction.status == 'PARTIAL') {
+        accentColor = const Color(0xFFF59F00); // orange
+      } else if (transaction.status == 'CREDIT') {
+        accentColor = Colors.blueAccent;
+      } else {
+        accentColor = AppTheme.greenAccent;
+      }
+    } else {
+      accentColor = AppTheme.redAccent;
+    }
+    
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -298,7 +318,17 @@ class RecentActivityList extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Expanded(child: Container()), // Spacer
+                          if (isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT'))
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Pagado: Bs. ${transaction.amountPaid.toStringAsFixed(2)}', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11)),
+                                Text('Pendiente: Bs. ${transaction.pendingAmount.toStringAsFixed(2)}', style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ]
+                            ))
+                          else
+                            Expanded(child: Container()), // Spacer
+                            
                           Text(
                             'Total - ',
                             style: TextStyle(
@@ -326,6 +356,37 @@ class RecentActivityList extends StatelessWidget {
                           ),
                         ],
                       ),
+                      
+                      // Row 4: Collect Installment Button
+                      if (isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT') && transaction.customerId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CustomerLedgerScreen(
+                                      customerId: transaction.customerId!,
+                                      customerName: transaction.customerName ?? 'Cliente',
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: Icon(Icons.payment_rounded, size: 16, color: accentColor),
+                              label: Text('Cobrar Cuota', style: TextStyle(color: accentColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                minimumSize: const Size(0, 32),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: accentColor.withValues(alpha: 0.1),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

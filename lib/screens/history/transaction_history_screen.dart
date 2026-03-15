@@ -1056,7 +1056,7 @@ class _GlassTransactionCard extends StatelessWidget {
   }) {
     final fmt = NumberFormat.currency(
         symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
-    final paidColor = const Color(0xFF51CF66);
+    const paidColor = Color(0xFF51CF66);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1080,7 +1080,7 @@ class _GlassTransactionCard extends StatelessWidget {
                         letterSpacing: 0.8)),
                 const SizedBox(height: 3),
                 Text(fmt.format(sale.amountPaid),
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: paidColor,
                         fontSize: 15,
                         fontWeight: FontWeight.bold)),
