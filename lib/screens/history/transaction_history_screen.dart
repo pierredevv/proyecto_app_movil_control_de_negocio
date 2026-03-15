@@ -15,6 +15,7 @@ import '../../models/sale_unit_option.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../customers/customer_ledger_screen.dart';
 
 import '../purchases/purchase_form_screen.dart';
 
@@ -29,9 +30,8 @@ class TransactionHistoryScreen extends StatefulWidget {
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final DatabaseService _db = DatabaseService();
 
-  // Filters
   DateTimeRange? _dateRange;
-  String? _selectedType; // null = all
+  String? _selectedType;
   bool _isLoading = false;
   List<Transaction> _transactions = [];
 
@@ -130,7 +130,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Duplicar Transacción'),
         content: Text(
-            '¿Deseas duplicar esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'}?\n\nSe cargarán los productos en el carrito para que puedas revisarlos y procesarlos nuevamente.'),
+            '¿Deseas duplicar esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'}?\n\nSe cargarán los productos en el carrito.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -157,7 +157,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
       cart.clearCart();
 
-      // Load customer if exists
       if ((t as Sale).customerId != null) {
         try {
           final db = await _db.database;
@@ -167,49 +166,41 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             cart.setCustomer(Customer.fromMap(results.first));
           }
         } catch (e) {
-          // Let it fail silently, cart just won't have customer
+          // ignore
         }
       }
 
-      // Build dynamic stock options correctly from the DB items
       for (var i in t.items) {
         final productMatch =
             inventory.products.where((p) => p.id == i.productId).firstOrNull;
         if (productMatch != null) {
-          final double unitCodePrice = i.unitPrice; // Use historical price
-          final double qtyMatched = i.quantity;
-
-          // Manually form the SaleUnitOption ignoring product limits to avoid missing mappings
           final option = SaleUnitOption(
             label: '${i.productName} (${i.saleUnit})',
             unitCode: i.saleUnit,
             unitsPerSaleUnit: i.unitsPerSaleUnit,
-            price: unitCodePrice,
+            price: i.unitPrice,
           );
           try {
-            cart.addToCart(productMatch, option: option, qty: qtyMatched);
+            cart.addToCart(productMatch, option: option, qty: i.quantity);
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: Text(
-                        'Advertencia: No hay stock suficiente para ${productMatch.name}'),
+                    content: Text('Sin stock para ${productMatch.name}'),
                     backgroundColor: Colors.orange),
               );
             }
             cart.clearCart();
-            return; // Exit and don't navigate
+            return;
           }
         }
       }
 
-      // Send user to POS
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } else if (t.type == TransactionType.purchase ||
         t.type == TransactionType.order) {
-      // Purchases and Orders use PurchaseFormScreen
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -237,7 +228,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Editar Transacción'),
         content: const Text(
-            'Para mantener la consistencia contable, la edición funciona anulando la transacción actual y enviando sus datos al carrito para que puedas guardarla como una nueva transacción corregida.\n\n¿Deseas continuar?'),
+            'Para mantener la consistencia contable, la edición anula la transacción actual y la envía al carrito.\n\n¿Deseas continuar?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -255,7 +246,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (confirm != true) return;
     if (!mounted) return;
 
-    // Run Void, but silently ignore UI success. Then Run Duplicate directly.
     try {
       if (t.type == TransactionType.sale) {
         await _db.deleteSale(t.id!);
@@ -266,7 +256,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         throw Exception('No soportado para este tipo de transacción');
       }
 
-      // If void succeeded, we duplicate
       if (t.type != TransactionType.expense &&
           t.type != TransactionType.payment) {
         await _loadToCartAndNavigate(t);
@@ -275,7 +264,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       if (mounted) {
         context.read<DashboardProvider>().loadDashboardData();
         context.read<InventoryProvider>().loadProducts(reset: true);
-        _loadData(); // Reload to reflect the voided value
+        _loadData();
       }
     } catch (e) {
       if (mounted) {
@@ -319,15 +308,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Background Gradient logic can be handled by Scaffold background or a Container
-    // The user requested Glassmorphism which implies a dark/colorful background.
-    // If we are in Light mode, we need to ensure contrast.
-
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Background Pattern (Optional)
           Positioned.fill(
             child: Opacity(
               opacity: isDark ? 0.03 : 0.02,
@@ -339,25 +323,17 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // 1. Custom Header
                 _buildHeader(context, isDark),
-
                 const SizedBox(height: 20),
-
-                // 2. Filter Tabs
                 _GlassFilterTabs(
                   selectedType: _selectedType,
                   onChanged: _onTabChanged,
                   isDark: isDark,
                 ),
-
                 const SizedBox(height: 20),
-
-                // 3. Transactions List
                 Expanded(
                   child: _isLoading
                       ? _buildSkeletonLoader(isDark)
@@ -395,7 +371,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
-    // Determine subtitle
     final count = _transactions.length;
     final dateStr = _dateRange != null
         ? '${DateFormat('MMM dd').format(_dateRange!.start)} - ${DateFormat('MMM dd').format(_dateRange!.end)}'
@@ -411,7 +386,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         children: [
           Row(
             children: [
-              // Back Button
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
@@ -442,8 +416,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   Text(
                     'Historial Transacciones',
                     style: TextStyle(
-                      fontSize:
-                          20, // Reduced slightly to fit better with back button
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
@@ -461,7 +434,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ),
             ],
           ),
-          // Glass Calendar Icon
           GestureDetector(
             onTap: _pickDateRange,
             child: Container(
@@ -515,7 +487,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     String message;
     String ctaLabel;
 
-    // Customize based on filter
     if (_selectedType == 'sale') {
       icon = Icons.point_of_sale;
       message = 'No se encontraron ventas';
@@ -544,7 +515,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           const SizedBox(height: 16),
           Text(message, style: TextStyle(color: textColor, fontSize: 16)),
           const SizedBox(height: 24),
-          // CTA Button (Glass + gradient)
           Container(
             decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -560,9 +530,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: _selectedType == 'sale'
-                    ? () {
-                        Navigator.pop(context); // Go back to dashboard/POS
-                      }
+                    ? () => Navigator.pop(context)
                     : _loadData,
                 borderRadius: BorderRadius.circular(24),
                 child: Padding(
@@ -588,6 +556,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter Tabs
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _GlassFilterTabs extends StatelessWidget {
   final String? selectedType;
@@ -623,7 +595,6 @@ class _GlassFilterTabs extends StatelessWidget {
   Widget _buildTab({String? type, required String label}) {
     final bool isActive = selectedType == type;
 
-    // Active Styles (Glass)
     final bgColor = isActive
         ? (isDark
             ? Colors.white.withValues(alpha: 0.15)
@@ -658,7 +629,6 @@ class _GlassFilterTabs extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Spacer to center text vertically accounting for underline
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(
@@ -685,6 +655,10 @@ class _GlassFilterTabs extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Transaction Card  — Vyapar-style payment info for PARTIAL/CREDIT
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _GlassTransactionCard extends StatelessWidget {
   final Transaction transaction;
   final bool isDark;
@@ -699,6 +673,68 @@ class _GlassTransactionCard extends StatelessWidget {
     required this.onDuplicate,
     required this.onEdit,
   });
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  Color _typeColor() {
+    if (transaction is Sale) {
+      final sale = transaction as Sale;
+      switch (sale.status.toUpperCase()) {
+        case 'PARTIAL':
+          return const Color(0xFFF59F00);
+        case 'CREDIT':
+          return const Color(0xFF4A90E2);
+        case 'VOIDED':
+          return const Color(0xFF6B7494);
+        default:
+          return const Color(0xFF51CF66);
+      }
+    }
+    switch (transaction.type) {
+      case TransactionType.purchase:
+        return const Color(0xFFFF6B6B);
+      case TransactionType.expense:
+        return const Color(0xFFFFA94D);
+      case TransactionType.payment:
+        return const Color(0xFF4A90E2);
+      case TransactionType.order:
+        return const Color(0xFF8C52FF);
+      default:
+        return const Color(0xFF51CF66);
+    }
+  }
+
+  String _typeLabel() {
+    if (transaction is Sale) {
+      final sale = transaction as Sale;
+      switch (sale.status.toUpperCase()) {
+        case 'PARTIAL':
+          return 'VENTA · PARCIAL';
+        case 'CREDIT':
+          return 'VENTA · CRÉDITO';
+        case 'VOIDED':
+          return 'VENTA · ANULADA';
+        default:
+          return 'VENTA';
+      }
+    }
+    switch (transaction.type) {
+      case TransactionType.purchase:
+        return 'COMPRA';
+      case TransactionType.expense:
+        return 'GASTO';
+      case TransactionType.payment:
+        return 'PAGO';
+      case TransactionType.order:
+        return 'PEDIDO';
+      default:
+        return 'OTRO';
+    }
+  }
+
+  bool get _isPendingSale =>
+      transaction is Sale &&
+      (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT');
 
   void _navigateToDetail(BuildContext context, String heroTag) {
     if (transaction is Sale) {
@@ -761,27 +797,15 @@ class _GlassTransactionCard extends StatelessWidget {
 
   Future<void> _handlePrint(BuildContext context) async {
     final sale = transaction as Sale;
-
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PrintPreviewScreen(transaction: sale),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error al abrir la vista previa: $e'),
-            backgroundColor: Colors.red),
-      );
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrintPreviewScreen(transaction: sale),
+      ),
+    );
   }
 
   void _showOptions(BuildContext context) {
-    // Only support options for Sale for now, or adapt helper
-    // The design shows "Cancel", "Duplicate", etc.
-    // For now we wire up what we have.
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -790,9 +814,7 @@ class _GlassTransactionCard extends StatelessWidget {
         showDuplicate: transaction.type != TransactionType.expense &&
             transaction.type != TransactionType.payment,
         showSharePdf: transaction.type == TransactionType.sale,
-        onEdit: () {
-          onEdit();
-        },
+        onEdit: () => onEdit(),
         onCancel: () {
           if (transaction.status == 'VOIDED') {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -802,75 +824,51 @@ class _GlassTransactionCard extends StatelessWidget {
           }
           onVoid();
         },
-        onSharePdf: () {
-          _handlePrint(context);
-        },
-        onDuplicate: () {
-          onDuplicate();
-        },
+        onSharePdf: () => _handlePrint(context),
+        onDuplicate: () => onDuplicate(),
       ),
     );
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // 1. Data Parsing
-    String typeLabel = '';
-    IconData typeIcon = Icons.help_outline;
-    Color typeColor = Colors.grey;
-    String name = '';
-    String dateStr = DateFormat('MMM dd, HH:mm').format(transaction.date);
-    double amount = transaction.totalAmount;
-    String amountStr = 'Bs. ${amount.toStringAsFixed(2)}';
+    final typeColor = _typeColor();
+    final heroTag = '${transaction.type.name}_${transaction.id}_icon';
+
+    String name;
     bool isPositive = false;
 
     switch (transaction.type) {
       case TransactionType.purchase:
-        typeLabel = 'COMPRA';
-        typeIcon = Icons.inventory_2; // Use distinct icon for purchase
-        typeColor = const Color(0xFFFF6B6B); // Red
         name = (transaction as Purchase).supplierName ?? 'Proveedor General';
         isPositive = false;
         break;
       case TransactionType.sale:
-        typeLabel = 'VENTA';
-        typeIcon = Icons.attach_money;
-        typeColor = const Color(0xFF51CF66); // Green
         name = (transaction as Sale).customerName ?? 'Cliente General';
         isPositive = true;
         break;
       case TransactionType.expense:
-        typeLabel = 'GASTO';
-        typeIcon = Icons.money_off;
-        typeColor = const Color(0xFFFFA94D); // Yellow
         name = (transaction as Expense).description;
         isPositive = false;
         break;
       case TransactionType.payment:
-        typeLabel = 'PAGO';
-        typeIcon = Icons.payment;
-        typeColor = const Color(0xFF4A90E2); // Blue
         name = 'Abono de Cliente';
-        isPositive = true; // Payments are money IN
+        isPositive = true;
         break;
       case TransactionType.order:
-        typeLabel = 'PEDIDO';
-        typeIcon = Icons.shopping_bag_outlined; // Or another suitable icon
-        typeColor = const Color(0xFF8C52FF); // Purple or another distinct color
-        name = (transaction as Order).supplierName ??
-            'Proveedor General'; // Orders have suppliers
-        isPositive =
-            false; // Orders are typically not direct money in/out until fulfilled
+        name = (transaction as Order).supplierName ?? 'Proveedor General';
+        isPositive = false;
         break;
     }
 
-    final heroTag = '${transaction.type.name}_${transaction.id}_icon';
-
+    final dateStr = DateFormat('MMM dd, HH:mm').format(transaction.date);
+    final amountStr = 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}';
+    final prefix = isPositive ? '+' : '-';
     final amountColor =
         isPositive ? const Color(0xFF51CF66) : const Color(0xFFFF6B6B);
-    final prefix = isPositive ? '+' : '-';
 
-    // 2. Styles
     final cardBg =
         isDark ? const Color(0xFFFFFFFF).withValues(alpha: 0.15) : Colors.white;
     final cardBorder = isDark
@@ -905,7 +903,7 @@ class _GlassTransactionCard extends StatelessWidget {
               onTap: () => _navigateToDetail(context, heroTag),
               child: Stack(
                 children: [
-                  // Left Border Indicator
+                  // Left color indicator
                   Positioned(
                     left: 0,
                     top: 0,
@@ -919,27 +917,27 @@ class _GlassTransactionCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Row 1: Header
+                        // Row 1: type badge + actions
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Badge
                             Row(
                               children: [
                                 Hero(
                                   tag: heroTag,
-                                  child: Icon(typeIcon,
+                                  child: Icon(_iconFor(transaction.type),
                                       size: 18, color: secondaryGray),
                                 ),
                                 const SizedBox(width: 6),
-                                Text('$typeLabel • #${transaction.id}',
-                                    style: const TextStyle(
-                                        color: secondaryGray,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500)),
+                                Text(
+                                  '${_typeLabel()} • #${transaction.id}',
+                                  style: const TextStyle(
+                                      color: secondaryGray,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500),
+                                ),
                               ],
                             ),
-                            // Actions
                             Row(
                               children: [
                                 if (transaction.type == TransactionType.sale)
@@ -964,31 +962,26 @@ class _GlassTransactionCard extends StatelessWidget {
 
                         const SizedBox(height: 8),
 
-                        // Row 2: Name
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: titleColor,
-                          ),
-                        ),
+                        // Row 2: customer/supplier name
+                        Text(name,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: titleColor,
+                            )),
 
                         const SizedBox(height: 4),
 
-                        // Row 3: Date
-                        Text(
-                          dateStr,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: subtitleColor,
-                          ),
-                        ),
+                        // Row 3: date
+                        Text(dateStr,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: subtitleColor,
+                            )),
 
                         const SizedBox(height: 12),
 
-                        // Separator
                         Divider(
                             height: 1,
                             color: isDark
@@ -997,7 +990,18 @@ class _GlassTransactionCard extends StatelessWidget {
 
                         const SizedBox(height: 12),
 
-                        // Row 4: Amount
+                        // ── Payment breakdown (PARTIAL/CREDIT) ────────────
+                        if (_isPendingSale) ...[
+                          _buildPaymentBreakdown(
+                            context,
+                            sale: transaction as Sale,
+                            typeColor: typeColor,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
+                        // Row 4: total amount
                         Align(
                           alignment: Alignment.centerRight,
                           child: Text(
@@ -1008,7 +1012,15 @@ class _GlassTransactionCard extends StatelessWidget {
                               color: amountColor,
                             ),
                           ),
-                        )
+                        ),
+
+                        // ── Cobrar button (PARTIAL/CREDIT with customer) ──
+                        if (_isPendingSale &&
+                            (transaction as Sale).customerId != null) ...[
+                          const SizedBox(height: 12),
+                          _buildCobrarButton(context,
+                              sale: transaction as Sale, typeColor: typeColor),
+                        ],
                       ],
                     ),
                   ),
@@ -1019,5 +1031,167 @@ class _GlassTransactionCard extends StatelessWidget {
         ),
       ),
     ).animate().scale(duration: 200.ms, curve: Curves.easeOut);
+  }
+
+  IconData _iconFor(TransactionType type) {
+    switch (type) {
+      case TransactionType.sale:
+        return Icons.attach_money;
+      case TransactionType.purchase:
+        return Icons.inventory_2;
+      case TransactionType.expense:
+        return Icons.money_off;
+      case TransactionType.payment:
+        return Icons.payment;
+      case TransactionType.order:
+        return Icons.shopping_bag_outlined;
+    }
+  }
+
+  Widget _buildPaymentBreakdown(
+    BuildContext context, {
+    required Sale sale,
+    required Color typeColor,
+    required bool isDark,
+  }) {
+    final fmt = NumberFormat.currency(
+        symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final paidColor = const Color(0xFF51CF66);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: typeColor.withValues(alpha: isDark ? 0.08 : 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: typeColor.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          // Pagado
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('PAGADO',
+                    style: TextStyle(
+                        color: paidColor.withValues(alpha: 0.8),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8)),
+                const SizedBox(height: 3),
+                Text(fmt.format(sale.amountPaid),
+                    style: TextStyle(
+                        color: paidColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Container(
+              width: 1, height: 34, color: typeColor.withValues(alpha: 0.25)),
+          const SizedBox(width: 12),
+          // Pendiente
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(sale.status == 'CREDIT' ? 'CRÉDITO TOTAL' : 'PENDIENTE',
+                    style: TextStyle(
+                        color: typeColor.withValues(alpha: 0.8),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8)),
+                const SizedBox(height: 3),
+                Text(fmt.format(sale.pendingAmount),
+                    style: TextStyle(
+                        color: typeColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          // Due date
+          if (sale.paymentDueDate != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: _isOverdue(sale.paymentDueDate!)
+                    ? const Color(0xFFFF6B6B).withValues(alpha: 0.15)
+                    : typeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    _isOverdue(sale.paymentDueDate!)
+                        ? Icons.warning_amber_rounded
+                        : Icons.calendar_today,
+                    size: 12,
+                    color: _isOverdue(sale.paymentDueDate!)
+                        ? const Color(0xFFFF6B6B)
+                        : typeColor,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    DateFormat('dd/MM').format(sale.paymentDueDate!),
+                    style: TextStyle(
+                      color: _isOverdue(sale.paymentDueDate!)
+                          ? const Color(0xFFFF6B6B)
+                          : typeColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _isOverdue(DateTime dueDate) => DateTime.now().isAfter(dueDate);
+
+  Widget _buildCobrarButton(BuildContext context,
+      {required Sale sale, required Color typeColor}) {
+    return GestureDetector(
+      onTap: () {
+        // Close the current options if open, then navigate
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CustomerLedgerScreen(
+              customerId: sale.customerId!,
+              customerName: sale.customerName ?? 'Cliente',
+            ),
+          ),
+        );
+      },
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: typeColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: typeColor.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.payment_rounded, color: typeColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Cobrar cuota de este cliente',
+              style: TextStyle(
+                color: typeColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.arrow_forward_ios, color: typeColor, size: 12),
+          ],
+        ),
+      ),
+    );
   }
 }
