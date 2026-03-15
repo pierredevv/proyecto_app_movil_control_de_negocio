@@ -37,8 +37,9 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 10,
+      return await openDatabase(_testDbPath!, version: 13,
           onConfigure: (db) async {
+        await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
       }, onCreate: (db, version) async {
         await _createTables(db);
@@ -54,8 +55,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 10, // Updated to version 10 for bill-wise payments
+      version: 13, // Updated to version 13 for Treasury Module
       onConfigure: (db) async {
+        await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: (db, version) async {
@@ -169,6 +171,230 @@ class DatabaseService {
         debugPrint('Error adding V10 details: \$e');
       }
     }
+    if (oldVersion < 11) {
+      try {
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN weighted_average_cost REAL DEFAULT 0");
+        await db.execute(
+            "ALTER TABLE transaction_items ADD COLUMN unit_cost_at_sale_time REAL DEFAULT 0");
+        await db.execute('''
+          CREATE TABLE inventory_movements(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            movement_type TEXT NOT NULL,
+            quantity REAL NOT NULL,
+            reference_type TEXT,
+            reference_id INTEGER,
+            unit_cost_at_movement REAL NOT NULL DEFAULT 0,
+            created_timestamp INTEGER NOT NULL,
+            FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT
+          )
+        ''');
+        await db.execute(
+            'CREATE INDEX idx_inventory_product_date ON inventory_movements(product_id, created_timestamp DESC)');
+        await db.execute(
+            'CREATE INDEX idx_transactions_customer_date ON transactions(entity_id, date DESC)');
+            
+        // Migrate existing cost to WAC for existing products
+        await db.execute("UPDATE products SET weighted_average_cost = cost");
+      } catch (e) {
+        debugPrint('Error adding V11 details: \$e');
+      }
+    }
+    if (oldVersion < 12) {
+      try {
+        await db.execute('''
+          CREATE TABLE entity_ledgers(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL, 
+            entity_id INTEGER NOT NULL,
+            transaction_source_type TEXT NOT NULL, 
+            transaction_reference_id INTEGER NOT NULL,
+            date INTEGER NOT NULL,
+            debit_amount REAL NOT NULL DEFAULT 0,
+            credit_amount REAL NOT NULL DEFAULT 0,
+            materialized_running_balance REAL NOT NULL DEFAULT 0,
+            note TEXT
+          )
+        ''');
+        await db.execute(
+            'CREATE INDEX idx_ledgers_entity_date ON entity_ledgers(entity_type, entity_id, date ASC)');
+
+        // Chronological Retrospective Migration
+        final allTxns = await db.query('transactions', orderBy: 'date ASC');
+        Map<String, double> runningBalances = {};
+        
+        await db.transaction((txn) async {
+          for (var t in allTxns) {
+            if (t['status'] == 'VOIDED') continue;
+
+            final type = t['type'] as String;
+            final entityId = t['entity_id'] as int?;
+            if (entityId == null) continue;
+
+            final date = t['date'] as int;
+            final totalAmount = (t['total_amount'] as num).toDouble();
+            final amountPaid = (t['amount_paid'] as num?)?.toDouble() ?? 0.0;
+            final id = t['id'] as int;
+
+            String entityType;
+            if (type == 'sale' || type == 'payment') {
+              entityType = 'CUSTOMER';
+            } else if (type == 'purchase') {
+              entityType = 'SUPPLIER';
+            } else {
+              continue; // Exclude pure expenses that have no entity_id linked
+            }
+
+            final balanceKey = '${entityType}_$entityId';
+            double currentBalance = runningBalances[balanceKey] ?? 0.0;
+
+            if (type == 'sale') {
+              // 1. Log Invoice (Debit)
+              currentBalance += totalAmount;
+              await txn.insert('entity_ledgers', {
+                'entity_type': entityType,
+                'entity_id': entityId,
+                'transaction_source_type': 'INVOICE',
+                'transaction_reference_id': id,
+                'date': date,
+                'debit_amount': totalAmount,
+                'credit_amount': 0.0,
+                'materialized_running_balance': currentBalance,
+                'note': 'Venta Histórica',
+              });
+
+              // 2. Log Payment if there was a down payment
+              if (amountPaid > 0) {
+                currentBalance -= amountPaid;
+                await txn.insert('entity_ledgers', {
+                  'entity_type': entityType,
+                  'entity_id': entityId,
+                  'transaction_source_type': 'PAYMENT',
+                  'transaction_reference_id': id,
+                  'date': date + 1, // Slightly after the invoice
+                  'debit_amount': 0.0,
+                  'credit_amount': amountPaid,
+                  'materialized_running_balance': currentBalance,
+                  'note': 'Pago inicial Histórico',
+                });
+              }
+            } else if (type == 'payment') {
+              currentBalance -= totalAmount;
+              await txn.insert('entity_ledgers', {
+                'entity_type': entityType,
+                'entity_id': entityId,
+                'transaction_source_type': 'PAYMENT',
+                'transaction_reference_id': id,
+                'date': date,
+                'debit_amount': 0.0,
+                'credit_amount': totalAmount,
+                'materialized_running_balance': currentBalance,
+                'note': 'Abono Histórico',
+              });
+            } else if (type == 'purchase') {
+              currentBalance += totalAmount;
+              await txn.insert('entity_ledgers', {
+                'entity_type': entityType,
+                'entity_id': entityId,
+                'transaction_source_type': 'PURCHASE',
+                'transaction_reference_id': id,
+                'date': date,
+                'debit_amount': 0.0,
+                'credit_amount': totalAmount, // Interpreting running balance as "how much we owe them" for supplier, wait. For symmetry, DEBIT is what creates obligation FOR THEM to pay US. Standard accounting: Customers owe us = our Asset (Debit). We owe suppliers = our Liability (Credit). In both cases a positive running balance means owed money. Customer positive balance = they owe us. Supplier positive balance = we owe them.
+                'materialized_running_balance': currentBalance,
+                'note': 'Compra Histórica',
+              });
+              // Note for backwards compatibility purchases had no amount_paid tracking in v10. So it's 100% debt initially.
+            }
+            runningBalances[balanceKey] = currentBalance;
+          }
+        });
+      } catch (e) {
+        debugPrint('Error adding V12 details (Ledger): \$e');
+      }
+    }
+    
+    // Sprint C - Treasury Module v13
+    if (oldVersion < 13) {
+      try {
+        await db.execute('''
+          CREATE TABLE payments(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_id INTEGER NOT NULL,
+            entity_type TEXT NOT NULL, 
+            amount REAL NOT NULL,
+            date INTEGER NOT NULL,
+            payment_method TEXT NOT NULL,
+            note TEXT
+          )
+        ''');
+        
+        await db.execute('''
+          CREATE TABLE payment_allocations(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            payment_id INTEGER NOT NULL,
+            transaction_id INTEGER NOT NULL, 
+            allocated_amount REAL NOT NULL,
+            FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+            FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+          )
+        ''');
+        
+        await db.execute('CREATE INDEX idx_payments_entity_date ON payments(entity_id, entity_type, date DESC)');
+        await db.execute('CREATE INDEX idx_allocations_transaction ON payment_allocations(transaction_id)');
+
+        // Migration: Move old 'sale_payments' down-payments into the new treasury system
+        await db.transaction((txn) async {
+           // Find matching entity_id for sale_payments
+           final oldPayments = await txn.rawQuery('''
+              SELECT sp.id, sp.sale_id, sp.amount, sp.date, sp.note, t.entity_id 
+              FROM sale_payments sp
+              JOIN transactions t ON sp.sale_id = t.id
+           ''');
+           
+           for (var op in oldPayments) {
+              final entityId = op['entity_id'] as int?;
+              if (entityId == null) continue;
+              
+              final newPaymentId = await txn.insert('payments', {
+                  'entity_id': entityId,
+                  'entity_type': 'CUSTOMER',
+                  'amount': op['amount'],
+                  'date': op['date'],
+                  'payment_method': 'EFECTIVO', // Legacy default
+                  'note': op['note']
+              });
+              
+              await txn.insert('payment_allocations', {
+                  'payment_id': newPaymentId,
+                  'transaction_id': op['sale_id'],
+                  'allocated_amount': op['amount']
+              });
+           }
+           
+           // Migrate generic unallocated 'payment' transactions into payments table
+           final genericPayments = await txn.query('transactions', where: "type = 'payment' AND status != 'VOIDED'");
+           for (var gp in genericPayments) {
+              final entityId = gp['entity_id'] as int?;
+              if (entityId == null) continue;
+              
+              await txn.insert('payments', {
+                  'entity_id': entityId,
+                  'entity_type': 'CUSTOMER',
+                  'amount': gp['total_amount'],
+                  'date': gp['date'],
+                  'payment_method': 'EFECTIVO', // Legacy default
+                  'note': 'Pago huérfano (Migración v13)'
+              });
+           }
+           // We do NOT delete the generic transactions to keep the ledger and history intact.
+           // However, from now on, all UI will read from 'payments'.
+        });
+      } catch (e) {
+        debugPrint('Error adding V13 details (Treasury): \$e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -191,6 +417,7 @@ class DatabaseService {
         barcode TEXT,
         price REAL NOT NULL,
         cost REAL NOT NULL,
+        weighted_average_cost REAL NOT NULL DEFAULT 0,
         stock REAL NOT NULL DEFAULT 0, -- Changed to REAL
         min_stock INTEGER NOT NULL DEFAULT 0,
         category_id INTEGER,
@@ -249,6 +476,7 @@ class DatabaseService {
         product_name TEXT,
         quantity REAL NOT NULL,
         unit_price REAL NOT NULL,
+        unit_cost_at_sale_time REAL DEFAULT 0,
         subtotal REAL NOT NULL,
         sale_unit TEXT DEFAULT 'UNI',
         units_per_sale_unit REAL DEFAULT 1.0,
@@ -269,6 +497,70 @@ class DatabaseService {
         FOREIGN KEY (sale_id) REFERENCES transactions(id)
       )
     ''');
+
+    // Inventory Movements Table (V11)
+    await db.execute('''
+      CREATE TABLE inventory_movements(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        movement_type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        reference_type TEXT,
+        reference_id INTEGER,
+        unit_cost_at_movement REAL NOT NULL DEFAULT 0,
+        created_timestamp INTEGER NOT NULL,
+        FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT
+      )
+    ''');
+    await db.execute(
+        'CREATE INDEX idx_inventory_product_date ON inventory_movements(product_id, created_timestamp DESC)');
+    await db.execute(
+        'CREATE INDEX idx_transactions_customer_date ON transactions(entity_id, date DESC)');
+
+    // Entity Ledgers Table (V12)
+    await db.execute('''
+      CREATE TABLE entity_ledgers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL, 
+        entity_id INTEGER NOT NULL,
+        transaction_source_type TEXT NOT NULL, 
+        transaction_reference_id INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        debit_amount REAL NOT NULL DEFAULT 0,
+        credit_amount REAL NOT NULL DEFAULT 0,
+        materialized_running_balance REAL NOT NULL DEFAULT 0,
+        note TEXT
+      )
+    ''');
+    await db.execute(
+        'CREATE INDEX idx_ledgers_entity_date ON entity_ledgers(entity_type, entity_id, date ASC)');
+
+    // Treasury Module (V13)
+    await db.execute('''
+      CREATE TABLE payments(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_id INTEGER NOT NULL,
+        entity_type TEXT NOT NULL, 
+        amount REAL NOT NULL,
+        date INTEGER NOT NULL,
+        payment_method TEXT NOT NULL,
+        note TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE payment_allocations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        payment_id INTEGER NOT NULL,
+        transaction_id INTEGER NOT NULL, 
+        allocated_amount REAL NOT NULL,
+        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+        FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+      )
+    ''');
+    
+    await db.execute('CREATE INDEX idx_payments_entity_date ON payments(entity_id, entity_type, date DESC)');
+    await db.execute('CREATE INDEX idx_allocations_transaction ON payment_allocations(transaction_id)');
   }
 
   Future<void> _createCategoriesTable(Database db) async {
@@ -583,8 +875,21 @@ class DatabaseService {
 
   Future<List<Customer>> getCustomers() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('customers');
-    return List.generate(maps.length, (i) => Customer.fromMap(maps[i]));
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT c.*, 
+        COALESCE(
+          (SELECT materialized_running_balance 
+           FROM entity_ledgers 
+           WHERE entity_type = 'CUSTOMER' AND entity_id = c.id 
+           ORDER BY date DESC, id DESC LIMIT 1), 
+        0.0) as ledger_debt
+      FROM customers c
+    ''');
+    return List.generate(maps.length, (i) {
+      final mutableMap = Map<String, dynamic>.from(maps[i]);
+      mutableMap['total_debt'] = mutableMap['ledger_debt'];
+      return Customer.fromMap(mutableMap);
+    });
   }
 
   Future<int> updateCustomer(Customer customer) async {
@@ -609,7 +914,19 @@ class DatabaseService {
   // ---------------------------------------------------------------------------
   // TRANSACTION OPERATIONS (ATOMIC)
   // ---------------------------------------------------------------------------
-  Future<int> insertSale(Sale sale) async {
+  // Sprint C - Fetch linked payments for an invoice
+  Future<List<Map<String, dynamic>>> getTransactionPayments(int transactionId) async {
+    final db = await database;
+    return await db.rawQuery('''
+       SELECT p.date, p.payment_method, p.note, pa.allocated_amount as amount
+       FROM payment_allocations pa
+       JOIN payments p ON pa.payment_id = p.id
+       WHERE pa.transaction_id = ?
+       ORDER BY p.date DESC
+    ''', [transactionId]);
+  }
+
+  Future<int> insertSale(Sale sale, {String paymentMethod = 'EFECTIVO'}) async {
     final db = await database;
 
     return await db.transaction((txn) async {
@@ -619,7 +936,7 @@ class DatabaseService {
         // 1. Get current stock inside transaction (Atomic check)
         final List<Map<String, dynamic>> result = await txn.query(
           'products',
-          columns: ['stock', 'name'],
+          columns: ['stock', 'name', 'weighted_average_cost'],
           where: 'id = ?',
           whereArgs: [item.productId],
         );
@@ -630,6 +947,7 @@ class DatabaseService {
 
         final currentStock = (result.first['stock'] as num).toDouble();
         final productName = result.first['name'] as String;
+        final currentWac = (result.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
 
         // 2. Check availability (NUEVO: Validar contra baseUnitsTotal)
         if (currentStock < item.baseUnitsTotal) {
@@ -644,35 +962,96 @@ class DatabaseService {
           'product_name': item.productName,
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
+          'unit_cost_at_sale_time': currentWac,
           'subtotal': item.subtotal,
           'sale_unit': item.saleUnit,
           'units_per_sale_unit': item.unitsPerSaleUnit,
           'packaging_info': item.packagingInfo,
         });
 
-        // 4. Update Stock (NUEVO: Descontar baseUnitsTotal en lugar de quantity)
+        // 3b. Insert Inventory Movement (Event Sourcing)
+        await txn.insert('inventory_movements', {
+          'product_id': item.productId,
+          'movement_type': 'SALE_DELIVERY',
+          'quantity': -item.baseUnitsTotal,
+          'reference_type': 'SALE',
+          'reference_id': saleId,
+          'unit_cost_at_movement': currentWac,
+          'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
+
+        // 4. Update Stock Cache (NUEVO: Descontar baseUnitsTotal en lugar de quantity)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
           [item.baseUnitsTotal, item.productId],
         );
       }
 
-      // 5. Update Customer Debt
+      // 5. Update Entity Ledger (and keep legacy total_debt for fallback during UI transition)
       final pendingAmount = sale.totalAmount - sale.amountPaid;
-      if (sale.customerId != null && pendingAmount > 0) {
-        await txn.rawUpdate(
-          'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
-          [pendingAmount, sale.customerId],
+      if (sale.customerId != null) {
+        double currentBalance = 0;
+        final ledgerQuery = await txn.query(
+            'entity_ledgers',
+            where: 'entity_type = ? AND entity_id = ?',
+            whereArgs: ['CUSTOMER', sale.customerId],
+            orderBy: 'date DESC, id DESC',
+            limit: 1
         );
+        if (ledgerQuery.isNotEmpty) {
+            currentBalance = (ledgerQuery.first['materialized_running_balance'] as num).toDouble();
+        }
+        
+        // Log Invoice
+        await txn.insert('entity_ledgers', {
+            'entity_type': 'CUSTOMER',
+            'entity_id': sale.customerId,
+            'transaction_source_type': 'INVOICE',
+            'transaction_reference_id': saleId,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'debit_amount': sale.totalAmount,
+            'credit_amount': 0.0,
+            'materialized_running_balance': currentBalance + sale.totalAmount,
+            'note': 'Venta'
+        });
+        currentBalance += sale.totalAmount;
+
+        if (sale.amountPaid > 0) {
+            await txn.insert('entity_ledgers', {
+                'entity_type': 'CUSTOMER',
+                'entity_id': sale.customerId,
+                'transaction_source_type': 'PAYMENT',
+                'transaction_reference_id': saleId,
+                'date': DateTime.now().millisecondsSinceEpoch + 1,
+                'debit_amount': 0.0,
+                'credit_amount': sale.amountPaid,
+                'materialized_running_balance': currentBalance - sale.amountPaid,
+                'note': 'Pago inicial'
+            });
+        }
+
+        if (pendingAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
+            [pendingAmount, sale.customerId],
+          );
+        }
       }
 
-      // 6. If a down payment is recorded, create entry in sale_payments
+      // 6. If a down payment is recorded, create entry in payments and allocation
       if (sale.amountPaid > 0) {
-        await txn.insert('sale_payments', {
-          'sale_id': saleId,
+        final paymentId = await txn.insert('payments', {
+          'entity_id': sale.customerId,
+          'entity_type': 'CUSTOMER',
           'amount': sale.amountPaid,
           'date': DateTime.now().millisecondsSinceEpoch,
+          'payment_method': paymentMethod,
           'note': 'Pago inicial',
+        });
+        await txn.insert('payment_allocations', {
+          'payment_id': paymentId,
+          'transaction_id': saleId,
+          'allocated_amount': sale.amountPaid,
         });
       }
 
@@ -711,8 +1090,20 @@ class DatabaseService {
             ? (item['units_per_sale_unit'] as num).toDouble()
             : 1.0;
         final baseUnitsReturn = targetQty * targetUpx;
+        final unitCost = (item['unit_cost_at_sale_time'] as num?)?.toDouble() ?? 0.0;
 
-        // 3. Restore Stock (NUEVO: retornar base units completas)
+        // 3a. Insert Compensating Inventory Movement
+        await txn.insert('inventory_movements', {
+          'product_id': productId,
+          'movement_type': 'SALE_VOID_REVERSAL',
+          'quantity': baseUnitsReturn,
+          'reference_type': 'VOID_SALE',
+          'reference_id': saleId,
+          'unit_cost_at_movement': unitCost,
+          'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
+
+        // 3b. Restore Stock Cache (NUEVO: retornar base units completas)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock + ? WHERE id = ?',
           [baseUnitsReturn, productId],
@@ -727,13 +1118,53 @@ class DatabaseService {
         whereArgs: [saleId],
       );
 
-      // 5. Decrease Customer Debt if it was a credit sale (NUEVO)
+      // 5. Compensating Ledger entries for Voiding AND Decrease Customer Debt if it was a credit sale (NUEVO)
       final customerId = transaction.first['entity_id'];
       if (customerId != null) {
         final totalAmount = transaction.first['total_amount'] as num;
         final amountPaid = transaction.first['amount_paid'] as num? ?? 0.0;
         final pendingAmount = (totalAmount - amountPaid).toDouble();
 
+        // 5a. Ledger compensation
+        final ledgerQuery = await txn.query(
+            'entity_ledgers',
+            where: 'entity_type = ? AND entity_id = ?',
+            whereArgs: ['CUSTOMER', customerId],
+            orderBy: 'date DESC, id DESC',
+            limit: 1
+        );
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+        
+        // Invoice Reversal (Credit the customer the totalAmount since they no longer owe it)
+        await txn.insert('entity_ledgers', {
+            'entity_type': 'CUSTOMER',
+            'entity_id': customerId,
+            'transaction_source_type': 'INVOICE_VOID_REVERSAL',
+            'transaction_reference_id': saleId,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'debit_amount': 0.0,
+            'credit_amount': totalAmount,
+            'materialized_running_balance': currentBalance - totalAmount,
+            'note': 'Anulación de Venta'
+        });
+        currentBalance -= totalAmount;
+        
+        if (amountPaid > 0) {
+            // Payment Reversal (Debit the customer because we "returned" their money or it's voided)
+            await txn.insert('entity_ledgers', {
+                'entity_type': 'CUSTOMER',
+                'entity_id': customerId,
+                'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
+                'transaction_reference_id': saleId,
+                'date': DateTime.now().millisecondsSinceEpoch + 1,
+                'debit_amount': amountPaid,
+                'credit_amount': 0.0,
+                'materialized_running_balance': currentBalance + amountPaid,
+                'note': 'Reversión de Pago Inicial'
+            });
+        }
+
+        // 5b. Update legacy customer debt
         if (pendingAmount > 0) {
           await txn.rawUpdate(
             'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
@@ -772,12 +1203,23 @@ class DatabaseService {
             'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
       }
 
-      // 2. Insert Payment Record
-      await txn.insert('sale_payments', {
-        'sale_id': saleId,
+      // 2. Extract Customer and Insert Treasury Payment Record
+      final customerId = transaction.first['entity_id'];
+      if (customerId == null) throw Exception('La venta no tiene un cliente asignado');
+      
+      final paymentId = await txn.insert('payments', {
+        'entity_id': customerId,
+        'entity_type': 'CUSTOMER',
         'amount': amount,
         'date': DateTime.now().millisecondsSinceEpoch,
+        'payment_method': 'EFECTIVO', // By default, hybrid UI comes later
         'note': note ?? 'Abono',
+      });
+      
+      await txn.insert('payment_allocations', {
+        'payment_id': paymentId,
+        'transaction_id': saleId,
+        'allocated_amount': amount,
       });
 
       // 3. Update Sale Status & amount_paid
@@ -793,14 +1235,140 @@ class DatabaseService {
         whereArgs: [saleId],
       );
 
-      // 4. Decrease Customer Debt
-      final customerId = transaction.first['entity_id'];
+      // 4. Update Ledger and Decrease legacy Customer Debt
       if (customerId != null) {
+        final ledgerQuery = await txn.query(
+            'entity_ledgers',
+            where: 'entity_type = ? AND entity_id = ?',
+            whereArgs: ['CUSTOMER', customerId],
+            orderBy: 'date DESC, id DESC',
+            limit: 1
+        );
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+        
+        await txn.insert('entity_ledgers', {
+            'entity_type': 'CUSTOMER',
+            'entity_id': customerId,
+            'transaction_source_type': 'PAYMENT',
+            'transaction_reference_id': saleId,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'debit_amount': 0.0,
+            'credit_amount': amount,
+            'materialized_running_balance': currentBalance - amount,
+            'note': note ?? 'Abono',
+        });
+
         await txn.rawUpdate(
           'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
           [amount, customerId],
         );
       }
+    });
+  }
+
+  // Sprint C - Treasury Module Global Payment Distribution
+  Future<int> receiveGlobalPayment({
+    required int customerId,
+    required double totalAmount,
+    required String paymentMethod, // 'EFECTIVO', 'QR', 'TRANSFERENCIA'
+    String? note,
+    required Map<int, double> allocations, // sale_id -> allocated_amount
+  }) async {
+    final db = await database;
+
+    return await db.transaction((txn) async {
+       // 1. Insert Global Payment
+       final paymentId = await txn.insert('payments', {
+         'entity_id': customerId,
+         'entity_type': 'CUSTOMER',
+         'amount': totalAmount,
+         'date': DateTime.now().millisecondsSinceEpoch,
+         'payment_method': paymentMethod,
+         'note': note ?? 'Abono Global',
+       });
+
+       double totalAllocated = 0.0;
+       
+       // 2. Process Allocations
+       for (var entry in allocations.entries) {
+          final saleId = entry.key;
+          final allocatedAmount = entry.value;
+
+          if (allocatedAmount <= 0) continue;
+          totalAllocated += allocatedAmount;
+
+          // Validate against pending amount
+          final List<Map<String, dynamic>> transaction = await txn.query(
+            'transactions',
+            columns: ['status', 'total_amount', 'amount_paid'],
+            where: 'id = ? AND entity_id = ?',
+            whereArgs: [saleId, customerId],
+          );
+
+          if (transaction.isEmpty) throw Exception('Venta #$saleId no encontrada o no pertenece al cliente');
+          if (transaction.first['status'] == 'VOIDED') throw Exception('La venta #$saleId está anulada');
+
+          final total = transaction.first['total_amount'] as num;
+          final currentPaid = transaction.first['amount_paid'] as num? ?? 0.0;
+          final pending = total - currentPaid;
+
+          if (allocatedAmount > pending + 0.01) {
+             throw Exception('El monto supera al saldo pendiente en Venta #$saleId.');
+          }
+
+          // Insert Allocation
+          await txn.insert('payment_allocations', {
+             'payment_id': paymentId,
+             'transaction_id': saleId,
+             'allocated_amount': allocatedAmount,
+          });
+
+          // Update Sale Status & amount_paid
+          final newPaid = currentPaid + allocatedAmount;
+          final newStatus = (newPaid >= total - 0.01) ? 'COMPLETED' : 'PARTIAL';
+          await txn.update(
+             'transactions',
+             {
+               'amount_paid': newPaid,
+               'status': newStatus,
+             },
+             where: 'id = ?',
+             whereArgs: [saleId],
+          );
+       }
+       
+       if (totalAllocated > totalAmount + 0.01) {
+           throw Exception('La suma de distribuciones supera el monto depositado.');
+       }
+
+       // 3. Update Ledger and Decrease legacy Customer Debt
+       final ledgerQuery = await txn.query(
+           'entity_ledgers',
+           where: 'entity_type = ? AND entity_id = ?',
+           whereArgs: ['CUSTOMER', customerId],
+           orderBy: 'date DESC, id DESC',
+           limit: 1
+       );
+       double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+       
+       await txn.insert('entity_ledgers', {
+           'entity_type': 'CUSTOMER',
+           'entity_id': customerId,
+           'transaction_source_type': 'PAYMENT',
+           'transaction_reference_id': paymentId, // We use paymentId as reference
+           'date': DateTime.now().millisecondsSinceEpoch,
+           'debit_amount': 0.0,
+           'credit_amount': totalAmount,
+           'materialized_running_balance': currentBalance - totalAmount,
+           'note': note ?? 'Abono Global ($paymentMethod)',
+       });
+
+       await txn.rawUpdate(
+         'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
+         [totalAmount, customerId],
+       );
+
+       return paymentId;
     });
   }
 
@@ -811,6 +1379,22 @@ class DatabaseService {
       final purchaseId = await txn.insert('transactions', purchase.toMap());
 
       for (var item in purchase.items) {
+        // 1. Query current WAC and stock
+        final List<Map<String, dynamic>> prodResult = await txn.query(
+          'products',
+          columns: ['stock', 'weighted_average_cost'],
+          where: 'id = ?',
+          whereArgs: [item.productId],
+        );
+        
+        double currentStock = 0.0;
+        double currentWac = 0.0;
+        if (prodResult.isNotEmpty) {
+           currentStock = (prodResult.first['stock'] as num).toDouble();
+           currentWac = (prodResult.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        // 2. Insert item
         await txn.insert('transaction_items', {
           'transaction_id': purchaseId,
           'product_id': item.productId,
@@ -823,9 +1407,29 @@ class DatabaseService {
           'packaging_info': item.packagingInfo,
         });
 
+        // 3. Calculate new WAC
+        final totalOldValue = currentStock > 0 ? currentStock * currentWac : 0.0;
+        final newInvestment = item.quantity * item.unitPrice;
+        final newTotalStock = currentStock + item.baseUnitsTotal;
+        
+        final newWac = newTotalStock > 0 ? (totalOldValue + newInvestment) / newTotalStock : 0.0;
+        final unitCostInBaseUnits = item.baseUnitsTotal > 0 ? newInvestment / item.baseUnitsTotal : 0.0;
+
+        // 4. Insert Inventory Movement
+        await txn.insert('inventory_movements', {
+          'product_id': item.productId,
+          'movement_type': 'PURCHASE_RECEIPT',
+          'quantity': item.baseUnitsTotal,
+          'reference_type': 'PURCHASE',
+          'reference_id': purchaseId,
+          'unit_cost_at_movement': unitCostInBaseUnits,
+          'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
+
+        // 5. Update Stock Cache, Cost, and WAC
         await txn.rawUpdate(
-          'UPDATE products SET stock = stock + ?, cost = ? WHERE id = ?',
-          [item.baseUnitsTotal, item.unitPrice, item.productId],
+          'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
+          [item.baseUnitsTotal, item.unitPrice, newWac, item.productId],
         );
       }
       return purchaseId;
@@ -863,8 +1467,21 @@ class DatabaseService {
             ? (item['units_per_sale_unit'] as num).toDouble()
             : 1.0;
         final baseUnitsDeduct = targetQty * targetUpx;
+        final subtotal = (item['subtotal'] as num).toDouble();
+        final unitCost = baseUnitsDeduct > 0 ? subtotal / baseUnitsDeduct : 0.0;
 
-        // 3. Decrease Stock (NUEVO: remover base units completas)
+        // 3a. Insert Compensating Inventory Movement
+        await txn.insert('inventory_movements', {
+          'product_id': productId,
+          'movement_type': 'PURCHASE_VOID_REVERSAL',
+          'quantity': -baseUnitsDeduct,
+          'reference_type': 'VOID_PURCHASE',
+          'reference_id': purchaseId,
+          'unit_cost_at_movement': unitCost,
+          'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
+
+        // 3b. Decrease Stock Cache (NUEVO: remover base units completas)
         await txn.rawUpdate(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
           [baseUnitsDeduct, productId],
@@ -1164,12 +1781,44 @@ class DatabaseService {
         });
 
         for (var item in items) {
-          // Increase Stock and update Cost (Weighted Average Cost could be implemented here, but typically we just set new cost or ignore)
-          // For simplicity, we update Cost to latest.
-          // Increase Stock and update Cost
+          // 1. Query current WAC and stock
+          final List<Map<String, dynamic>> prodResult = await txn.query(
+            'products',
+            columns: ['stock', 'weighted_average_cost'],
+            where: 'id = ?',
+            whereArgs: [item.productId],
+          );
+          
+          double currentStock = 0.0;
+          double currentWac = 0.0;
+          if (prodResult.isNotEmpty) {
+             currentStock = (prodResult.first['stock'] as num).toDouble();
+             currentWac = (prodResult.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+          }
+
+          // 2. Calculate new WAC
+          final totalOldValue = currentStock > 0 ? currentStock * currentWac : 0.0;
+          final newInvestment = item.quantity * item.unitPrice;
+          final newTotalStock = currentStock + item.baseUnitsTotal;
+          
+          final newWac = newTotalStock > 0 ? (totalOldValue + newInvestment) / newTotalStock : 0.0;
+          final unitCostInBaseUnits = item.baseUnitsTotal > 0 ? newInvestment / item.baseUnitsTotal : 0.0;
+
+          // 3. Insert Inventory Movement
+          await txn.insert('inventory_movements', {
+            'product_id': item.productId,
+            'movement_type': 'PURCHASE_RECEIPT',
+            'quantity': item.baseUnitsTotal,
+            'reference_type': 'ORDER_RECEIPT',
+            'reference_id': orderId,
+            'unit_cost_at_movement': unitCostInBaseUnits,
+            'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+          });
+
+          // 4. Update Stock Cache, Cost, and WAC
           await txn.rawUpdate(
-            'UPDATE products SET stock = stock + ?, cost = ? WHERE id = ?',
-            [item.baseUnitsTotal, item.unitPrice, item.productId],
+            'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
+            [item.baseUnitsTotal, item.unitPrice, newWac, item.productId],
           );
 
           // NEW: Link this item to the Purchase Transaction
@@ -1490,7 +2139,17 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAgingReport() async {
     final db = await database;
+    
+    // 1. Get true ledger running balance
+    final customers = await getCustomers();
+    final Map<int, double> customerLedgerBalances = {};
+    for (var c in customers) {
+      if (c.totalDebt > 0) {
+        customerLedgerBalances[c.id!] = c.totalDebt;
+      }
+    }
 
+    // 2. Load pending transactions
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: "(status = 'PARTIAL' OR status = 'CREDIT') AND type = 'sale'",
@@ -1501,20 +2160,14 @@ class DatabaseService {
 
     for (var map in maps) {
       final customerId = map['entity_id'] as int?;
-      if (customerId == null) continue;
-
+      if (customerId == null || !customerLedgerBalances.containsKey(customerId)) continue;
+      
       final customerName = map['entity_name'] as String? ?? 'Desconocido';
       final totalAmount = (map['total_amount'] as num).toDouble();
       final amountPaid = (map['amount_paid'] as num?)?.toDouble() ?? 0.0;
       final pending = totalAmount - amountPaid;
 
       if (pending <= 0) continue;
-
-      final dueDateMs = map['payment_due_date'] as int?;
-      final dateMs = map['date'] as int;
-      final baseDate = DateTime.fromMillisecondsSinceEpoch(dueDateMs ?? dateMs);
-
-      final difference = now.difference(baseDate).inDays;
 
       if (!reportMap.containsKey(customerId)) {
         reportMap[customerId] = {
@@ -1527,18 +2180,82 @@ class DatabaseService {
         };
       }
 
+      final dueDateMs = map['payment_due_date'] as int?;
+      final dateMs = map['date'] as int;
+      final baseDate = DateTime.fromMillisecondsSinceEpoch(dueDateMs ?? dateMs);
+      final difference = now.difference(baseDate).inDays;
+
       if (difference > 60) {
-        reportMap[customerId]!['days_60_plus'] =
-            (reportMap[customerId]!['days_60_plus'] as double) + pending;
+        reportMap[customerId]!['days_60_plus'] = (reportMap[customerId]!['days_60_plus'] as double) + pending;
       } else if (difference > 30) {
-        reportMap[customerId]!['days_30_60'] =
-            (reportMap[customerId]!['days_30_60'] as double) + pending;
+        reportMap[customerId]!['days_30_60'] = (reportMap[customerId]!['days_30_60'] as double) + pending;
       } else {
-        reportMap[customerId]!['current'] =
-            (reportMap[customerId]!['current'] as double) + pending;
+        reportMap[customerId]!['current'] = (reportMap[customerId]!['current'] as double) + pending;
       }
-      reportMap[customerId]!['total'] =
-          (reportMap[customerId]!['total'] as double) + pending;
+    }
+
+    // 3. Force alignment with Ledger balance (discrepancy adjustment FIFO-style)
+    for (var customerId in reportMap.keys.toList()) {
+        final ledgerBalance = customerLedgerBalances[customerId]!;
+        reportMap[customerId]!['total'] = ledgerBalance;
+        
+        final sumOfBuckets = (reportMap[customerId]!['current'] as double) + 
+                             (reportMap[customerId]!['days_30_60'] as double) + 
+                             (reportMap[customerId]!['days_60_plus'] as double);
+                             
+        final discrepancy = sumOfBuckets - ledgerBalance;
+        if (discrepancy != 0) {
+             double remainingReduction = discrepancy;
+             if (remainingReduction > 0) { 
+                  double currentBucket = reportMap[customerId]!['current'] as double;
+                  if (currentBucket >= remainingReduction) {
+                      reportMap[customerId]!['current'] = currentBucket - remainingReduction;
+                      remainingReduction = 0;
+                  } else {
+                      reportMap[customerId]!['current'] = 0.0;
+                      remainingReduction -= currentBucket;
+                  }
+                  
+                  if (remainingReduction > 0) {
+                      double days3060Bucket = reportMap[customerId]!['days_30_60'] as double;
+                      if (days3060Bucket >= remainingReduction) {
+                          reportMap[customerId]!['days_30_60'] = days3060Bucket - remainingReduction;
+                          remainingReduction = 0;
+                      } else {
+                          reportMap[customerId]!['days_30_60'] = 0.0;
+                          remainingReduction -= days3060Bucket;
+                      }
+                  }
+                  
+                  if (remainingReduction > 0) {
+                      double days60PlusBucket = reportMap[customerId]!['days_60_plus'] as double;
+                      if (days60PlusBucket >= remainingReduction) {
+                          reportMap[customerId]!['days_60_plus'] = days60PlusBucket - remainingReduction;
+                      } else {
+                          reportMap[customerId]!['days_60_plus'] = 0.0;
+                      }
+                  }
+             } else {
+                  reportMap[customerId]!['days_60_plus'] = (reportMap[customerId]!['days_60_plus'] as double) + (-remainingReduction);
+             }
+        }
+    }
+
+    // 4. Add clients with ledger debt but no active invoices
+    for (var entry in customerLedgerBalances.entries) {
+        if (!reportMap.containsKey(entry.key)) {
+             final cIndex = customers.indexWhere((c) => c.id == entry.key);
+             if (cIndex != -1) {
+                 reportMap[entry.key] = {
+                      'customer_id': entry.key,
+                      'customer_name': customers[cIndex].name,
+                      'current': 0.0,
+                      'days_30_60': 0.0,
+                      'days_60_plus': entry.value,
+                      'total': entry.value,
+                 };
+             }
+        }
     }
 
     final result = reportMap.values.toList();

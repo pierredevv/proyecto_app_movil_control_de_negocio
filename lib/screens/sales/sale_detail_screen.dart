@@ -35,7 +35,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final backgroundColor = theme.scaffoldBackgroundColor;
     final cardColor = isDark ? const Color(0xFF252A36) : Colors.white;
     final textColor = theme.colorScheme.onSurface;
-    final subTextColor = isDark ? const Color(0xFF9CA3AF) : Colors.grey[600];
+    final subTextColor = isDark ? const Color(0xFF9CA3AF) : Colors.grey[600]!;
     final dividerColor = theme.dividerColor.withValues(alpha: 0.1);
 
     // Constants
@@ -476,6 +476,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
             const SizedBox(height: 16),
 
+            // Linked Payments Section
+            if (widget.sale.id != null && widget.sale.amountPaid > 0) ...[
+               _buildLinkedPaymentsSection(theme, cardColor, textColor, subTextColor, dividerColor),
+               const SizedBox(height: 16),
+            ],
+
             // Info Note
             Container(
               padding: const EdgeInsets.all(16),
@@ -584,6 +590,107 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 fontWeight: FontWeight.w500,
                 fontSize: 14)),
       ],
+    );
+  }
+
+  Widget _buildLinkedPaymentsSection(ThemeData theme, Color cardColor, Color textColor, Color subTextColor, Color dividerColor) {
+    final format = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final df = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
+
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseService().getTransactionPayments(widget.sale.id!),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final payments = snapshot.data!;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              if (theme.brightness == Brightness.light)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.history, color: Colors.blue, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'HISTORIAL DE PAGOS',
+                      style: TextStyle(
+                        color: subTextColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(color: dividerColor, height: 1),
+              ...payments.map((p) {
+                final amount = (p['amount'] as num).toDouble();
+                final date = DateTime.fromMillisecondsSinceEpoch(p['date'] as int);
+                final method = p['payment_method'] as String? ?? 'EFECTIVO';
+                final note = p['note'] as String? ?? '';
+
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                    child: Icon(
+                      method == 'QR' ? Icons.qr_code : Icons.attach_money,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    format.format(amount),
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(df.format(date), style: TextStyle(color: subTextColor, fontSize: 12)),
+                      if (note.isNotEmpty && note != 'Pago inicial' && note != 'Abono')
+                        Text(note, style: TextStyle(color: subTextColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                    ],
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      method,
+                      style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ).animate().fade(delay: 250.ms).slideY(begin: 0.1, end: 0);
+      },
     );
   }
 

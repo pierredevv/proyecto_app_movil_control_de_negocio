@@ -14,6 +14,7 @@ class CheckoutSheet extends StatefulWidget {
 class _CheckoutSheetState extends State<CheckoutSheet> {
   final _amountController = TextEditingController();
   DateTime? _dueDate;
+  String _paymentMethod = 'EFECTIVO';
 
   @override
   void initState() {
@@ -28,12 +29,20 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     super.dispose();
   }
 
-  double get _amountReceived {
+  double get _cashTendered {
     return double.tryParse(_amountController.text) ?? 0.0;
   }
 
+  double get _appliedAmount {
+    return _cashTendered > widget.totalAmount ? widget.totalAmount : _cashTendered;
+  }
+
+  double get _changeAmount {
+    return _cashTendered > widget.totalAmount ? _cashTendered - widget.totalAmount : 0.0;
+  }
+
   double get _pendingBalance {
-    final pending = widget.totalAmount - _amountReceived;
+    final pending = widget.totalAmount - _appliedAmount;
     return pending > 0 ? pending : 0.0;
   }
 
@@ -94,6 +103,26 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
           ),
           const SizedBox(height: 16),
 
+          // Payment Method Selector
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'EFECTIVO', label: Text('Efectivo'), icon: Icon(Icons.money)),
+              ButtonSegment(value: 'QR', label: Text('QR / Transferencia'), icon: Icon(Icons.qr_code)),
+            ],
+            selected: {_paymentMethod},
+            onSelectionChanged: (Set<String> newSelection) {
+              setState(() {
+                _paymentMethod = newSelection.first;
+              });
+            },
+            style: SegmentedButton.styleFrom(
+              backgroundColor: theme.colorScheme.surfaceContainerHighest.withAlpha(50),
+              selectedForegroundColor: Colors.white,
+              selectedBackgroundColor: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Amount Received Field
           TextField(
             controller: _amountController,
@@ -112,6 +141,32 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Change Calculator
+          if (_changeAmount > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.greenAccent.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.greenAccent.withAlpha(50)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Vuelto a entregar:',
+                      style:
+                          TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
+                  Text('Bs. ${_changeAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.greenAccent)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Pending Balance
           if (isCredit) ...[
@@ -178,16 +233,16 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: () {
-                    if (_amountReceived < 0 ||
-                        _amountReceived > widget.totalAmount) {
+                    if (_cashTendered < 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Monto inválido')),
                       );
                       return;
                     }
                     Navigator.pop(context, {
-                      'amountReceived': _amountReceived,
+                      'amountReceived': _appliedAmount,
                       'paymentDueDate': _dueDate,
+                      'paymentMethod': _paymentMethod,
                     });
                   },
                   child: Text(isCredit ? 'Cobro Parcial' : 'Cobrar Completo'),

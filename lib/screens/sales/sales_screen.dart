@@ -107,6 +107,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final amountReceived = result['amountReceived'] as double?;
     final paymentDueDate = result['paymentDueDate'] as DateTime?;
+    final paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
 
     try {
       final autoClear =
@@ -114,7 +115,8 @@ class _SalesScreenState extends State<SalesScreen> {
       final sale = await cart.checkout(db,
           autoClear: autoClear,
           amountReceived: amountReceived,
-          paymentDueDate: paymentDueDate);
+          paymentDueDate: paymentDueDate,
+          paymentMethod: paymentMethod);
       inventory.processSale(sale.items);
 
       if (context.mounted) {

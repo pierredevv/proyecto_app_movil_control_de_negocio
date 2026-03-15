@@ -111,7 +111,8 @@ class CartProvider extends ChangeNotifier {
   Future<Sale> checkout(DatabaseService db,
       {bool autoClear = true,
       double? amountReceived,
-      DateTime? paymentDueDate}) async {
+      DateTime? paymentDueDate,
+      String paymentMethod = 'EFECTIVO'}) async {
     if (_items.isEmpty) throw Exception('El carrito está vacío');
 
     _isLoading = true;
@@ -137,7 +138,7 @@ class CartProvider extends ChangeNotifier {
         status: saleStatus,
       );
 
-      final id = await db.insertSale(sale);
+      final id = await db.insertSale(sale, paymentMethod: paymentMethod);
       final completedSale = sale.copyWith(id: id);
 
       if (autoClear) {

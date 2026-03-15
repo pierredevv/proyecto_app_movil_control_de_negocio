@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../screens/sales/sales_screen.dart';
 import '../../screens/customers/customer_list_screen.dart';
+import '../../screens/treasury/global_payment_screen.dart';
 
 class QuickAccessGrid extends StatelessWidget {
   const QuickAccessGrid({super.key});
@@ -26,60 +27,79 @@ class QuickAccessGrid extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildQuickAccessItem(
-                context,
-                icon: Icons.add,
-                label: 'Venta Nueva',
-                color: AppTheme.blueIcon,
-                delay: 0,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SalesScreen()),
-                  );
-                },
-              ),
-              _buildQuickAccessItem(
-                context,
-                icon: Icons.qr_code,
-                label: 'Productos',
-                color: AppTheme.yellowIcon,
-                delay: 100,
-                onTap: () {
-                  // Switch to Inventory Tab (Index 2)
-                  context.read<NavigationProvider>().setIndex(2);
-                },
-              ),
-              _buildQuickAccessItem(
-                context,
-                icon: Icons.people,
-                label: 'Clientes',
-                color: AppTheme.purpleIcon,
-                delay: 200,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const CustomerListScreen()),
-                  );
-                },
-              ),
-              _buildQuickAccessItem(
-                context,
-                icon: Icons.shopping_cart,
-                label: 'Compras',
-                color: AppTheme.greenIcon,
-                delay: 300,
-                onTap: () {
-                  // Switch to Purchases Tab (Index 1)
-                  context.read<NavigationProvider>().setIndex(1);
-                },
-              ),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.add,
+                  label: 'Venta Nueva',
+                  color: AppTheme.blueIcon,
+                  delay: 0,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SalesScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.payments,
+                  label: 'Cobro Global',
+                  color: AppTheme.greenAccent,
+                  delay: 50,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const GlobalPaymentScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.qr_code,
+                  label: 'Productos',
+                  color: AppTheme.yellowIcon,
+                  delay: 100,
+                  onTap: () {
+                    context.read<NavigationProvider>().setIndex(2);
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.people,
+                  label: 'Clientes',
+                  color: AppTheme.purpleIcon,
+                  delay: 200,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CustomerListScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.shopping_cart,
+                  label: 'Compras',
+                  color: AppTheme.greenIcon,
+                  delay: 300,
+                  onTap: () {
+                    context.read<NavigationProvider>().setIndex(1);
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
