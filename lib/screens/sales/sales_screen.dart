@@ -311,7 +311,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                           barcode: '',
                                           price: 0,
                                           cost: 0,
-                                          stock: 100)); // Default fallback
+                                          stock: 0)); // Prevent infinite stock
 
                               return CartItemCard(
                                 key: ValueKey(

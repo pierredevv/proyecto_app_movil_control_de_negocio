@@ -186,30 +186,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                               ),
                             ),
                             // Status Pill
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: greenColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.circle,
-                                      size: 8, color: greenColor),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Completado',
-                                    style: TextStyle(
-                                      color: greenColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildStatusPill(widget.sale),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -574,6 +551,54 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusPill(Sale sale) {
+    Color color;
+    String text;
+    IconData icon;
+
+    switch (sale.paymentStatus) {
+      case 'CREDIT':
+        color = Colors.blue;
+        text = 'Crédito';
+        icon = Icons.schedule;
+        break;
+      case 'PARTIAL':
+        color = Colors.orange;
+        text = 'Parcial';
+        icon = Icons.timelapse;
+        break;
+      case 'COMPLETED':
+      default:
+        color = Colors.green;
+        text = 'Completado';
+        icon = Icons.check_circle;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

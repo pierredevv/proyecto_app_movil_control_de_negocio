@@ -6,6 +6,7 @@ import '../../providers/customer_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/glass_transaction_card.dart';
 import 'package:intl/intl.dart';
+import '../treasury/global_payment_screen.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   final int customerId;
@@ -55,53 +56,72 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   Future<void> _showReceivePaymentDialog(Sale sale) async {
     final controller =
         TextEditingController(text: sale.pendingAmount.toStringAsFixed(2));
-    final result = await showDialog<double>(
+    String selectedMethod = 'EFECTIVO';
+
+    final result = await showDialog<Map<String, dynamic>>(
         context: context,
-        builder: (ctx) => AlertDialog(
-              title: const Text('Cobrar cuota'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                      'Venta #${sale.id} - Saldo a favor: Bs. ${sale.pendingAmount.toStringAsFixed(2)}'),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: controller,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Monto a cobrar (Bs.)',
-                      border: OutlineInputBorder(),
+        builder: (ctx) => StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Cobrar cuota'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Venta #${sale.id} - Saldo a favor: Bs. ${sale.pendingAmount.toStringAsFixed(2)}'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Monto a cobrar (Bs.)',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedMethod,
+                      decoration: const InputDecoration(
+                        labelText: 'Método de Pago',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
+                        return DropdownMenuItem(value: m, child: Text(m));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => selectedMethod = val);
+                      },
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancelar')),
+                  FilledButton(
+                      onPressed: () {
+                        final val = double.tryParse(controller.text);
+                        if (val != null &&
+                            val > 0 &&
+                            val <= sale.pendingAmount + 0.01) {
+                          Navigator.pop(ctx, {'amount': val, 'method': selectedMethod});
+                        } else {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(content: Text('Monto inválido')),
+                          );
+                        }
+                      },
+                      child: const Text('Confirmar')),
                 ],
               ),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancelar')),
-                FilledButton(
-                    onPressed: () {
-                      final val = double.tryParse(controller.text);
-                      if (val != null &&
-                          val > 0 &&
-                          val <= sale.pendingAmount + 0.01) {
-                        Navigator.pop(ctx, val);
-                      } else {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('Monto inválido')),
-                        );
-                      }
-                    },
-                    child: const Text('Confirmar')),
-              ],
             ));
 
     if (result != null && mounted) {
       setState(() => _isLoading = true);
       try {
-        await _db.receiveSalePayment(sale.id!, result, note: 'Cobro de cuota');
+        await _db.receiveSalePayment(sale.id!, result['amount'],
+            note: 'Cobro de cuota', paymentMethod: result['method']);
         // We also need to reload the customer debt globally
         if (mounted) {
           await context.read<CustomerProvider>().loadCustomers();
@@ -130,6 +150,24 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF151924),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.payment),
+        label: const Text('Cobro Global'),
+        backgroundColor: AppTheme.blueIcon,
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GlobalPaymentScreen(initialCustomerId: widget.customerId),
+            ),
+          );
+          if (!mounted) return;
+          _loadLedger();
+          if (context.mounted) {
+            context.read<CustomerProvider>().loadCustomers();
+          }
+        },
+      ),
       appBar: AppBar(
         title: Text('Estado de Cuenta: ${widget.customerName}'),
         backgroundColor: const Color(0xFF1E2432),

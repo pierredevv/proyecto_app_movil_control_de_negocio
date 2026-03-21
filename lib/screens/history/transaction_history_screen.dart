@@ -835,7 +835,7 @@ class _GlassTransactionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typeColor = _typeColor();
-    final heroTag = '${transaction.type.name}_${transaction.id}_icon';
+    final heroTag = 'history_${transaction.type.name}_${transaction.id}_icon';
 
     String name;
     bool isPositive = false;

@@ -137,7 +137,7 @@ class RecentActivityList extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        final heroTag = '${transaction.type.name}_${transaction.id}_icon';
+        final heroTag = 'recent_${transaction.type.name}_${transaction.id}_icon';
         if (isSale && transaction is Sale) {
           Navigator.push(
             context,

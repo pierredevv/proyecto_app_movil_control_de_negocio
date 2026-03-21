@@ -629,7 +629,11 @@ class DatabaseService {
   // ---------------------------------------------------------------------------
   Future<int> insertProduct(Product product) async {
     final db = await database;
-    return await db.insert('products', product.toMap());
+    final map = product.toMap();
+    if (map['weighted_average_cost'] == null || map['weighted_average_cost'] == 0.0) {
+      map['weighted_average_cost'] = map['cost'];
+    }
+    return await db.insert('products', map);
   }
 
   Future<List<Product>> getProducts({
@@ -838,6 +842,7 @@ class DatabaseService {
               'barcode': row.barcode,
               'price': row.price,
               'cost': row.cost,
+              'weighted_average_cost': row.cost,
               'stock': row.stockBase, // Always in base units
               'min_stock': 0,
               'category_id': categoryId,
@@ -1122,8 +1127,6 @@ class DatabaseService {
       final customerId = transaction.first['entity_id'];
       if (customerId != null) {
         final totalAmount = transaction.first['total_amount'] as num;
-        final amountPaid = transaction.first['amount_paid'] as num? ?? 0.0;
-        final pendingAmount = (totalAmount - amountPaid).toDouble();
 
         // 5a. Ledger compensation
         final ledgerQuery = await txn.query(
@@ -1147,36 +1150,21 @@ class DatabaseService {
             'materialized_running_balance': currentBalance - totalAmount,
             'note': 'Anulación de Venta'
         });
-        currentBalance -= totalAmount;
         
-        if (amountPaid > 0) {
-            // Payment Reversal (Debit the customer because we "returned" their money or it's voided)
-            await txn.insert('entity_ledgers', {
-                'entity_type': 'CUSTOMER',
-                'entity_id': customerId,
-                'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
-                'transaction_reference_id': saleId,
-                'date': DateTime.now().millisecondsSinceEpoch + 1,
-                'debit_amount': amountPaid,
-                'credit_amount': 0.0,
-                'materialized_running_balance': currentBalance + amountPaid,
-                'note': 'Reversión de Pago Inicial'
-            });
-        }
+        // Clear payment allocations mapping to this sale so funds become unallocated global credit
+        await txn.delete('payment_allocations', where: 'transaction_id = ?', whereArgs: [saleId]);
 
-        // 5b. Update legacy customer debt
-        if (pendingAmount > 0) {
-          await txn.rawUpdate(
-            'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
-            [pendingAmount, customerId],
-          );
-        }
+        // 5b. Update legacy customer debt (reduce by entire amount)
+        await txn.rawUpdate(
+          'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
+          [totalAmount, customerId],
+        );
       }
     });
   }
 
   Future<void> receiveSalePayment(int saleId, double amount,
-      {String? note}) async {
+      {String? note, String paymentMethod = 'EFECTIVO'}) async {
     final db = await database;
 
     await db.transaction((txn) async {
@@ -1212,7 +1200,7 @@ class DatabaseService {
         'entity_type': 'CUSTOMER',
         'amount': amount,
         'date': DateTime.now().millisecondsSinceEpoch,
-        'payment_method': 'EFECTIVO', // By default, hybrid UI comes later
+        'payment_method': paymentMethod,
         'note': note ?? 'Abono',
       });
       
@@ -1277,6 +1265,14 @@ class DatabaseService {
     final db = await database;
 
     return await db.transaction((txn) async {
+       // Validate against total debt
+       final customerQuery = await txn.query('customers', where: 'id = ?', whereArgs: [customerId]);
+       if (customerQuery.isEmpty) throw Exception('Cliente no encontrado');
+       final currentDebt = (customerQuery.first['total_debt'] as num).toDouble();
+       if (totalAmount > currentDebt + 0.01) {
+          throw Exception('El abono excede la deuda total del cliente.');
+       }
+
        // 1. Insert Global Payment
        final paymentId = await txn.insert('payments', {
          'entity_id': customerId,
@@ -1532,6 +1528,26 @@ class DatabaseService {
         'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
         [amount, customerId],
       );
+      
+      // Update entity_ledgers since this is a deposit
+      final ledgerQuery = await txn.query(
+          'entity_ledgers',
+          where: 'entity_type = ? AND entity_id = ?',
+          whereArgs: ['customer', customerId],
+          orderBy: 'date DESC',
+          limit: 1);
+      double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+      await txn.insert('entity_ledgers', {
+          'entity_type': 'customer',
+          'entity_id': customerId,
+          'reference_type': 'payment',
+          'reference_id': id,
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'debit_amount': 0.0,
+          'credit_amount': amount,
+          'materialized_running_balance': currentBalance - amount,
+      });
+
       return id;
     });
   }
@@ -1557,6 +1573,24 @@ class DatabaseService {
           'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
           [amount, customerId],
         );
+        
+        final ledgerQuery = await txn.query(
+            'entity_ledgers',
+            where: 'entity_type = ? AND entity_id = ?',
+            whereArgs: ['customer', customerId],
+            orderBy: 'date DESC',
+            limit: 1);
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+        await txn.insert('entity_ledgers', {
+            'entity_type': 'customer',
+            'entity_id': customerId,
+            'reference_type': 'void_payment',
+            'reference_id': paymentId,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'debit_amount': amount,
+            'credit_amount': 0.0,
+            'materialized_running_balance': currentBalance + amount,
+        });
       }
 
       // 3. Mark as VOIDED
@@ -2139,128 +2173,66 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAgingReport() async {
     final db = await database;
-    
-    // 1. Get true ledger running balance
-    final customers = await getCustomers();
-    final Map<int, double> customerLedgerBalances = {};
-    for (var c in customers) {
-      if (c.totalDebt > 0) {
-        customerLedgerBalances[c.id!] = c.totalDebt;
-      }
-    }
-
-    // 2. Load pending transactions
-    final List<Map<String, dynamic>> maps = await db.query(
-      'transactions',
-      where: "(status = 'PARTIAL' OR status = 'CREDIT') AND type = 'sale'",
-    );
-
     final now = DateTime.now();
+
+    // 1. Get true ledger running balance for all customers
+    final customers = await getCustomers();
     final Map<int, Map<String, dynamic>> reportMap = {};
 
-    for (var map in maps) {
-      final customerId = map['entity_id'] as int?;
-      if (customerId == null || !customerLedgerBalances.containsKey(customerId)) continue;
+    for (var c in customers) {
+      if (c.totalDebt <= 0) continue; // Skip if no debt
+
+      double remainingDebt = c.totalDebt;
       
-      final customerName = map['entity_name'] as String? ?? 'Desconocido';
-      final totalAmount = (map['total_amount'] as num).toDouble();
-      final amountPaid = (map['amount_paid'] as num?)?.toDouble() ?? 0.0;
-      final pending = totalAmount - amountPaid;
+      final Map<String, dynamic> customerReport = {
+        'customer_id': c.id,
+        'customer_name': c.name,
+        'current': 0.0,
+        'days_30_60': 0.0,
+        'days_60_plus': 0.0,
+        'total': c.totalDebt,
+      };
 
-      if (pending <= 0) continue;
+      // 2. Query all INVOICES (debits) for this customer from the ledger, NEWEST to OLDEST
+      final invoices = await db.query(
+        'entity_ledgers',
+        where: 'entity_type = ? AND entity_id = ? AND transaction_source_type = ? AND debit_amount > 0',
+        whereArgs: ['CUSTOMER', c.id, 'INVOICE'],
+        orderBy: 'date DESC',
+      );
 
-      if (!reportMap.containsKey(customerId)) {
-        reportMap[customerId] = {
-          'customer_id': customerId,
-          'customer_name': customerName,
-          'current': 0.0,
-          'days_30_60': 0.0,
-          'days_60_plus': 0.0,
-          'total': 0.0,
-        };
+      for (var inv in invoices) {
+        if (remainingDebt <= 0) break;
+
+        final invoiceAmount = (inv['debit_amount'] as num).toDouble();
+        final dateMs = inv['date'] as int;
+        final baseDate = DateTime.fromMillisecondsSinceEpoch(dateMs);
+        final difference = now.difference(baseDate).inDays;
+
+        final amountToAllocate = invoiceAmount < remainingDebt ? invoiceAmount : remainingDebt;
+
+        if (difference > 60) {
+          customerReport['days_60_plus'] = (customerReport['days_60_plus'] as double) + amountToAllocate;
+        } else if (difference > 30) {
+          customerReport['days_30_60'] = (customerReport['days_30_60'] as double) + amountToAllocate;
+        } else {
+          customerReport['current'] = (customerReport['current'] as double) + amountToAllocate;
+        }
+
+        remainingDebt -= amountToAllocate;
       }
 
-      final dueDateMs = map['payment_due_date'] as int?;
-      final dateMs = map['date'] as int;
-      final baseDate = DateTime.fromMillisecondsSinceEpoch(dueDateMs ?? dateMs);
-      final difference = now.difference(baseDate).inDays;
-
-      if (difference > 60) {
-        reportMap[customerId]!['days_60_plus'] = (reportMap[customerId]!['days_60_plus'] as double) + pending;
-      } else if (difference > 30) {
-        reportMap[customerId]!['days_30_60'] = (reportMap[customerId]!['days_30_60'] as double) + pending;
-      } else {
-        reportMap[customerId]!['current'] = (reportMap[customerId]!['current'] as double) + pending;
+      // If there's STILL remaining debt (e.g., initial balances without invoice entries)
+      if (remainingDebt > 0.01) {
+          // Dump it in the oldest bucket
+          customerReport['days_60_plus'] = (customerReport['days_60_plus'] as double) + remainingDebt;
       }
-    }
 
-    // 3. Force alignment with Ledger balance (discrepancy adjustment FIFO-style)
-    for (var customerId in reportMap.keys.toList()) {
-        final ledgerBalance = customerLedgerBalances[customerId]!;
-        reportMap[customerId]!['total'] = ledgerBalance;
-        
-        final sumOfBuckets = (reportMap[customerId]!['current'] as double) + 
-                             (reportMap[customerId]!['days_30_60'] as double) + 
-                             (reportMap[customerId]!['days_60_plus'] as double);
-                             
-        final discrepancy = sumOfBuckets - ledgerBalance;
-        if (discrepancy != 0) {
-             double remainingReduction = discrepancy;
-             if (remainingReduction > 0) { 
-                  double currentBucket = reportMap[customerId]!['current'] as double;
-                  if (currentBucket >= remainingReduction) {
-                      reportMap[customerId]!['current'] = currentBucket - remainingReduction;
-                      remainingReduction = 0;
-                  } else {
-                      reportMap[customerId]!['current'] = 0.0;
-                      remainingReduction -= currentBucket;
-                  }
-                  
-                  if (remainingReduction > 0) {
-                      double days3060Bucket = reportMap[customerId]!['days_30_60'] as double;
-                      if (days3060Bucket >= remainingReduction) {
-                          reportMap[customerId]!['days_30_60'] = days3060Bucket - remainingReduction;
-                          remainingReduction = 0;
-                      } else {
-                          reportMap[customerId]!['days_30_60'] = 0.0;
-                          remainingReduction -= days3060Bucket;
-                      }
-                  }
-                  
-                  if (remainingReduction > 0) {
-                      double days60PlusBucket = reportMap[customerId]!['days_60_plus'] as double;
-                      if (days60PlusBucket >= remainingReduction) {
-                          reportMap[customerId]!['days_60_plus'] = days60PlusBucket - remainingReduction;
-                      } else {
-                          reportMap[customerId]!['days_60_plus'] = 0.0;
-                      }
-                  }
-             } else {
-                  reportMap[customerId]!['days_60_plus'] = (reportMap[customerId]!['days_60_plus'] as double) + (-remainingReduction);
-             }
-        }
-    }
-
-    // 4. Add clients with ledger debt but no active invoices
-    for (var entry in customerLedgerBalances.entries) {
-        if (!reportMap.containsKey(entry.key)) {
-             final cIndex = customers.indexWhere((c) => c.id == entry.key);
-             if (cIndex != -1) {
-                 reportMap[entry.key] = {
-                      'customer_id': entry.key,
-                      'customer_name': customers[cIndex].name,
-                      'current': 0.0,
-                      'days_30_60': 0.0,
-                      'days_60_plus': entry.value,
-                      'total': entry.value,
-                 };
-             }
-        }
+      reportMap[c.id!] = customerReport;
     }
 
     final result = reportMap.values.toList();
-    result
-        .sort((a, b) => (b['total'] as double).compareTo(a['total'] as double));
+    result.sort((a, b) => (b['total'] as double).compareTo(a['total'] as double));
     return result;
   }
 
@@ -2273,6 +2245,12 @@ class DatabaseService {
     final suppliers = await db.query('suppliers');
     final categories = await db.query('categories');
     final notes = await db.query('notes');
+    
+    // V10 y V12 tables
+    final inventoryMovements = await db.query('inventory_movements');
+    final entityLedgers = await db.query('entity_ledgers');
+    final payments = await db.query('payments');
+    final paymentAllocations = await db.query('payment_allocations');
 
     final version = await db.getVersion();
 
@@ -2287,6 +2265,10 @@ class DatabaseService {
         'suppliers': suppliers,
         'categories': categories,
         'notes': notes,
+        'inventory_movements': inventoryMovements,
+        'entity_ledgers': entityLedgers,
+        'payments': payments,
+        'payment_allocations': paymentAllocations,
       }
     };
   }

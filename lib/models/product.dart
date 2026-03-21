@@ -4,6 +4,7 @@ class Product {
   final String barcode;
   final double price;
   final double cost;
+  final double weightedAverageCost;
   final double stock; // Changed to double
   final int minStock;
   final int? categoryId;
@@ -22,6 +23,7 @@ class Product {
     required this.barcode,
     required this.price,
     required this.cost,
+    this.weightedAverageCost = 0.0,
     required this.stock,
     this.minStock = 0,
     this.categoryId,
@@ -54,6 +56,7 @@ class Product {
     String? barcode,
     double? price,
     double? cost,
+    double? weightedAverageCost,
     double? stock,
     int? minStock,
     int? categoryId,
@@ -70,6 +73,7 @@ class Product {
       barcode: barcode ?? this.barcode,
       price: price ?? this.price,
       cost: cost ?? this.cost,
+      weightedAverageCost: weightedAverageCost ?? this.weightedAverageCost,
       stock: stock ?? this.stock,
       minStock: minStock ?? this.minStock,
       categoryId: categoryId ?? this.categoryId,
@@ -89,6 +93,7 @@ class Product {
       'barcode': barcode,
       'price': price,
       'cost': cost,
+      'weighted_average_cost': weightedAverageCost,
       'stock': stock,
       'min_stock': minStock,
       'category_id': categoryId,
@@ -108,6 +113,7 @@ class Product {
       barcode: map['barcode'],
       price: map['price'],
       cost: map['cost'],
+      weightedAverageCost: (map['weighted_average_cost'] as num?)?.toDouble() ?? (map['cost'] as num?)?.toDouble() ?? 0.0,
       stock: (map['stock'] as num).toDouble(), // Handle int from old DB
       minStock: map['min_stock'] ?? 0,
       categoryId: map['category_id'],

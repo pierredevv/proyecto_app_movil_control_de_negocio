@@ -55,30 +55,38 @@ class SettingsScreen extends StatelessWidget {
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: RadioGroup<ThemeMode>(
-              groupValue: themeProvider.themeMode,
-              onChanged: (v) => themeProvider.setThemeMode(v!),
-              child: const Column(
-                children: [
-                  RadioListTile<ThemeMode>(
-                    title: Text('Seguir al sistema'),
-                    secondary: Icon(Icons.brightness_auto),
-                    value: ThemeMode.system,
-                  ),
-                  Divider(height: 1),
-                  RadioListTile<ThemeMode>(
-                    title: Text('Modo Claro'),
-                    secondary: Icon(Icons.light_mode),
-                    value: ThemeMode.light,
-                  ),
-                  Divider(height: 1),
-                  RadioListTile<ThemeMode>(
-                    title: Text('Modo Oscuro'),
-                    secondary: Icon(Icons.dark_mode),
-                    value: ThemeMode.dark,
-                  ),
-                ],
-              ),
+            child: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  title: const Text('Seguir al sistema'),
+                  secondary: const Icon(Icons.brightness_auto),
+                  value: ThemeMode.system,
+                  // ignore: deprecated_member_use
+                  groupValue: themeProvider.themeMode,
+                  // ignore: deprecated_member_use
+                  onChanged: (v) => themeProvider.setThemeMode(v!),
+                ),
+                const Divider(height: 1),
+                RadioListTile<ThemeMode>(
+                  title: const Text('Modo Claro'),
+                  secondary: const Icon(Icons.light_mode),
+                  value: ThemeMode.light,
+                  // ignore: deprecated_member_use
+                  groupValue: themeProvider.themeMode,
+                  // ignore: deprecated_member_use
+                  onChanged: (v) => themeProvider.setThemeMode(v!),
+                ),
+                const Divider(height: 1),
+                RadioListTile<ThemeMode>(
+                  title: const Text('Modo Oscuro'),
+                  secondary: const Icon(Icons.dark_mode),
+                  value: ThemeMode.dark,
+                  // ignore: deprecated_member_use
+                  groupValue: themeProvider.themeMode,
+                  // ignore: deprecated_member_use
+                  onChanged: (v) => themeProvider.setThemeMode(v!),
+                ),
+              ],
             ),
           ),
 

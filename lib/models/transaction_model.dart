@@ -95,7 +95,9 @@ class Sale extends Transaction {
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
       customerName: map['entity_name'],
-      amountPaid: (map['amount_paid'] ?? map['total_amount']).toDouble(),
+      amountPaid: map['amount_paid'] != null
+          ? (map['amount_paid'] as num).toDouble()
+          : (map['status'] == 'COMPLETED' ? (map['total_amount'] as num).toDouble() : 0.0),
       paymentDueDate: map['payment_due_date'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])
           : null,

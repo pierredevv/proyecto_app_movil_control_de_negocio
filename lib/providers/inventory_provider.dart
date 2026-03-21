@@ -329,9 +329,15 @@ class InventoryProvider extends ChangeNotifier {
         final index = _products.indexWhere((p) => p.id == item.productId);
         if (index != -1) {
           final p = _products[index];
+          final totalQty = p.stock + item.baseUnitsTotal;
+          final newWac = totalQty > 0
+              ? ((p.stock * p.weightedAverageCost) + (item.baseUnitsTotal * item.unitPrice)) / totalQty
+              : item.unitPrice;
+
           _products[index] = p.copyWith(
-            stock: p.stock + item.baseUnitsTotal,
+            stock: totalQty,
             cost: item.unitPrice,
+            weightedAverageCost: newWac,
           );
         }
       }
@@ -371,7 +377,7 @@ class InventoryProvider extends ChangeNotifier {
   // Valuation: Sum (Stock * Cost)
   double get totalInventoryValue {
     return _products.fold(0.0, (sum, product) {
-      return sum + (product.stock * product.cost);
+      return sum + (product.stock * product.weightedAverageCost);
     });
   }
 
