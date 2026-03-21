@@ -23,7 +23,7 @@ class SaleDetailScreen extends StatefulWidget {
 }
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
-  final bool _isSendingReceipt = false;
+  bool _isSendingReceipt = false;
 
   @override
   Widget build(BuildContext context) {
@@ -733,6 +733,14 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final messenger = ScaffoldMessenger.of(context);
     HapticFeedbackHelper.mediumImpact();
     
+    setState(() => _isSendingReceipt = true);
+    
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (mounted) {
+      setState(() => _isSendingReceipt = false);
+    }
+    
     messenger.showSnackBar(
       const SnackBar(
           content: Text('Función en desarrollo'),
@@ -873,7 +881,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Editar Transacción'),
         content: const Text(
-            'Para editar esta transacción, primero se anulará (revirtiendo el inventario y balances) y luego se cargará en el carrito para que la corrijas de forma segura.\n\n¿Deseas continuar?'),
+            'Para editar esta transacción, se cargará en el carrito. La venta original solo se anulará (revirtiendo inventario) cuando finalices el pago de esta nueva versión.\n\n¿Deseas continuar?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),

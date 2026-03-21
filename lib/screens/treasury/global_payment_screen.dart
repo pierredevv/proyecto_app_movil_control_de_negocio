@@ -387,7 +387,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                 ),
                 child: SafeArea(
                   child: ElevatedButton(
-                    onPressed: _pendingSales.isEmpty && _selectedCustomerId == null ? null : _submitPayment,
+                    onPressed: _selectedCustomerId == null ? null : _submitPayment,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,

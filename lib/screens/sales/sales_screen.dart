@@ -121,6 +121,9 @@ class _SalesScreenState extends State<SalesScreen> {
 
       if (context.mounted) {
         context.read<DashboardProvider>().loadDashboardData();
+        if (sale.customerId != null) {
+          context.read<CustomerProvider>().loadCustomers();
+        }
 
         // Show Success & Share
         _showSuccessSheet(context, sale);

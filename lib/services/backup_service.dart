@@ -306,49 +306,40 @@ class BackupService {
       dynamic txn, Map<String, dynamic> root) async {
     final data = root['data'] as Map<String, dynamic>;
 
-    // Clean
-    await txn.delete('notes');
-    await txn.delete('transaction_items');
-    await txn.delete('transactions');
-    await txn.delete('customers');
-    await txn.delete('products');
-    await txn.delete('categories');
-    await txn.delete('suppliers');
+    // Clean in correct order (respecting FK) 
+    await txn.delete('payment_allocations'); 
+    await txn.delete('payments'); 
+    await txn.delete('entity_ledgers'); 
+    await txn.delete('inventory_movements'); 
+    await txn.delete('sale_payments'); 
+    await txn.delete('notes'); 
+    await txn.delete('transaction_items'); 
+    await txn.delete('transactions'); 
+    await txn.delete('customers'); 
+    await txn.delete('products'); 
+    await txn.delete('categories'); 
+    await txn.delete('suppliers'); 
 
-    // Restore
-    if (data.containsKey('categories')) {
-      for (final row in data['categories']) {
-        await txn.insert('categories', row);
-      }
+    // Restore all tables, including new ones 
+    final tablesToRestore = [
+      'categories', 'suppliers', 'products', 'customers', 
+      'transactions', 'transaction_items', 'entity_ledgers', 
+      'inventory_movements', 'payments', 'payment_allocations', 'notes', 'sale_payments'
+    ];
+    
+    for (final tableName in tablesToRestore) { 
+      if (data.containsKey(tableName)) { 
+        for (final row in data[tableName]) { 
+          // Handle 'invoice_items' exported key mapping if needed
+          await txn.insert(tableName, row); 
+        } 
+      } 
     }
-    if (data.containsKey('suppliers')) {
-      for (final row in data['suppliers']) {
-        await txn.insert('suppliers', row);
-      }
-    }
-    if (data.containsKey('products')) {
-      for (final row in data['products']) {
-        await txn.insert('products', row);
-      }
-    }
-    if (data.containsKey('customers')) {
-      for (final row in data['customers']) {
-        await txn.insert('customers', row);
-      }
-    }
-    if (data.containsKey('transactions')) {
-      for (final row in data['transactions']) {
-        await txn.insert('transactions', row);
-      }
-    }
-    if (data.containsKey('invoice_items')) {
+    
+    // Fallback for legacy backups where transaction_items were exported as invoice_items
+    if (data.containsKey('invoice_items') && !data.containsKey('transaction_items')) {
       for (final row in data['invoice_items']) {
         await txn.insert('transaction_items', row);
-      }
-    }
-    if (data.containsKey('notes')) {
-      for (final row in data['notes']) {
-        await txn.insert('notes', row);
       }
     }
   }

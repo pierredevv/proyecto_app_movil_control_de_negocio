@@ -467,7 +467,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Editar Transacción'),
         content: const Text(
-            'Para editar esta transacción, primero se anulará (revirtiendo inventario y balances) y luego se te llevará al formulario para que puedas guardarla corregida.\n\n¿Deseas continuar?'),
+            'Al guardar la edición, la transacción anterior será anulada (revirtiendo inventario y balances) y se guardará la nueva.\n\n¿Deseas continuar?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -484,28 +484,13 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     if (confirm != true) return;
     if (!mounted) return;
 
-    try {
-      await _db.deletePurchase(_purchase.id!); // Void the previous one
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transacción anterior anulada. Cargando editor...'),
-            backgroundColor: Colors.blue,
-          ),
-        );
-      }
-
-      await _handleDuplicatePurchase();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al editar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PurchaseFormScreen(
+          initialTransactionToDuplicate: _purchase,
+          editingOriginalId: _purchase.id,
+        ),
+      ),
+    );
   }
 }

@@ -11,16 +11,19 @@ import '../../models/transaction_model.dart';
 import '../../models/supplier.dart';
 import '../../models/invoice_item.dart';
 import '../../models/product.dart';
+import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
   final Transaction? initialTransactionToDuplicate;
   final bool initialIsOrder;
+  final int? editingOriginalId;
 
   const PurchaseFormScreen({
     super.key,
     this.initialIsOrder = false,
     this.initialTransactionToDuplicate,
+    this.editingOriginalId,
   });
 
   @override
@@ -199,6 +202,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
           );
         }
+      }
+
+      if (widget.editingOriginalId != null) {
+        try {
+          await DatabaseService().deletePurchase(widget.editingOriginalId!);
+        } catch (_) {}
       }
 
       if (mounted) {
@@ -941,7 +950,26 @@ class _ProductSearchModal extends StatefulWidget {
 }
 
 class _ProductSearchModalState extends State<_ProductSearchModal> {
+  InventoryProvider? _inventoryProvider;
+  String _savedQuery = '';
   final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _inventoryProvider = context.read<InventoryProvider>();
+    _savedQuery = _inventoryProvider?.searchQuery ?? '';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _inventoryProvider?.setSearchQuery('');
+    });
+  }
+
+  @override
+  void dispose() {
+    _inventoryProvider?.setSearchQuery(_savedQuery);
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

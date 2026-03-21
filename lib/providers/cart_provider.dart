@@ -10,10 +10,17 @@ class CartProvider extends ChangeNotifier {
   final List<InvoiceItem> _items = [];
   Customer? _selectedCustomer;
   bool _isLoading = false;
+  int? _editingSaleId;
 
   List<InvoiceItem> get items => List.unmodifiable(_items);
   Customer? get selectedCustomer => _selectedCustomer;
   bool get isLoading => _isLoading;
+  int? get editingSaleId => _editingSaleId;
+
+  void setEditingSaleId(int? id) {
+    _editingSaleId = id;
+    notifyListeners();
+  }
 
   double get total => _items.fold(0, (sum, item) => sum + item.subtotal);
 
@@ -105,6 +112,7 @@ class CartProvider extends ChangeNotifier {
   void clearCart() {
     _items.clear();
     _selectedCustomer = null;
+    _editingSaleId = null;
     notifyListeners();
   }
 
@@ -140,6 +148,13 @@ class CartProvider extends ChangeNotifier {
 
       final id = await db.insertSale(sale, paymentMethod: paymentMethod);
       final completedSale = sale.copyWith(id: id);
+
+      if (_editingSaleId != null) {
+        try {
+          await db.deleteSale(_editingSaleId!);
+        } catch (_) {}
+        _editingSaleId = null;
+      }
 
       if (autoClear) {
         clearCart();
