@@ -306,6 +306,9 @@ class BackupService {
       dynamic txn, Map<String, dynamic> root) async {
     final data = root['data'] as Map<String, dynamic>;
 
+    // 1. Read sale_payments into memory BEFORE deletion
+    final legacySalePayments = data.containsKey('sale_payments') ? List.from(data['sale_payments']) : [];
+
     // Clean in correct order (respecting FK) 
     await txn.delete('payment_allocations'); 
     await txn.delete('payments'); 
@@ -320,12 +323,8 @@ class BackupService {
     await txn.delete('categories'); 
     await txn.delete('suppliers'); 
 
-    // Restore all tables, including new ones 
-    final tablesToRestore = [
-      'categories', 'suppliers', 'products', 'customers', 
-      'transactions', 'transaction_items', 'entity_ledgers', 
-      'inventory_movements', 'payments', 'payment_allocations', 'notes', 'sale_payments'
-    ];
+    // Restore all tables dynamically based on JSON keys
+    final tablesToRestore = data.keys.toList();
     
     for (final tableName in tablesToRestore) { 
       if (data.containsKey(tableName)) { 
@@ -343,29 +342,30 @@ class BackupService {
       }
     }
     
-    // Post-Restore Migration: If backup was pre-V13, manually transition sale_payments to payments
-    if (data.containsKey('sale_payments') && !data.containsKey('payments')) {
-        final oldPayments = await txn.rawQuery('''
-          SELECT sp.id, sp.sale_id, sp.amount, sp.date, sp.note, t.entity_id 
-          FROM sale_payments sp
-          JOIN transactions t ON sp.sale_id = t.id
-        ''');
-        for (var op in oldPayments) {
-          final entityId = op['entity_id'] as int?;
-          if (entityId == null) continue;
-          final newPaymentId = await txn.insert('payments', {
-              'entity_id': entityId,
-              'entity_type': 'CUSTOMER',
-              'amount': op['amount'],
-              'date': op['date'],
-              'payment_method': 'EFECTIVO',
-              'note': op['note'] ?? 'Historical anonymous sale payment'
-          });
-          await txn.insert('payment_allocations', {
-              'payment_id': newPaymentId,
-              'transaction_id': op['sale_id'],
-              'allocated_amount': op['amount']
-          });
+    // Post-Restore Migration: If backup was pre-V13, manually transition sale_payments to payments from memory
+    if (legacySalePayments.isNotEmpty && !data.containsKey('payments')) {
+        for (var op in legacySalePayments) {
+            // we need the customerId. t.entity_id from transactions
+            final transRecords = await txn.query('transactions', where: 'id = ?', whereArgs: [op['sale_id']]);
+            if (transRecords.isEmpty) continue;
+            
+            final entityId = transRecords.first['entity_id'] as int?;
+            if (entityId == null) continue; // Skip anonymous payments
+            
+            final newPaymentId = await txn.insert('payments', {
+                'entity_id': entityId,
+                'entity_type': 'CUSTOMER',
+                'amount': op['amount'],
+                'date': op['date'],
+                'payment_method': 'EFECTIVO', // Legacy default
+                'note': op['note'] ?? 'Historical anonymous sale payment'
+            });
+            
+            await txn.insert('payment_allocations', {
+                'payment_id': newPaymentId,
+                'transaction_id': op['sale_id'],
+                'allocated_amount': op['amount']
+            });
         }
     }
   }

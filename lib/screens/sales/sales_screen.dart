@@ -330,9 +330,13 @@ class _SalesScreenState extends State<SalesScreen> {
                                     '${item.productId}_$index'), // Unique key for animation
                                 index: index,
                                 item: item,
-                                canIncrement: ((item.quantity + 1) *
-                                        item.unitsPerSaleUnit) <=
-                                    product.stock,
+                                canIncrement: () {
+                                  final otherBaseUnits = cart.items
+                                      .where((i) => i.productId == item.productId && i != item)
+                                      .fold(0.0, (sum, i) => sum + i.baseUnitsTotal);
+                                  final nextBaseUnits = (item.quantity + 1) * item.unitsPerSaleUnit;
+                                  return nextBaseUnits + otherBaseUnits <= product.stock;
+                                }(),
                                 onUpdateQty: (qty) {
                                   try {
                                     cart.updateQuantity(

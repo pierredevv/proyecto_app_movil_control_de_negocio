@@ -279,8 +279,9 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                           pw.Expanded(
                               flex: 2,
                               child: pw.Text(
-                                  (item.subtotal / item.quantity)
-                                      .toStringAsFixed(2),
+                                  item.quantity > 0 
+                                      ? (item.subtotal / item.quantity).toStringAsFixed(2)
+                                      : '0.00',
                                   textAlign: pw.TextAlign.center,
                                   style: pw.TextStyle(
                                       color: textColor, fontSize: 7))),

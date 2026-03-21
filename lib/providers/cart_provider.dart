@@ -88,11 +88,13 @@ class CartProvider extends ChangeNotifier {
     final targetItem = _items[index];
     final baseUnitsRequested = newQuantity * targetItem.unitsPerSaleUnit;
 
-    // Validate using Base Units metrics
-    if (baseUnitsRequested > maxBaseStock) {
-      final otherBaseUnitsInCart = _items
-          .where((item) => item.productId == targetItem.productId && item != targetItem)
-          .fold(0.0, (sum, item) => sum + item.baseUnitsTotal);
+    // Sum other entries of this exact product already sitting in the active cart
+    final otherBaseUnitsInCart = _items
+        .where((item) => item.productId == targetItem.productId && item != targetItem)
+        .fold(0.0, (sum, item) => sum + item.baseUnitsTotal);
+
+    // Validate using Base Units metrics cumulatively
+    if (baseUnitsRequested + otherBaseUnitsInCart > maxBaseStock) {
       final freeBaseUnits = maxBaseStock - otherBaseUnitsInCart;
       final maxAvailableOptionUnits = freeBaseUnits > 0 ? freeBaseUnits / targetItem.unitsPerSaleUnit : 0.0;
       throw Exception(

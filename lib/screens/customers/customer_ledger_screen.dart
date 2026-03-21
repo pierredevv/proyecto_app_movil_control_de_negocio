@@ -22,7 +22,7 @@ class CustomerLedgerScreen extends StatefulWidget {
   State<CustomerLedgerScreen> createState() => _CustomerLedgerScreenState();
 }
 
-class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
+class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with WidgetsBindingObserver {
   final DatabaseService _db = DatabaseService();
   List<Sale> _pendingSales = [];
   bool _isLoading = true;
@@ -30,7 +30,24 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLedger();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        _loadLedger();
+        context.read<CustomerProvider>().loadCustomers();
+      }
+    }
   }
 
   Future<void> _loadLedger() async {

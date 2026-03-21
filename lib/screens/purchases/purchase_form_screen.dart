@@ -132,6 +132,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   double get _totalAmount => _items.fold(0, (sum, item) => sum + item.subtotal);
 
   Future<void> _save() async {
+    final inventory = context.read<InventoryProvider>();
     if (_items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -170,6 +171,22 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     if (!mounted) return;
 
     try {
+      if (widget.editingOriginalId != null) {
+        try {
+          await DatabaseService().deletePurchase(widget.editingOriginalId!);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error crítico: la compra original no pudo ser anulada: $e'),
+                backgroundColor: AppTheme.redAccent,
+              ),
+            );
+          }
+          return; // Abort saving the new purchase so we don't multiply stock
+        }
+      }
+
       if (_isOrder) {
         final order = Order(
           date: _selectedDate,
@@ -178,7 +195,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           items: _items,
           status: 'PENDING',
         );
-        await context.read<InventoryProvider>().addOrder(order);
+        await inventory.addOrder(order);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -196,7 +213,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           status: 'COMPLETED',
         );
 
-        await context.read<InventoryProvider>().addPurchase(purchase);
+        await inventory.addPurchase(purchase);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -204,21 +221,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               backgroundColor: AppTheme.greenAccent,
             ),
           );
-        }
-      }
-
-      if (widget.editingOriginalId != null) {
-        try {
-          await DatabaseService().deletePurchase(widget.editingOriginalId!);
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Aviso: la compra original no pudo ser anulada: $e'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
         }
       }
 
@@ -784,16 +786,16 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   void _updateValues() {
     final rawQty = double.tryParse(_qtyController.text) ?? 0;
     final cost = double.tryParse(_costController.text) ?? 0.0;
-    final multiplier = _isBox ? widget.product.unitsPerSaleUnit : 1.0;
     
-    final totalQty = rawQty * multiplier;
-    final unitPrice = multiplier > 0 ? (cost / multiplier) : cost;
+    // Option A: keep quantity in sale units, unitPrice in sale units
+    // The InvoiceItem's baseUnitsTotal will inherently handle unitsPerSaleUnit scaling.
+    final unitPrice = cost;
 
-    if (totalQty != widget.item.quantity || unitPrice != widget.item.unitPrice) {
+    if (rawQty != widget.item.quantity || unitPrice != widget.item.unitPrice) {
       widget.onChanged(widget.item.copyWith(
-        quantity: totalQty,
+        quantity: rawQty,
         unitPrice: unitPrice,
-        subtotal: totalQty * unitPrice,
+        subtotal: rawQty * unitPrice,
       ));
     }
   }

@@ -212,6 +212,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           final db = await _db.database;
           final results = await db
               .query('customers', where: 'id = ?', whereArgs: [t.customerId]);
+          if (!mounted) return;
           if (results.isNotEmpty) {
             cart.setCustomer(Customer.fromMap(results.first));
           }

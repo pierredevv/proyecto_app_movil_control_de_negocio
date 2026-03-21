@@ -377,14 +377,15 @@ class DatabaseService {
            final genericPayments = await txn.query('transactions', where: "type = 'payment' AND status != 'VOIDED'");
            for (var gp in genericPayments) {
               final entityId = gp['entity_id'] as int?;
+              if (entityId == null) continue;
               
               await txn.insert('payments', {
-                  'entity_id': entityId ?? 0,
+                  'entity_id': entityId,
                   'entity_type': 'CUSTOMER',
                   'amount': gp['total_amount'],
                   'date': gp['date'],
                   'payment_method': 'EFECTIVO', // Legacy default
-                  'note': entityId == null ? 'Pago huérfano (Migración v13)' : 'Abono histórico'
+                  'note': 'Abono histórico'
               });
            }
            // We do NOT delete the generic transactions to keep the ledger and history intact.
@@ -1077,7 +1078,7 @@ class DatabaseService {
       }
 
       // 6. If a down payment is recorded, create entry in payments and allocation
-      if (sale.amountPaid > 0) {
+      if (sale.amountPaid > 0 && sale.customerId != null) {
         final paymentId = await txn.insert('payments', {
           'entity_id': sale.customerId,
           'entity_type': 'CUSTOMER',
@@ -1666,6 +1667,7 @@ class DatabaseService {
       final payment = results.first;
       final amount = (payment['total_amount'] as num).toDouble();
       final customerId = payment['entity_id'] as int?;
+      final date = payment['date'] as int?;
 
       // 2. Revert customer debt (they owe us again since payment was voided)
       if (customerId != null) {
@@ -1677,8 +1679,8 @@ class DatabaseService {
         // 3. Find and cancel corresponding payment in V13 treasury system
         final paymentRecords = await txn.query(
           'payments',
-          where: 'entity_id = ? AND entity_type = ? AND amount = ?',
-          whereArgs: [customerId, 'CUSTOMER', amount],
+          where: 'entity_id = ? AND entity_type = ? AND amount = ? AND date >= ? AND date <= ?',
+          whereArgs: [customerId, 'CUSTOMER', amount, date! - 5000, date + 5000],
           orderBy: 'date DESC',
           limit: 1,
         );
@@ -2080,7 +2082,7 @@ class DatabaseService {
     List<dynamic> args = [];
 
     if (type != null) {
-      whereClause += ' AND type = ?';
+      whereClause += " AND type = ? AND status != 'VOIDED'";
       args.add(type);
     }
 
@@ -2376,7 +2378,7 @@ class DatabaseService {
         'products': products,
         'customers': customers,
         'transactions': transactions,
-        'invoice_items': invoiceItems,
+        'transaction_items': invoiceItems,
         'suppliers': suppliers,
         'categories': categories,
         'notes': notes,

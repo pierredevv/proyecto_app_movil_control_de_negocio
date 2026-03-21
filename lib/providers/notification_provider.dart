@@ -43,6 +43,7 @@ class NotificationProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error checking low stock: $e');
     }
+    notifyListeners();
   }
 
   Future<void> checkPendingSales() async {

@@ -329,15 +329,18 @@ class InventoryProvider extends ChangeNotifier {
         final index = _products.indexWhere((p) => p.id == item.productId);
         if (index != -1) {
           final p = _products[index];
+          final unitCostInBaseUnits = item.unitsPerSaleUnit > 0 
+              ? item.unitPrice / item.unitsPerSaleUnit 
+              : item.unitPrice;
           final totalQty = p.stock + item.baseUnitsTotal;
           final newInvestment = item.quantity * item.unitPrice;
           final newWac = totalQty > 0
               ? ((p.stock * p.weightedAverageCost) + newInvestment) / totalQty
-              : item.unitPrice;
+              : unitCostInBaseUnits;
 
           _products[index] = p.copyWith(
             stock: totalQty,
-            cost: item.unitPrice,
+            cost: unitCostInBaseUnits,
             weightedAverageCost: newWac,
           );
         }
