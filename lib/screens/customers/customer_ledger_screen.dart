@@ -141,12 +141,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   @override
   Widget build(BuildContext context) {
     // Get real-time debt
-    final totalDebt = context
-        .watch<CustomerProvider>()
-        .customers
-        .firstWhere((c) => c.id == widget.customerId,
-            orElse: () => throw Exception('Cliente no encontrado'))
-        .totalDebt;
+    final customers = context.watch<CustomerProvider>().customers;
+    final idx = customers.indexWhere((c) => c.id == widget.customerId);
+    final totalDebt = idx >= 0 ? customers[idx].totalDebt : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFF151924),

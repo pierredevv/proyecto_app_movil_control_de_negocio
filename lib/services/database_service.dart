@@ -300,8 +300,8 @@ class DatabaseService {
                 'transaction_source_type': 'PURCHASE',
                 'transaction_reference_id': id,
                 'date': date,
-                'debit_amount': 0.0,
-                'credit_amount': totalAmount, // Interpreting running balance as "how much we owe them" for supplier, wait. For symmetry, DEBIT is what creates obligation FOR THEM to pay US. Standard accounting: Customers owe us = our Asset (Debit). We owe suppliers = our Liability (Credit). In both cases a positive running balance means owed money. Customer positive balance = they owe us. Supplier positive balance = we owe them.
+                'debit_amount': totalAmount,
+                'credit_amount': 0.0,
                 'materialized_running_balance': currentBalance,
                 'note': 'Compra Histórica',
               });
@@ -1126,7 +1126,8 @@ class DatabaseService {
       // 5. Compensating Ledger entries for Voiding AND Decrease Customer Debt if it was a credit sale (NUEVO)
       final customerId = transaction.first['entity_id'];
       if (customerId != null) {
-        final totalAmount = transaction.first['total_amount'] as num;
+        final totalAmount = (transaction.first['total_amount'] as num).toDouble();
+        final amountPaid = (transaction.first['amount_paid'] as num?)?.toDouble() ?? 0.0;
 
         // 5a. Ledger compensation
         final ledgerQuery = await txn.query(
@@ -1151,13 +1152,15 @@ class DatabaseService {
             'note': 'Anulación de Venta'
         });
         
+        final pendingAmount = totalAmount - amountPaid;
+
         // Clear payment allocations mapping to this sale so funds become unallocated global credit
         await txn.delete('payment_allocations', where: 'transaction_id = ?', whereArgs: [saleId]);
 
-        // 5b. Update legacy customer debt (reduce by entire amount)
+        // 5b. Update legacy customer debt (reduce by pending amount)
         await txn.rawUpdate(
           'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',
-          [totalAmount, customerId],
+          [pendingAmount, customerId],
         );
       }
     });
@@ -1265,10 +1268,13 @@ class DatabaseService {
     final db = await database;
 
     return await db.transaction((txn) async {
-       // Validate against total debt
-       final customerQuery = await txn.query('customers', where: 'id = ?', whereArgs: [customerId]);
-       if (customerQuery.isEmpty) throw Exception('Cliente no encontrado');
-       final currentDebt = (customerQuery.first['total_debt'] as num).toDouble();
+       // Validate against real ledger debt
+       final initialLedgerQuery = await txn.query('entity_ledgers',
+           where: 'entity_type = ? AND entity_id = ?',
+           whereArgs: ['CUSTOMER', customerId],
+           orderBy: 'date DESC, id DESC',
+           limit: 1);
+       final currentDebt = initialLedgerQuery.isNotEmpty ? (initialLedgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
        if (totalAmount > currentDebt + 0.01) {
           throw Exception('El abono excede la deuda total del cliente.');
        }
@@ -1533,19 +1539,20 @@ class DatabaseService {
       final ledgerQuery = await txn.query(
           'entity_ledgers',
           where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['customer', customerId],
+          whereArgs: ['CUSTOMER', customerId],
           orderBy: 'date DESC',
           limit: 1);
       double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
       await txn.insert('entity_ledgers', {
-          'entity_type': 'customer',
+          'entity_type': 'CUSTOMER',
           'entity_id': customerId,
-          'reference_type': 'payment',
-          'reference_id': id,
+          'transaction_source_type': 'PAYMENT',
+          'transaction_reference_id': id,
           'date': DateTime.now().millisecondsSinceEpoch,
           'debit_amount': 0.0,
           'credit_amount': amount,
           'materialized_running_balance': currentBalance - amount,
+          'note': 'Registro de Abono',
       });
 
       return id;
@@ -1577,19 +1584,20 @@ class DatabaseService {
         final ledgerQuery = await txn.query(
             'entity_ledgers',
             where: 'entity_type = ? AND entity_id = ?',
-            whereArgs: ['customer', customerId],
+            whereArgs: ['CUSTOMER', customerId],
             orderBy: 'date DESC',
             limit: 1);
         double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
         await txn.insert('entity_ledgers', {
-            'entity_type': 'customer',
+            'entity_type': 'CUSTOMER',
             'entity_id': customerId,
-            'reference_type': 'void_payment',
-            'reference_id': paymentId,
+            'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
+            'transaction_reference_id': paymentId,
             'date': DateTime.now().millisecondsSinceEpoch,
             'debit_amount': amount,
             'credit_amount': 0.0,
             'materialized_running_balance': currentBalance + amount,
+            'note': 'Anulación de Abono',
         });
       }
 
@@ -1737,7 +1745,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
-      where: 'type = ?',
+      where: "type = ? AND status NOT IN ('VOIDED', 'CANCELLED')",
       whereArgs: ['order'],
       orderBy: 'date DESC',
       limit: limit,

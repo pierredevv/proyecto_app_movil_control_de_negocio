@@ -18,9 +18,10 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
   late List<StockStatus> _selectedStockStatuses;
   late RangeValues _priceRange;
 
-  // Controllers for Stock Range Inputs
   final TextEditingController _minStockController = TextEditingController();
   final TextEditingController _maxStockController = TextEditingController();
+  final TextEditingController _categorySearchController = TextEditingController();
+  String _categorySearchQuery = '';
 
   @override
   void initState() {
@@ -37,12 +38,19 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
       _minStockController.text = provider.stockRange!.start.toStringAsFixed(0);
       _maxStockController.text = provider.stockRange!.end.toStringAsFixed(0);
     }
+    
+    _categorySearchController.addListener(() {
+      setState(() {
+        _categorySearchQuery = _categorySearchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _minStockController.dispose();
     _maxStockController.dispose();
+    _categorySearchController.dispose();
     super.dispose();
   }
 
@@ -76,6 +84,8 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
       _priceRange = const RangeValues(0, 500);
       _minStockController.clear();
       _maxStockController.clear();
+      _categorySearchController.clear();
+      _categorySearchQuery = '';
     });
   }
 
@@ -362,6 +372,10 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
 
   // ==== 6 & 7. CATEGORIES SECTION ====
   Widget _buildCategoriesSection(List<Category> categories) {
+    final filteredCategories = categories
+        .where((c) => c.name.toLowerCase().contains(_categorySearchQuery))
+        .toList();
+        
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -382,9 +396,10 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             borderRadius: BorderRadius.circular(12),
             child: BackdropFilter(
               filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: const TextField(
-                style: TextStyle(color: Colors.white, fontSize: 15),
-                decoration: InputDecoration(
+              child: TextField(
+                controller: _categorySearchController,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: const InputDecoration(
                   hintText: 'Buscar categoría...',
                   hintStyle: TextStyle(
                     color: Color(0xFF6B7494),
@@ -404,7 +419,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: categories.map((c) => _buildCategoryChip(c)).toList(),
+          children: filteredCategories.map((c) => _buildCategoryChip(c)).toList(),
         ),
       ],
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/import_provider.dart';
 import '../../theme/app_theme.dart';
 import 'import_preview_screen.dart';
 
@@ -78,13 +80,23 @@ class _ColumnMapperScreenState extends State<ColumnMapperScreen> {
                 child: ElevatedButton(
                   onPressed: selectedNameCol != null
                       ? () {
-                          // Logic to re-process explicitly matching columns overrides.
-                          // Provider mapping ...
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const ImportPreviewScreen()),
-                          );
+                          final headers = widget.availableHeaders;
+                          final explicitMap = <String, int>{};
+                          if (selectedNameCol != null) explicitMap['name'] = headers.indexOf(selectedNameCol!);
+                          if (selectedBarcodeCol != null) explicitMap['barcode'] = headers.indexOf(selectedBarcodeCol!);
+                          if (selectedPriceCol != null) explicitMap['price'] = headers.indexOf(selectedPriceCol!);
+                          if (selectedCostCol != null) explicitMap['cost'] = headers.indexOf(selectedCostCol!);
+                          if (selectedStockCol != null) explicitMap['stock'] = headers.indexOf(selectedStockCol!);
+                          if (selectedCategoryCol != null) explicitMap['category'] = headers.indexOf(selectedCategoryCol!);
+                          
+                          context.read<ImportProvider>().applyManualMapping(explicitMap).then((_) {
+                            if (!context.mounted) return;
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ImportPreviewScreen(key: ValueKey('from_override'))),
+                            );
+                          });
                         }
                       : null,
                   style: ElevatedButton.styleFrom(

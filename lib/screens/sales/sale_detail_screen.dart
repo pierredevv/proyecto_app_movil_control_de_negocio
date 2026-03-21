@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../models/sale_unit_option.dart';
 import '../../utils/haptic_feedback_helper.dart';
-import '../../services/network_service.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../utilities/print_preview_screen.dart';
 import '../../services/database_service.dart';
@@ -24,7 +23,7 @@ class SaleDetailScreen extends StatefulWidget {
 }
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
-  bool _isSendingReceipt = false;
+  final bool _isSendingReceipt = false;
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +420,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   _buildSummaryRow(
                       'Descuento', 0.00, currencyFormat, subTextColor),
                   const SizedBox(height: 12),
-                  _buildSummaryRow('IVA (13%)', widget.sale.totalAmount * 0.13,
+                  _buildSummaryRow('IVA Incluido (13%)', widget.sale.totalAmount * 13 / 113,
                       currencyFormat, subTextColor),
                   const SizedBox(height: 16),
                   Divider(color: dividerColor),
@@ -733,32 +732,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Future<void> _handleSendReceipt() async {
     final messenger = ScaffoldMessenger.of(context);
     HapticFeedbackHelper.mediumImpact();
-    setState(() => _isSendingReceipt = true);
-
-    try {
-      final hasConnection = await NetworkService.hasConnection;
-      if (!hasConnection) {
-        if (mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-                content: Text('Sin conexión a internet'),
-                backgroundColor: Colors.orange),
-          );
-        }
-        return;
-      }
-
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-              content: Text('Recibo enviado correctamente'),
-              backgroundColor: Colors.green),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSendingReceipt = false);
-    }
+    
+    messenger.showSnackBar(
+      const SnackBar(
+          content: Text('Función en desarrollo'),
+          backgroundColor: Colors.blueAccent),
+    );
   }
 
   Future<void> _handleVoidSale() async {

@@ -56,9 +56,7 @@ class NotificationsScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 20),
                       child: const Icon(Icons.delete, color: Colors.white)),
                   onDismissed: (direction) {
-                    // Note: Provider doesn't have delete one yet, using mark read/ignore for UI demo or implement delete single later.
-                    // For now just assume it clears from list.
-                    // Ideally implement removeNotification(id) in provider.
+                    context.read<NotificationProvider>().removeNotification(notification.id);
                   },
                   child: Container(
                     color: notification.isRead

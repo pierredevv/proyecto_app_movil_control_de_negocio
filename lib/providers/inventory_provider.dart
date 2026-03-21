@@ -330,8 +330,9 @@ class InventoryProvider extends ChangeNotifier {
         if (index != -1) {
           final p = _products[index];
           final totalQty = p.stock + item.baseUnitsTotal;
+          final newInvestment = item.quantity * item.unitPrice;
           final newWac = totalQty > 0
-              ? ((p.stock * p.weightedAverageCost) + (item.baseUnitsTotal * item.unitPrice)) / totalQty
+              ? ((p.stock * p.weightedAverageCost) + newInvestment) / totalQty
               : item.unitPrice;
 
           _products[index] = p.copyWith(

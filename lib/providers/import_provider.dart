@@ -99,4 +99,25 @@ class ImportProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> applyManualMapping(Map<String, int> explicitMapping) async {
+    if (_parseResult == null) return;
+    
+    _step = ImportStep.parsing;
+    notifyListeners();
+    
+    try {
+      _parseResult = await ImportService.parseWithOverrides(
+        _parseResult!.rawHeaders,
+        _parseResult!.rawStringRows,
+        explicitMapping
+      );
+      _step = ImportStep.preview;
+      notifyListeners();
+    } catch (e) {
+      _step = ImportStep.error;
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
 }

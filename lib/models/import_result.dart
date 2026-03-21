@@ -59,10 +59,14 @@ class ImportParseResult {
   final List<ProductImportRow> rows;
   final List<ImportRowError> errors;
   final Map<String, String> columnMapping;
+  final List<String> rawHeaders;
+  final List<List<String>> rawStringRows;
 
   ImportParseResult({
     required this.rows,
     required this.errors,
     required this.columnMapping,
+    required this.rawHeaders,
+    required this.rawStringRows,
   });
 }

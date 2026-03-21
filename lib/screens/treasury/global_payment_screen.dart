@@ -222,11 +222,9 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                           child: Text(c.name),
                         );
                       }).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedCustomerId = val;
-                          _loadPendingSales();
-                        });
+                      onChanged: (val) async {
+                        setState(() => _selectedCustomerId = val);
+                        await _loadPendingSales();
                       },
                     ),
                     const SizedBox(height: 16),

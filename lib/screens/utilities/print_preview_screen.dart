@@ -361,7 +361,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                       color: textColor,
                       barcode: pw.Barcode.qrCode(),
                       data:
-                          'https://siat.impuestos.gob.bo/consulta/QR?nit=1020304050&cuf=F09A',
+                          'https://siat.impuestos.gob.bo/consulta/QR?nit=${profile.nit}&cuf=F09A',
                       drawText: false,
                     ),
                   ),
@@ -733,6 +733,8 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
   }
 
   Widget _buildTicketPreview() {
+    final profile = context.read<SettingsProvider>().profile;
+    
     String entityName = 'Consumidor Final';
     if (widget.transaction is Sale &&
         (widget.transaction as Sale).customerName != null &&
@@ -799,7 +801,8 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
           Text('SANTA CRUZ',
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
-          Text('NIT: 1020304050',
+          if (profile.showNitOnInvoice && profile.nit.isNotEmpty)
+            Text('NIT: ${profile.nit}',
               style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,

@@ -56,7 +56,6 @@ class NotificationProvider extends ChangeNotifier {
 
   Future<void> checkOverdueSales() async {
     try {
-      _pendingSalesCount = await _db.getPendingSalesCount();
       final overdueSales = await _db.getOverdueSales();
 
       for (var map in overdueSales) {

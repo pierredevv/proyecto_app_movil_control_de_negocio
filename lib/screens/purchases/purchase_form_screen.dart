@@ -223,8 +223,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       resizeToAvoidBottomInset: false,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Registrar Compra Refinado',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(_isOrder ? 'Nuevo Pedido' : 'Registrar Compra',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
