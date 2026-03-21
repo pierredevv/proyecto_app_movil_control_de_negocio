@@ -5,10 +5,10 @@ import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../models/customer.dart';
 import 'customer_form_screen.dart';
-import '../../utils/input_validators.dart';
+
 import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
 import 'customer_ledger_screen.dart';
-
+import '../treasury/global_payment_screen.dart';
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({super.key});
 
@@ -19,62 +19,16 @@ class CustomerListScreen extends StatefulWidget {
 class _CustomerListScreenState extends State<CustomerListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  Future<void> _showPaymentDialog(Customer customer) async {
-    final controller = TextEditingController();
-    final shouldSave = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Registrar Pago: ${customer.name}'),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Monto del Pago (Bs.)',
-            prefixText: 'Bs. ',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Guardar')),
-        ],
+  void _navigateToGlobalPayment(Customer customer) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GlobalPaymentScreen(initialCustomerId: customer.id),
       ),
-    );
-
-    if (!mounted) return;
-
-    if (shouldSave == true) {
-      final error = InputValidators.validatePaymentAmount(
-          controller.text, customer.totalDebt);
-
-      if (error != null) {
-        if (error.contains('⚠️')) {
-          InputValidators.showValidationWarning(context, error);
-          return;
-        }
-        InputValidators.showValidationError(context, error);
-        return;
-      }
-
-      final amount = double.tryParse(controller.text)!;
-
-      try {
-        await context.read<CustomerProvider>().addPayment(customer.id!, amount);
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pago registrado exitosamente')),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        InputValidators.showValidationError(context, 'Error: $e');
-      }
-    }
+    ).then((_) {
+      if (!mounted) return;
+      context.read<CustomerProvider>().loadCustomers();
+    });
   }
 
   @override
@@ -180,7 +134,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           Widget card = _CustomerGlassCard(
                             customer: customer,
                             onTap: () => _navigateToForm(context, customer),
-                            onPaymentTap: () => _showPaymentDialog(customer),
+                            onPaymentTap: () => _navigateToGlobalPayment(customer),
                             onEditTap: () => _navigateToForm(context, customer),
                             onLedgerTap: () {
                               Navigator.push(

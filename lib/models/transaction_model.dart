@@ -109,6 +109,8 @@ class Sale extends Transaction {
 class Purchase extends Transaction {
   final int? supplierId;
   final String? supplierName;
+  final double amountPaid;
+  final DateTime? paymentDueDate;
 
   Purchase({
     super.id,
@@ -118,7 +120,17 @@ class Purchase extends Transaction {
     super.items,
     this.supplierId,
     this.supplierName,
+    this.amountPaid = 0.0,
+    this.paymentDueDate,
   }) : super(type: TransactionType.purchase);
+
+  double get pendingAmount => totalAmount - amountPaid;
+  bool get isFullyPaid => pendingAmount <= 0;
+  String get paymentStatus {
+    if (amountPaid <= 0) return 'CREDIT';
+    if (pendingAmount > 0) return 'PARTIAL';
+    return 'COMPLETED';
+  }
 
   @override
   Map<String, dynamic> toMap() {
@@ -129,6 +141,8 @@ class Purchase extends Transaction {
       'entity_name': supplierName, // Storing name directly for simple purchases
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'amount_paid': amountPaid,
+      'payment_due_date': paymentDueDate?.millisecondsSinceEpoch,
       'status': status,
     };
   }
@@ -141,6 +155,12 @@ class Purchase extends Transaction {
       status: map['status'] ?? 'COMPLETED',
       supplierId: map['entity_id'],
       supplierName: map['entity_name'],
+      amountPaid: map['amount_paid'] != null
+          ? (map['amount_paid'] as num).toDouble()
+          : (map['status'] == 'COMPLETED' ? (map['total_amount'] as num).toDouble() : 0.0),
+      paymentDueDate: map['payment_due_date'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])
+          : null,
       items: items,
     );
   }

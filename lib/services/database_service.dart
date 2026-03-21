@@ -84,7 +84,7 @@ class DatabaseService {
         await db.execute('ALTER TABLE products ADD COLUMN supplier_id INTEGER');
       } catch (e) {
         // Column might already exist if dev re-ran code
-        debugPrint('Error adding supplier_id column: \$e');
+        debugPrint('Error adding supplier_id column: $e');
       }
     }
     if (oldVersion < 4) {
@@ -95,7 +95,7 @@ class DatabaseService {
         await db.execute(
             "ALTER TABLE products ADD COLUMN units_per_box REAL DEFAULT 1.0");
       } catch (e) {
-        debugPrint('Error adding V4 columns: \$e');
+        debugPrint('Error adding V4 columns: $e');
       }
     }
     if (oldVersion < 5) {
@@ -103,7 +103,7 @@ class DatabaseService {
       try {
         await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
       } catch (e) {
-        debugPrint('Error adding image_path column: \$e');
+        debugPrint('Error adding image_path column: $e');
       }
     }
     if (oldVersion < 6) {
@@ -112,7 +112,7 @@ class DatabaseService {
         await db.execute(
             "ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1");
       } catch (e) {
-        debugPrint('Error adding is_active column: \$e');
+        debugPrint('Error adding is_active column: $e');
       }
     }
     if (oldVersion < 7) {
@@ -137,7 +137,7 @@ class DatabaseService {
         //   WHERE units_per_box > 1 AND is_active = 1
         // ''');
       } catch (e) {
-        debugPrint('Error adding V8 properties: \$e');
+        debugPrint('Error adding V8 properties: $e');
       }
     }
     if (oldVersion < 9) {
@@ -145,7 +145,7 @@ class DatabaseService {
         await db.execute(
             "ALTER TABLE transactions ADD COLUMN reference_id INTEGER");
       } catch (e) {
-        debugPrint('Error adding reference_id: \$e');
+        debugPrint('Error adding reference_id: $e');
       }
     }
     if (oldVersion < 10) {
@@ -168,7 +168,7 @@ class DatabaseService {
         await db.execute(
             "UPDATE transactions SET amount_paid = total_amount WHERE type = 'sale' AND status = 'COMPLETED'");
       } catch (e) {
-        debugPrint('Error adding V10 details: \$e');
+        debugPrint('Error adding V10 details: $e');
       }
     }
     if (oldVersion < 11) {
@@ -198,7 +198,7 @@ class DatabaseService {
         // Migrate existing cost to WAC for existing products
         await db.execute("UPDATE products SET weighted_average_cost = cost");
       } catch (e) {
-        debugPrint('Error adding V11 details: \$e');
+        debugPrint('Error adding V11 details: $e');
       }
     }
     if (oldVersion < 12) {
@@ -311,7 +311,7 @@ class DatabaseService {
           }
         });
       } catch (e) {
-        debugPrint('Error adding V12 details (Ledger): \$e');
+        debugPrint('Error adding V12 details (Ledger): $e');
       }
     }
     
@@ -391,7 +391,7 @@ class DatabaseService {
            // However, from now on, all UI will read from 'payments'.
         });
       } catch (e) {
-        debugPrint('Error adding V13 details (Treasury): \$e');
+        debugPrint('Error adding V13 details (Treasury): $e');
       }
     }
   }
@@ -1389,17 +1389,37 @@ class DatabaseService {
        );
        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
        
-       await txn.insert('entity_ledgers', {
-           'entity_type': 'CUSTOMER',
-           'entity_id': customerId,
-           'transaction_source_type': 'PAYMENT',
-           'transaction_reference_id': paymentId, // We use paymentId as reference
-           'date': DateTime.now().millisecondsSinceEpoch,
-           'debit_amount': 0.0,
-           'credit_amount': totalAmount,
-           'materialized_running_balance': currentBalance - totalAmount,
-           'note': note ?? 'Abono Global ($paymentMethod)',
-       });
+       final double unallocated = totalAmount - totalAllocated;
+       final double applied = totalAmount - unallocated;
+       final int timestamp = DateTime.now().millisecondsSinceEpoch;
+
+       if (applied > 0) {
+         await txn.insert('entity_ledgers', {
+             'entity_type': 'CUSTOMER',
+             'entity_id': customerId,
+             'transaction_source_type': 'PAYMENT',
+             'transaction_reference_id': paymentId,
+             'date': timestamp,
+             'debit_amount': 0.0,
+             'credit_amount': applied,
+             'materialized_running_balance': currentBalance - applied,
+             'note': note ?? 'Abono Global ($paymentMethod)',
+         });
+       }
+
+       if (unallocated > 0) {
+         await txn.insert('entity_ledgers', {
+             'entity_type': 'CUSTOMER',
+             'entity_id': customerId,
+             'transaction_source_type': 'CREDIT_BALANCE',
+             'transaction_reference_id': paymentId,
+             'date': timestamp + 1, // Avoid overlapping exactly the same ms
+             'debit_amount': 0.0,
+             'credit_amount': unallocated,
+             'materialized_running_balance': currentBalance - totalAmount,
+             'note': 'Saldo a favor (Anticipo) - $paymentMethod',
+         });
+       }
 
        await txn.rawUpdate(
          'UPDATE customers SET total_debt = total_debt - ? WHERE id = ?',

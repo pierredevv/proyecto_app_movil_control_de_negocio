@@ -210,7 +210,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       if (widget.editingOriginalId != null) {
         try {
           await DatabaseService().deletePurchase(widget.editingOriginalId!);
-        } catch (_) {}
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Aviso: la compra original no pudo ser anulada: $e'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       }
 
       if (mounted) {

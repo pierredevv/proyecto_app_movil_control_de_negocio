@@ -232,13 +232,29 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_cashTendered < 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Monto inválido')),
                       );
                       return;
                     }
+                    if (_cashTendered == 0) {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Venta al Crédito'),
+                          content: const Text('¿Deseas registrar esta venta totalmente al crédito (sin pago inicial)?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+                          ],
+                        ),
+                      );
+                      if (confirm != true) return;
+                      // if context is gone, it will be caught safely since we don't depend on context after this besides Navigator.pop if mounted
+                    }
+                    if (!context.mounted) return;
                     Navigator.pop(context, {
                       'amountReceived': _appliedAmount,
                       'paymentDueDate': _dueDate,

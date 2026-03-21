@@ -841,6 +841,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     if (widget.sale.customerId != null) {
       final db = DatabaseService();
       final customers = await db.getCustomers();
+      if (!mounted) return;
       try {
         final cust =
             customers.firstWhere((c) => c.id == widget.sale.customerId);
