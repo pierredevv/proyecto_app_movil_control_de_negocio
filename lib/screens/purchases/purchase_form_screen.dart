@@ -117,6 +117,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           quantity: 1,
           unitPrice: product.cost,
           subtotal: product.cost,
+          saleUnit: product.saleUnit,
+          unitsPerSaleUnit: product.unitsPerSaleUnit,
+          packagingInfo: product.packagingInfo,
         ));
       });
     }
@@ -756,8 +759,10 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
       _qtyController =
           TextEditingController(text: widget.item.quantity.toString());
     }
+    
+    final displayCost = _isBox ? widget.item.unitPrice * widget.product.unitsPerSaleUnit : widget.item.unitPrice;
     _costController =
-        TextEditingController(text: widget.item.unitPrice.toString());
+        TextEditingController(text: displayCost.toString());
   }
 
   @override
@@ -771,13 +776,15 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
     final rawQty = double.tryParse(_qtyController.text) ?? 0;
     final cost = double.tryParse(_costController.text) ?? 0.0;
     final multiplier = _isBox ? widget.product.unitsPerSaleUnit : 1.0;
+    
     final totalQty = rawQty * multiplier;
+    final unitPrice = multiplier > 0 ? (cost / multiplier) : cost;
 
-    if (totalQty != widget.item.quantity || cost != widget.item.unitPrice) {
+    if (totalQty != widget.item.quantity || unitPrice != widget.item.unitPrice) {
       widget.onChanged(widget.item.copyWith(
         quantity: totalQty,
-        unitPrice: cost,
-        subtotal: totalQty * cost,
+        unitPrice: unitPrice,
+        subtotal: totalQty * unitPrice,
       ));
     }
   }
@@ -889,18 +896,19 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                                         decimal: true),
                                 style: const TextStyle(
                                     color: Colors.white70, fontSize: 13),
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
+                                  contentPadding: const EdgeInsets.symmetric(
                                       vertical: 4, horizontal: 8),
-                                  border: OutlineInputBorder(
+                                  border: const OutlineInputBorder(
                                       borderSide:
                                           BorderSide(color: Colors.white10)),
-                                  enabledBorder: OutlineInputBorder(
+                                  enabledBorder: const OutlineInputBorder(
                                       borderSide:
                                           BorderSide(color: Colors.white10)),
                                   prefixText: 'Bs. ',
-                                  prefixStyle: TextStyle(
+                                  suffixText: _isBox ? ' /caja' : ' /uni',
+                                  prefixStyle: const TextStyle(
                                       color: Colors.white38, fontSize: 10),
                                 ),
                                 onChanged: (_) => _updateValues(),

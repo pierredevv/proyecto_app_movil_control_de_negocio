@@ -10,6 +10,9 @@ import '../utilities/print_preview_screen.dart';
 import '../../services/database_service.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/settings_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../services/pdf_generator_service.dart';
 import '../main_screen.dart';
 
 class SaleDetailScreen extends StatefulWidget {
@@ -735,17 +738,26 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     
     setState(() => _isSendingReceipt = true);
     
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
-      setState(() => _isSendingReceipt = false);
+    try {
+      final profile = context.read<SettingsProvider>().profile;
+      final fileData = await PdfGeneratorService().generateInvoice(widget.sale, profile);
+      final xFile = XFile.fromData(fileData, mimeType: 'application/pdf', name: 'Recibo_${widget.sale.id}.pdf');
+      // ignore: deprecated_member_use
+      await Share.shareXFiles([xFile], text: 'Recibo de Venta - ${widget.sale.id}');
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Error al compartir recibo: $e'), 
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingReceipt = false);
+      }
     }
-    
-    messenger.showSnackBar(
-      const SnackBar(
-          content: Text('Función en desarrollo'),
-          backgroundColor: Colors.blueAccent),
-    );
   }
 
   Future<void> _handleVoidSale() async {

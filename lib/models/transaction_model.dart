@@ -237,8 +237,7 @@ class Order extends Transaction {
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
       'status': status,
-      // We might need to store deliveryDate in a generic field or new column if needed
-      // For now, let's skip persisting deliveryDate unless we add a column.
+      'payment_due_date': deliveryDate?.millisecondsSinceEpoch,
     };
   }
 
@@ -249,6 +248,9 @@ class Order extends Transaction {
       totalAmount: map['total_amount'],
       status: map['status'] ?? 'PENDING',
       supplierName: map['entity_name'],
+      deliveryDate: map['payment_due_date'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])
+          : null,
       items: items,
     );
   }

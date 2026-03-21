@@ -18,6 +18,7 @@ import '../../providers/inventory_provider.dart';
 import '../customers/customer_ledger_screen.dart';
 
 import '../purchases/purchase_form_screen.dart';
+import '../../theme/app_theme.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -29,23 +30,45 @@ class TransactionHistoryScreen extends StatefulWidget {
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final DatabaseService _db = DatabaseService();
+  final ScrollController _scrollController = ScrollController();
 
   DateTimeRange? _dateRange;
   String? _selectedType;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentOffset = 0;
   List<Transaction> _transactions = [];
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        if (!_isLoading && !_isLoadingMore && _hasMore) {
+          _loadMoreData();
+        }
+      }
+    });
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentOffset = 0;
+      _hasMore = true;
+    });
     try {
       final data = await _db.getTransactions(
-        limit: 100,
+        limit: 50,
+        offset: 0,
         type: _selectedType,
         startDate: _dateRange?.start.millisecondsSinceEpoch,
         endDate: _dateRange?.end.millisecondsSinceEpoch,
@@ -53,6 +76,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       if (mounted) {
         setState(() {
           _transactions = data;
+          _currentOffset = data.length;
+          _hasMore = data.length == 50;
           _isLoading = false;
         });
       }
@@ -62,6 +87,31 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
+      }
+    }
+  }
+  
+  Future<void> _loadMoreData() async {
+    setState(() => _isLoadingMore = true);
+    try {
+      final data = await _db.getTransactions(
+        limit: 50,
+        offset: _currentOffset,
+        type: _selectedType,
+        startDate: _dateRange?.start.millisecondsSinceEpoch,
+        endDate: _dateRange?.end.millisecondsSinceEpoch,
+      );
+      if (mounted) {
+        setState(() {
+          _transactions.addAll(data);
+          _currentOffset += data.length;
+          _hasMore = data.length == 50;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
       }
     }
   }
@@ -343,9 +393,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                               onRefresh: _loadData,
                               color: const Color(0xFFFF6B6B),
                               child: ListView.builder(
+                                controller: _scrollController,
                                 padding: const EdgeInsets.only(bottom: 20),
-                                itemCount: _transactions.length,
+                                itemCount: _transactions.length + (_hasMore ? 1 : 0),
                                 itemBuilder: (context, index) {
+                                  if (index == _transactions.length) {
+                                    return const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Center(
+                                        child: CircularProgressIndicator(color: AppTheme.primary),
+                                      ),
+                                    );
+                                  }
                                   final t = _transactions[index];
                                   return _GlassTransactionCard(
                                     transaction: t,

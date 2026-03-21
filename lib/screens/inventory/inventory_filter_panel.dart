@@ -126,7 +126,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
               children: [
                 _buildDynamicHandle(),
                 _buildHeader(context),
-                Expanded(
+                Flexible(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(

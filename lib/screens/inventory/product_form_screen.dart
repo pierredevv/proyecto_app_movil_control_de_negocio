@@ -216,6 +216,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       barcode: barcode,
       price: price,
       cost: cost,
+      weightedAverageCost: widget.product?.weightedAverageCost ?? cost,
       stock: stock,
       minStock: minStock,
       categoryId: _selectedCategoryId,

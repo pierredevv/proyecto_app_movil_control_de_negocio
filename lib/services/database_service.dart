@@ -355,9 +355,10 @@ class DatabaseService {
            
            for (var op in oldPayments) {
               final entityId = op['entity_id'] as int?;
+              if (entityId == null) continue; // Skip anonymous payments
               
               final newPaymentId = await txn.insert('payments', {
-                  'entity_id': entityId ?? 0,
+                  'entity_id': entityId,
                   'entity_type': 'CUSTOMER',
                   'amount': op['amount'],
                   'date': op['date'],
@@ -454,8 +455,7 @@ class DatabaseService {
         total_amount REAL NOT NULL,
         amount_paid REAL DEFAULT 0,
         payment_due_date INTEGER,
-        status TEXT,
-        FOREIGN KEY (entity_id) REFERENCES customers (id) ON DELETE SET NULL
+        status TEXT
       )
     ''');
 
@@ -1308,8 +1308,11 @@ class DatabaseService {
            orderBy: 'date DESC, id DESC',
            limit: 1);
        final currentDebt = initialLedgerQuery.isNotEmpty ? (initialLedgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+       if (currentDebt <= 0) {
+          throw Exception('El cliente no tiene deudas pendientes (saldo: Bs. ${currentDebt.toStringAsFixed(2)}).');
+       }
        if (totalAmount > currentDebt + 0.01) {
-          throw Exception('El abono excede la deuda total del cliente.');
+          throw Exception('El abono (Bs. ${totalAmount.toStringAsFixed(2)}) excede la deuda total del cliente (Bs. ${currentDebt.toStringAsFixed(2)}).');
        }
 
        // 1. Insert Global Payment
@@ -1576,6 +1579,8 @@ class DatabaseService {
     });
   }
 
+  /// Realiza un pago rápido heredado sin asignar a ninguna venta específica.
+  /// Genera un abono a favor del cliente creando registros genéricos sin 'payment_allocations'.
   Future<int> insertPayment(int customerId, double amount) async {
     final db = await database;
 
@@ -1648,6 +1653,20 @@ class DatabaseService {
           'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
           [amount, customerId],
         );
+        
+        // 3. Find and cancel corresponding payment in V13 treasury system
+        final paymentRecords = await txn.query(
+          'payments',
+          where: 'entity_id = ? AND entity_type = ? AND amount = ?',
+          whereArgs: [customerId, 'CUSTOMER', amount],
+          orderBy: 'date DESC',
+          limit: 1,
+        );
+        if (paymentRecords.isNotEmpty) {
+          final pid = paymentRecords.first['id'];
+          await txn.delete('payments', where: 'id = ?', whereArgs: [pid]);
+          await txn.delete('payment_allocations', where: 'payment_id = ?', whereArgs: [pid]);
+        }
         
         final ledgerQuery = await txn.query(
             'entity_ledgers',
@@ -1992,7 +2011,7 @@ class DatabaseService {
     final paymentsResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
       FROM transactions 
-      WHERE type = 'payment' AND date BETWEEN ? AND ?
+      WHERE type = 'payment' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
     // Purchases

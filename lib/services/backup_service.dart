@@ -342,6 +342,32 @@ class BackupService {
         await txn.insert('transaction_items', row);
       }
     }
+    
+    // Post-Restore Migration: If backup was pre-V13, manually transition sale_payments to payments
+    if (data.containsKey('sale_payments') && !data.containsKey('payments')) {
+        final oldPayments = await txn.rawQuery('''
+          SELECT sp.id, sp.sale_id, sp.amount, sp.date, sp.note, t.entity_id 
+          FROM sale_payments sp
+          JOIN transactions t ON sp.sale_id = t.id
+        ''');
+        for (var op in oldPayments) {
+          final entityId = op['entity_id'] as int?;
+          if (entityId == null) continue;
+          final newPaymentId = await txn.insert('payments', {
+              'entity_id': entityId,
+              'entity_type': 'CUSTOMER',
+              'amount': op['amount'],
+              'date': op['date'],
+              'payment_method': 'EFECTIVO',
+              'note': op['note'] ?? 'Historical anonymous sale payment'
+          });
+          await txn.insert('payment_allocations', {
+              'payment_id': newPaymentId,
+              'transaction_id': op['sale_id'],
+              'allocated_amount': op['amount']
+          });
+        }
+    }
   }
 
   // ✅ AUTO BACKUP

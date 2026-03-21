@@ -10,17 +10,10 @@ class CartProvider extends ChangeNotifier {
   final List<InvoiceItem> _items = [];
   Customer? _selectedCustomer;
   bool _isLoading = false;
-  int? _editingSaleId;
 
   List<InvoiceItem> get items => List.unmodifiable(_items);
   Customer? get selectedCustomer => _selectedCustomer;
   bool get isLoading => _isLoading;
-  int? get editingSaleId => _editingSaleId;
-
-  void setEditingSaleId(int? id) {
-    _editingSaleId = id;
-    notifyListeners();
-  }
 
   double get total => _items.fold(0, (sum, item) => sum + item.subtotal);
 
@@ -48,7 +41,8 @@ class CartProvider extends ChangeNotifier {
 
     // Validación general de Stock usando UNIDADES BASE
     if (totalBaseUnitsInCart + newBaseUnitsRequested > product.stock) {
-      final availableSaleUnits = product.stock / option.unitsPerSaleUnit;
+      final freeBaseUnits = product.stock - totalBaseUnitsInCart;
+      final availableSaleUnits = freeBaseUnits > 0 ? freeBaseUnits / option.unitsPerSaleUnit : 0.0;
       throw Exception(
           'Stock insuficiente. Disponible: ${availableSaleUnits.toStringAsFixed(1)} ${option.unitCode}');
     }
@@ -96,10 +90,13 @@ class CartProvider extends ChangeNotifier {
 
     // Validate using Base Units metrics
     if (baseUnitsRequested > maxBaseStock) {
-      final maxAvailableOptionUnits =
-          maxBaseStock / targetItem.unitsPerSaleUnit;
+      final otherBaseUnitsInCart = _items
+          .where((item) => item.productId == targetItem.productId && item != targetItem)
+          .fold(0.0, (sum, item) => sum + item.baseUnitsTotal);
+      final freeBaseUnits = maxBaseStock - otherBaseUnitsInCart;
+      final maxAvailableOptionUnits = freeBaseUnits > 0 ? freeBaseUnits / targetItem.unitsPerSaleUnit : 0.0;
       throw Exception(
-          'Stock insuficiente. Máximo: ${maxAvailableOptionUnits.toStringAsFixed(1)} ${targetItem.saleUnit}');
+          'Stock insuficiente. Disponible: ${maxAvailableOptionUnits.toStringAsFixed(1)} ${targetItem.saleUnit}');
     }
 
     _items[index] = targetItem.copyWith(
@@ -112,7 +109,6 @@ class CartProvider extends ChangeNotifier {
   void clearCart() {
     _items.clear();
     _selectedCustomer = null;
-    _editingSaleId = null;
     notifyListeners();
   }
 
@@ -148,13 +144,6 @@ class CartProvider extends ChangeNotifier {
 
       final id = await db.insertSale(sale, paymentMethod: paymentMethod);
       final completedSale = sale.copyWith(id: id);
-
-      if (_editingSaleId != null) {
-        try {
-          await db.deleteSale(_editingSaleId!);
-        } catch (_) {}
-        _editingSaleId = null;
-      }
 
       if (autoClear) {
         clearCart();
