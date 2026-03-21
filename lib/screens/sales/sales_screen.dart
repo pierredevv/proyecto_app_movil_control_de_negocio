@@ -284,14 +284,23 @@ class _SalesScreenState extends State<SalesScreen> {
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
-                              TextButton.icon(
-                                onPressed: () =>
-                                    _handleClearCart(context, cart),
-                                icon: const Icon(Icons.delete_outline,
-                                    size: 16, color: AppTheme.redAccent),
-                                label: const Text('Vaciar',
-                                    style:
-                                        TextStyle(color: AppTheme.redAccent)),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.add_shopping_cart, color: AppTheme.primary),
+                                    onPressed: () => _showProductSearch(context),
+                                    tooltip: 'Agregar producto',
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () =>
+                                        _handleClearCart(context, cart),
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 16, color: AppTheme.redAccent),
+                                    label: const Text('Vaciar',
+                                        style:
+                                            TextStyle(color: AppTheme.redAccent)),
+                                  )
+                                ],
                               )
                             ],
                           ),

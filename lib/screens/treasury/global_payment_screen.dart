@@ -228,50 +228,40 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: _amountController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(color: AppTheme.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
-                            decoration: const InputDecoration(
-                              labelText: 'Monto Total Recibido (Bs)',
-                              labelStyle: TextStyle(color: Colors.white70),
-                              filled: true,
-                              fillColor: Color(0xFF151924),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                              prefixIcon: Icon(Icons.payments, color: AppTheme.greenAccent),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 1,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _paymentMethod,
-                            dropdownColor: const Color(0xFF2E384D),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              labelText: 'Método',
-                              labelStyle: TextStyle(color: Colors.white70),
-                              filled: true,
-                              fillColor: Color(0xFF151924),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                            ),
-                            items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
-                              return DropdownMenuItem<String>(
-                                value: m,
-                                child: Text(m),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _paymentMethod = val);
-                            },
-                          ),
-                        ),
-                      ],
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppTheme.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        labelText: 'Monto Total Recibido (Bs)',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        prefixIcon: Icon(Icons.payments, color: AppTheme.greenAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _paymentMethod,
+                      dropdownColor: const Color(0xFF2E384D),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Método',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
+                        return DropdownMenuItem<String>(
+                          value: m,
+                          child: Text(m),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _paymentMethod = val);
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextField(

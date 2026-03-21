@@ -26,6 +26,10 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   late TextEditingController _cityCtrl;
   late TextEditingController _departmentCtrl;
   late TextEditingController _addressCtrl;
+  late TextEditingController _zoneCtrl;
+  late TextEditingController _streetNumberCtrl;
+  late TextEditingController _branchNumberCtrl;
+  late TextEditingController _posNumberCtrl;
   late TextEditingController _invoiceFooterCtrl;
   late TextEditingController _defaultMinStockCtrl;
   late TextEditingController _lowStockThresholdCtrl;
@@ -51,6 +55,10 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _cityCtrl = TextEditingController(text: profile.city);
     _departmentCtrl = TextEditingController(text: profile.department);
     _addressCtrl = TextEditingController(text: profile.address);
+    _zoneCtrl = TextEditingController(text: profile.zone);
+    _streetNumberCtrl = TextEditingController(text: profile.streetNumber);
+    _branchNumberCtrl = TextEditingController(text: profile.branchNumber);
+    _posNumberCtrl = TextEditingController(text: profile.posNumber);
     _invoiceFooterCtrl = TextEditingController(text: profile.invoiceFooter);
     _defaultMinStockCtrl =
         TextEditingController(text: profile.defaultMinStock.toString());
@@ -76,6 +84,10 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _cityCtrl.dispose();
     _departmentCtrl.dispose();
     _addressCtrl.dispose();
+    _zoneCtrl.dispose();
+    _streetNumberCtrl.dispose();
+    _branchNumberCtrl.dispose();
+    _posNumberCtrl.dispose();
     _invoiceFooterCtrl.dispose();
     _defaultMinStockCtrl.dispose();
     _lowStockThresholdCtrl.dispose();
@@ -111,6 +123,10 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       city: _cityCtrl.text.trim(),
       department: _departmentCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
+      zone: _zoneCtrl.text.trim(),
+      streetNumber: _streetNumberCtrl.text.trim(),
+      branchNumber: _branchNumberCtrl.text.trim(),
+      posNumber: _posNumberCtrl.text.trim(),
       invoiceFooter: _invoiceFooterCtrl.text.trim(),
       defaultMinStock: int.tryParse(_defaultMinStockCtrl.text) ?? 0,
       lowStockThreshold: int.tryParse(_lowStockThresholdCtrl.text) ?? 3,
@@ -231,6 +247,23 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
                 ctrl: _addressCtrl,
                 label: 'Dirección Completa',
                 icon: Icons.location_on),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _zoneCtrl,
+                      label: 'Zona',
+                      icon: Icons.map),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _streetNumberCtrl,
+                      label: 'Número/Calle',
+                      icon: Icons.home),
+                ),
+              ],
+            ),
 
             const SizedBox(height: 24),
 
@@ -247,6 +280,23 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
                       ctrl: _ciCtrl,
                       label: 'CI (Alternativo)',
                       icon: Icons.perm_identity),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _branchNumberCtrl,
+                      label: 'Nº Sucursal',
+                      icon: Icons.storefront),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _posNumberCtrl,
+                      label: 'Punto Venta',
+                      icon: Icons.point_of_sale),
                 ),
               ],
             ),

@@ -15,6 +15,10 @@ class BusinessProfile {
   final String city;
   final String department;
   final String address;
+  final String zone;
+  final String streetNumber;
+  final String branchNumber;
+  final String posNumber;
 
   final String invoiceFooter;
   final bool showNitOnInvoice;
@@ -42,6 +46,10 @@ class BusinessProfile {
     this.city = 'Santa Cruz',
     this.department = 'Santa Cruz',
     this.address = '',
+    this.zone = '',
+    this.streetNumber = '',
+    this.branchNumber = '0',
+    this.posNumber = '0',
     this.invoiceFooter = '¡Gracias por su compra!',
     this.showNitOnInvoice = true,
     this.showLogoOnInvoice = true,
@@ -67,6 +75,10 @@ class BusinessProfile {
     String? city,
     String? department,
     String? address,
+    String? zone,
+    String? streetNumber,
+    String? branchNumber,
+    String? posNumber,
     String? invoiceFooter,
     bool? showNitOnInvoice,
     bool? showLogoOnInvoice,
@@ -91,6 +103,10 @@ class BusinessProfile {
       city: city ?? this.city,
       department: department ?? this.department,
       address: address ?? this.address,
+      zone: zone ?? this.zone,
+      streetNumber: streetNumber ?? this.streetNumber,
+      branchNumber: branchNumber ?? this.branchNumber,
+      posNumber: posNumber ?? this.posNumber,
       invoiceFooter: invoiceFooter ?? this.invoiceFooter,
       showNitOnInvoice: showNitOnInvoice ?? this.showNitOnInvoice,
       showLogoOnInvoice: showLogoOnInvoice ?? this.showLogoOnInvoice,
@@ -120,6 +136,10 @@ class BusinessProfile {
       'city': city,
       'department': department,
       'address': address,
+      'zone': zone,
+      'streetNumber': streetNumber,
+      'branchNumber': branchNumber,
+      'posNumber': posNumber,
       'invoiceFooter': invoiceFooter,
       'showNitOnInvoice': showNitOnInvoice,
       'showLogoOnInvoice': showLogoOnInvoice,
@@ -147,6 +167,10 @@ class BusinessProfile {
       city: map['city'] ?? 'Santa Cruz',
       department: map['department'] ?? 'Santa Cruz',
       address: map['address'] ?? '',
+      zone: map['zone'] ?? '',
+      streetNumber: map['streetNumber'] ?? '',
+      branchNumber: map['branchNumber'] ?? '0',
+      posNumber: map['posNumber'] ?? '0',
       invoiceFooter: map['invoiceFooter'] ?? '¡Gracias por su compra!',
       showNitOnInvoice: map['showNitOnInvoice'] ?? true,
       showLogoOnInvoice: map['showLogoOnInvoice'] ?? true,
@@ -174,6 +198,10 @@ class BusinessProfile {
       city: city,
       department: department,
       address: address,
+      zone: zone,
+      streetNumber: streetNumber,
+      branchNumber: branchNumber,
+      posNumber: posNumber,
       invoiceFooter: invoiceFooter,
       showNitOnInvoice: showNitOnInvoice,
       showLogoOnInvoice: showLogoOnInvoice,

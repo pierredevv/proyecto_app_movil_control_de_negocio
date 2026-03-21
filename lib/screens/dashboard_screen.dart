@@ -111,13 +111,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         provider.totalSalesToday;
               }
 
-              return SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top +
-                      60 +
-                      16, // Header height + spacing
-                  bottom: 100, // Bottom nav spacing
-                ),
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await context.read<DashboardProvider>().loadDashboardData();
+                  if (context.mounted) {
+                    await context.read<NotificationProvider>().checkPendingSales();
+                  }
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top +
+                        60 +
+                        16, // Header height + spacing
+                    bottom: 100, // Bottom nav spacing
+                  ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -290,8 +298,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         transactions: provider.recentTransactions),
                   ],
                 ),
-              );
-            },
+              ),
+            );
+          },
           ),
 
           // Fixed Header

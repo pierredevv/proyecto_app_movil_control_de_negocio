@@ -776,25 +776,25 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   fontFamily: 'monospace')),
-          Text('MI NEGOCIO S.A.',
+          Text(profile.businessName.toUpperCase(),
               style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   fontFamily: 'monospace')),
-          Text('SUCURSAL NO. 1',
+          Text('SUCURSAL NO. ${profile.branchNumber}',
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
-          Text('Punto de Venta No. 1',
+          Text('Punto de Venta No. ${profile.posNumber}',
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
-          Text('ZONA: Centro, CALLE: Bolivar #123',
+          Text('ZONA: ${profile.zone}, ${profile.address.isNotEmpty ? profile.address : profile.streetNumber}',
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
-          Text('Teléfono: 70010203',
+          Text('Teléfono: ${profile.phone}',
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
-          Text('SANTA CRUZ',
+          Text(profile.city.toUpperCase(),
               style: TextStyle(
                   color: textColor, fontSize: 10, fontFamily: 'monospace')),
           if (profile.showNitOnInvoice && profile.nit.isNotEmpty)
