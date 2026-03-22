@@ -20,6 +20,8 @@ import 'providers/settings_provider.dart';
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_BO', null);
@@ -79,6 +81,7 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
+            navigatorObservers: [routeObserver],
             home: const MainScreen(),
           );
         },

@@ -73,6 +73,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           }
         }
       });
+      
+      if (widget.editingOriginalId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Modo Edición: Al guardar, la transacción original será reemplazada.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     });
   }
 
@@ -110,15 +120,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     );
 
     if (product != null) {
+      final isBox = product.unitsPerSaleUnit > 1.0;
       setState(() {
         _items.add(InvoiceItem(
           productId: product.id!,
           productName: product.name,
           quantity: 1,
-          unitPrice: product.cost,
-          subtotal: product.cost,
-          saleUnit: product.saleUnit,
-          unitsPerSaleUnit: product.unitsPerSaleUnit,
+          unitPrice: isBox ? (product.cost * product.unitsPerSaleUnit) : product.cost,
+          subtotal: isBox ? (product.cost * product.unitsPerSaleUnit) : product.cost,
+          saleUnit: isBox ? (product.saleUnit.isEmpty ? 'CAJ' : product.saleUnit) : 'UNI',
+          unitsPerSaleUnit: isBox ? product.unitsPerSaleUnit : 1.0,
           packagingInfo: product.packagingInfo,
         ));
       });
@@ -173,7 +184,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     try {
       if (widget.editingOriginalId != null) {
         try {
-          await DatabaseService().deletePurchase(widget.editingOriginalId!);
+          if (_isOrder) {
+            await DatabaseService().deleteOrder(widget.editingOriginalId!);
+          } else {
+            await DatabaseService().deletePurchase(widget.editingOriginalId!);
+          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -208,6 +223,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         final purchase = Purchase(
           date: _selectedDate,
           totalAmount: _totalAmount,
+          amountPaid: _totalAmount,
           supplierName: _selectedSupplier?.name ?? 'Proveedor General',
           items: _items,
           status: 'COMPLETED',
@@ -758,22 +774,45 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
   @override
   void initState() {
     super.initState();
-    if (widget.product.unitsPerSaleUnit > 1 &&
-        widget.item.quantity > 0 &&
-        widget.item.quantity % widget.product.unitsPerSaleUnit == 0) {
-      _isBox = true;
-      _qtyController = TextEditingController(
-          text: (widget.item.quantity / widget.product.unitsPerSaleUnit)
-              .toStringAsFixed(0));
-    } else {
-      _isBox = false;
-      _qtyController =
-          TextEditingController(text: widget.item.quantity.toString());
-    }
-    
-    final displayCost = _isBox ? widget.item.unitPrice * widget.product.unitsPerSaleUnit : widget.item.unitPrice;
+    _isBox = widget.item.saleUnit != 'UNI' && widget.item.unitsPerSaleUnit > 1.0;
+    _qtyController =
+        TextEditingController(text: widget.item.quantity.toString());
     _costController =
-        TextEditingController(text: displayCost.toString());
+        TextEditingController(text: widget.item.unitPrice.toString());
+  }
+
+  void _toggleUnit() {
+    if (widget.product.unitsPerSaleUnit <= 1.0) return;
+    
+    setState(() {
+      _isBox = !_isBox;
+      
+      final double currentQty = double.tryParse(_qtyController.text) ?? 1.0;
+      
+      double newCost;
+      double newUnits;
+      String newSaleUnit;
+      
+      if (_isBox) {
+        newCost = widget.product.cost * widget.product.unitsPerSaleUnit;
+        newUnits = widget.product.unitsPerSaleUnit;
+        newSaleUnit = widget.product.saleUnit.isNotEmpty && widget.product.saleUnit != 'UNI' ? widget.product.saleUnit : 'CAJ';
+      } else {
+        newCost = widget.product.cost;
+        newUnits = 1.0;
+        newSaleUnit = 'UNI';
+      }
+      
+      _costController.text = newCost.toStringAsFixed(2);
+      
+      widget.onChanged(widget.item.copyWith(
+        quantity: currentQty,
+        unitPrice: newCost,
+        subtotal: currentQty * newCost,
+        saleUnit: newSaleUnit,
+        unitsPerSaleUnit: newUnits,
+      ));
+    });
   }
 
   @override
@@ -884,7 +923,16 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                                   enabledBorder: const OutlineInputBorder(
                                       borderSide:
                                           BorderSide(color: Colors.white10)),
-                                  suffixText: _isBox ? ' Cajas' : ' Unid',
+                                  suffix: widget.product.unitsPerSaleUnit > 1.0
+                                      ? GestureDetector(
+                                          onTap: _toggleUnit,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(left: 4),
+                                            child: Text(_isBox ? ' Cajas' : ' Unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        )
+                                      : null,
+                                  suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' Unid' : null,
                                   suffixStyle: const TextStyle(
                                       color: Colors.white38, fontSize: 10),
                                 ),
@@ -918,7 +966,16 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                                       borderSide:
                                           BorderSide(color: Colors.white10)),
                                   prefixText: 'Bs. ',
-                                  suffixText: _isBox ? ' /caja' : ' /uni',
+                                  suffix: widget.product.unitsPerSaleUnit > 1.0
+                                      ? GestureDetector(
+                                          onTap: _toggleUnit,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(left: 4),
+                                            child: Text(_isBox ? ' /caja' : ' /unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        )
+                                      : null,
+                                  suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' /unid' : null,
                                   prefixStyle: const TextStyle(
                                       color: Colors.white38, fontSize: 10),
                                 ),
@@ -1048,7 +1105,9 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               ),
             ),
           ),
-          Flexible(
+          Container(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5),
             child: products.isEmpty
                 ? const Center(
                     child: Padding(
@@ -1056,10 +1115,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                     child: Text('No se encontraron productos',
                         style: TextStyle(color: Colors.white54)),
                   ))
-                : Container(
-                    constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.5),
-                    child: ListView.separated(
+                : ListView.separated(
                       separatorBuilder: (_, __) =>
                           const Divider(height: 1, color: Colors.white10),
                       shrinkWrap: true,
@@ -1098,7 +1154,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                           title: Text(p.name,
                               style: const TextStyle(color: Colors.white)),
                           subtitle: Text(
-                              'Stock: ${p.stock} | Costo: ${p.cost.toStringAsFixed(2)}',
+                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${(p.cost * p.unitsPerSaleUnit).toStringAsFixed(2)}',
                               style: const TextStyle(color: Colors.white54)),
                           trailing:
                               const Icon(Icons.add, color: AppTheme.primary),
@@ -1108,7 +1164,6 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                         );
                       },
                     ),
-                  ),
           ),
         ],
       ),

@@ -632,7 +632,17 @@ class DatabaseService {
     if (map['weighted_average_cost'] == null || map['weighted_average_cost'] == 0.0) {
       map['weighted_average_cost'] = map['cost'];
     }
-    return await db.insert('products', map);
+    final id = await db.insert('products', map);
+    if (product.stock > 0) {
+      await db.insert('inventory_movements', {
+        'product_id': id,
+        'movement_type': 'INITIAL_STOCK',
+        'quantity': product.stock,
+        'unit_cost_at_movement': product.cost,
+        'created_timestamp': DateTime.now().millisecondsSinceEpoch
+      });
+    }
+    return id;
   }
 
   Future<List<Product>> getProducts({
@@ -780,15 +790,7 @@ class DatabaseService {
     );
   }
 
-  Future<int> updateProductStock(int id, double newStock) async {
-    final db = await database;
-    return await db.update(
-      'products',
-      {'stock': newStock},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
+
 
   // ---------------------------------------------------------------------------
   // IMPORT OPERATIONS
@@ -847,18 +849,34 @@ class DatabaseService {
                 where: 'id = ?', whereArgs: [existingId], limit: 1);
             final currentStock =
                 (existingItem.first['stock'] as num).toDouble();
+            
+            final oldWac = (existingItem.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+            final newTotalStock = currentStock + row.stockBase;
+            final newCost = row.cost > 0 ? row.cost : (existingItem.first['cost'] as num).toDouble();
+            final newWac = newTotalStock > 0 ? ((currentStock * oldWac) + (row.stockBase * newCost)) / newTotalStock : 0.0;
 
             await txn.update(
               'products',
               {
-                'stock': currentStock + row.stockBase, // Add new stock natively
-                'price':
-                    row.price > 0 ? row.price : existingItem.first['price'],
-                'cost': row.cost > 0 ? row.cost : existingItem.first['cost'],
+                'stock': newTotalStock,
+                'price': row.price > 0 ? row.price : existingItem.first['price'],
+                'cost': newCost,
+                'weighted_average_cost': newWac,
+                'is_active': 1,
               },
               where: 'id = ?',
               whereArgs: [existingId],
             );
+            
+            await txn.insert('inventory_movements', { 
+                'product_id': existingId, 
+                'movement_type': 'INVENTORY_ADJUSTMENT', 
+                'quantity': row.stockBase, 
+                'reference_type': 'IMPORT', 
+                'unit_cost_at_movement': row.cost > 0 ? row.cost : existingItem.first['cost'], 
+                'created_timestamp': DateTime.now().millisecondsSinceEpoch, 
+            });
+
             updatedCount++;
           } else {
             // Insert new product
@@ -934,6 +952,9 @@ class DatabaseService {
 
   Future<int> deleteCustomer(int id) async {
     final db = await database;
+    final hasHistory = await db.query('transactions', where: 'entity_id = ?', whereArgs: [id]);
+    final hasPayments = await db.query('payments', where: 'entity_id = ? AND entity_type = ?', whereArgs: [id, 'CUSTOMER']);
+    if (hasHistory.isNotEmpty || hasPayments.isNotEmpty) throw Exception('No se puede eliminar porque tiene historial contable o abonos registrados');
     return await db.delete(
       'customers',
       where: 'id = ?',
@@ -1175,7 +1196,7 @@ class DatabaseService {
         
         final pendingAmount = totalAmount - amountPaid;
         
-        // Invoice Reversal (Credit the customer the pending amount since they no longer owe it)
+        // Invoice Reversal (Reverse ALL the invoiced amount. The previous payment is automatically left as a credit balance)
         await txn.insert('entity_ledgers', {
             'entity_type': 'CUSTOMER',
             'entity_id': customerId,
@@ -1183,9 +1204,9 @@ class DatabaseService {
             'transaction_reference_id': saleId,
             'date': DateTime.now().millisecondsSinceEpoch,
             'debit_amount': 0.0,
-            'credit_amount': pendingAmount,
-            'materialized_running_balance': currentBalance - pendingAmount,
-            'note': 'Anulación de Venta (Reversión Pendiente)'
+            'credit_amount': totalAmount,
+            'materialized_running_balance': currentBalance - totalAmount,
+            'note': 'Anulación de Venta (Reversión Total)'
         });
 
         // Clear payment allocations mapping to this sale so funds become unallocated global credit
@@ -1275,7 +1296,7 @@ class DatabaseService {
             'entity_type': 'CUSTOMER',
             'entity_id': customerId,
             'transaction_source_type': 'PAYMENT',
-            'transaction_reference_id': saleId,
+            'transaction_reference_id': paymentId,
             'date': DateTime.now().millisecondsSinceEpoch,
             'debit_amount': 0.0,
             'credit_amount': amount,
@@ -1474,6 +1495,10 @@ class DatabaseService {
         final newWac = newTotalStock > 0 ? (totalOldValue + newInvestment) / newTotalStock : 0.0;
         final unitCostInBaseUnits = item.baseUnitsTotal > 0 ? newInvestment / item.baseUnitsTotal : 0.0;
 
+        final unitCostBase = item.baseUnitsTotal > 0 
+            ? (item.quantity * item.unitPrice) / item.baseUnitsTotal 
+            : item.unitPrice;
+
         // 4. Insert Inventory Movement
         await txn.insert('inventory_movements', {
           'product_id': item.productId,
@@ -1488,7 +1513,7 @@ class DatabaseService {
         // 5. Update Stock Cache, Cost, and WAC
         await txn.rawUpdate(
           'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
-          [item.baseUnitsTotal, item.unitPrice, newWac, item.productId],
+          [item.baseUnitsTotal, unitCostBase, newWac, item.productId],
         );
       }
 
@@ -1499,8 +1524,7 @@ class DatabaseService {
             orderBy: 'date DESC, id DESC',
             limit: 1);
         double currentBalance = ledgerQuery.isNotEmpty
-            ? (ledgerQuery.first['materialized_running_balance'] as num)
-                .toDouble()
+            ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble()
             : 0.0;
 
         await txn.insert('entity_ledgers', {
@@ -1514,6 +1538,36 @@ class DatabaseService {
           'materialized_running_balance': currentBalance + purchase.totalAmount,
           'note': 'Registro de Compra',
         });
+        currentBalance += purchase.totalAmount;
+
+        if (purchase.amountPaid > 0) {
+          await txn.insert('entity_ledgers', {
+            'entity_type': 'SUPPLIER',
+            'entity_id': purchase.supplierId,
+            'transaction_source_type': 'PAYMENT',
+            'transaction_reference_id': purchaseId,
+            'date': DateTime.now().millisecondsSinceEpoch + 1,
+            'debit_amount': 0.0,
+            'credit_amount': purchase.amountPaid,
+            'materialized_running_balance': currentBalance - purchase.amountPaid,
+            'note': 'Pago de Compra',
+          });
+
+          final paymentId = await txn.insert('payments', {
+            'entity_id': purchase.supplierId,
+            'entity_type': 'SUPPLIER',
+            'amount': purchase.amountPaid,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'payment_method': 'EFECTIVO',
+            'note': 'Pago en efectivo'
+          });
+
+          await txn.insert('payment_allocations', {
+            'payment_id': paymentId,
+            'transaction_id': purchaseId,
+            'allocated_amount': purchase.amountPaid,
+          });
+        }
       }
 
       return purchaseId;
@@ -1580,6 +1634,32 @@ class DatabaseService {
         whereArgs: [purchaseId],
       );
 
+      // 4b. Revert Ledger
+      final supplierId = transaction.first['entity_id'];
+      if (supplierId != null) {
+        final totalAmount = (transaction.first['total_amount'] as num).toDouble();
+        final ledgerQuery = await txn.query('entity_ledgers', 
+            where: 'entity_type = ? AND entity_id = ?', 
+            whereArgs: ['SUPPLIER', supplierId], 
+            orderBy: 'date DESC, id DESC', limit: 1); 
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0; 
+
+        await txn.insert('entity_ledgers', { 
+            'entity_type': 'SUPPLIER', 
+            'entity_id': supplierId, 
+            'transaction_source_type': 'PURCHASE_VOID_REVERSAL', 
+            'transaction_reference_id': purchaseId, 
+            'date': DateTime.now().millisecondsSinceEpoch, 
+            'debit_amount': 0.0, 
+            'credit_amount': totalAmount, 
+            'materialized_running_balance': currentBalance - totalAmount, 
+            'note': 'Anulación de Compra', 
+        }); 
+
+        // Release the money so it remains as an advance/balance in favor of the supplier
+        await txn.delete('payment_allocations', where: 'transaction_id = ?', whereArgs: [purchaseId]);
+      }
+
       // 5. If linked to an order, revert the order to PENDING
       final refId = transaction.first['reference_id'];
       if (refId != null) {
@@ -1597,6 +1677,22 @@ class DatabaseService {
           );
         }
       }
+    });
+  }
+
+  Future<void> deleteOrder(int orderId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final order = await txn.query('transactions', columns: ['status'], where: 'id = ?', whereArgs: [orderId]); 
+      if (order.isNotEmpty && order.first['status'] == 'RECEIVED') { 
+        throw Exception('You cannot cancel an order that has already been received. Please cancel the associated Purchase instead.'); 
+      }
+      await txn.update(
+        'transactions',
+        {'status': 'VOIDED'},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
     });
   }
 
@@ -1656,67 +1752,51 @@ class DatabaseService {
   Future<void> deletePayment(int paymentId) async {
     final db = await database;
     await db.transaction((txn) async {
-      // 1. Get payment details
-      final results = await txn.query(
-        'transactions',
-        where: 'id = ? AND status != ?',
-        whereArgs: [paymentId, 'VOIDED'],
-      );
+      // Point directly to the payments table (V13)
+      final results = await txn.query('payments', where: 'id = ?', whereArgs: [paymentId]);
       if (results.isEmpty) return;
 
       final payment = results.first;
-      final amount = (payment['total_amount'] as num).toDouble();
-      final customerId = payment['entity_id'] as int?;
-      final date = payment['date'] as int?;
+      final amount = (payment['amount'] as num).toDouble();
+      final entityId = payment['entity_id'] as int;
+      final entityType = payment['entity_type'] as String;
 
-      // 2. Revert customer debt (they owe us again since payment was voided)
-      if (customerId != null) {
-        await txn.rawUpdate(
-          'UPDATE customers SET total_debt = total_debt + ? WHERE id = ?',
-          [amount, customerId],
-        );
-        
-        // 3. Find and cancel corresponding payment in V13 treasury system
-        final paymentRecords = await txn.query(
-          'payments',
-          where: 'entity_id = ? AND entity_type = ? AND amount = ? AND date >= ? AND date <= ?',
-          whereArgs: [customerId, 'CUSTOMER', amount, date! - 5000, date + 5000],
-          orderBy: 'date DESC',
-          limit: 1,
-        );
-        if (paymentRecords.isNotEmpty) {
-          final pid = paymentRecords.first['id'];
-          await txn.delete('payments', where: 'id = ?', whereArgs: [pid]);
-          await txn.delete('payment_allocations', where: 'payment_id = ?', whereArgs: [pid]);
+      // 1. Revert assignments
+      final allocations = await txn.query('payment_allocations', where: 'payment_id = ?', whereArgs: [paymentId]);
+      for (var a in allocations) {
+        final tId = a['transaction_id'] as int;
+        final allocAmt = (a['allocated_amount'] as num).toDouble();
+
+        final tRecord = await txn.query('transactions', columns: ['amount_paid', 'total_amount'], where: 'id = ?', whereArgs: [tId]);
+        if (tRecord.isNotEmpty) {
+          final newPaid = (tRecord.first['amount_paid'] as num).toDouble() - allocAmt;
+          final total = (tRecord.first['total_amount'] as num).toDouble();
+          final newStatus = newPaid >= total - 0.01 ? 'COMPLETED' : (newPaid <= 0 ? 'CREDIT' : 'PARTIAL');
+          await txn.update('transactions', {'amount_paid': newPaid, 'status': newStatus}, where: 'id = ?', whereArgs: [tId]);
         }
-        
-        final ledgerQuery = await txn.query(
-            'entity_ledgers',
-            where: 'entity_type = ? AND entity_id = ?',
-            whereArgs: ['CUSTOMER', customerId],
-            orderBy: 'date DESC',
-            limit: 1);
-        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
-        await txn.insert('entity_ledgers', {
-            'entity_type': 'CUSTOMER',
-            'entity_id': customerId,
-            'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
-            'transaction_reference_id': paymentId,
-            'date': DateTime.now().millisecondsSinceEpoch,
-            'debit_amount': amount,
-            'credit_amount': 0.0,
-            'materialized_running_balance': currentBalance + amount,
-            'note': 'Anulación de Abono',
-        });
       }
 
-      // 3. Mark as VOIDED
-      await txn.update(
-        'transactions',
-        {'status': 'VOIDED'},
-        where: 'id = ?',
-        whereArgs: [paymentId],
-      );
+      // 2. Reverse debt depending on entity type
+      if (entityType == 'CUSTOMER') {
+        await txn.rawUpdate('UPDATE customers SET total_debt = total_debt + ? WHERE id = ?', [amount, entityId]);
+      }
+
+      // 3. Delete payment and allocations
+      await txn.delete('payment_allocations', where: 'payment_id = ?', whereArgs: [paymentId]);
+      await txn.delete('payments', where: 'id = ?', whereArgs: [paymentId]);
+
+      // 4. Register reverse in Ledger
+      final ledgerQuery = await txn.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: [entityType, entityId], orderBy: 'date DESC, id DESC', limit: 1);
+      double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+      await txn.insert('entity_ledgers', {
+        'entity_type': entityType, 'entity_id': entityId,
+        'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
+        'transaction_reference_id': paymentId, 'date': DateTime.now().millisecondsSinceEpoch,
+        'debit_amount': entityType == 'CUSTOMER' ? amount : 0.0,
+        'credit_amount': entityType == 'SUPPLIER' ? amount : 0.0,
+        'materialized_running_balance': entityType == 'CUSTOMER' ? currentBalance + amount : currentBalance - amount,
+        'note': 'Anulación de Pago',
+      });
     });
   }
 
@@ -1885,7 +1965,7 @@ class DatabaseService {
     // Get current status to prevent double-crediting if already received
     final List<Map<String, dynamic>> result = await db.query(
       'transactions',
-      columns: ['status', 'entity_name', 'total_amount'],
+      columns: ['status', 'entity_name', 'total_amount', 'entity_id'],
       where: 'id = ?',
       whereArgs: [orderId],
     );
@@ -1922,14 +2002,32 @@ class DatabaseService {
             itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
 
         // NEW: Create a "Purchase" transaction to reflect this in analytics/history
+        final entityId = result.first['entity_id'] as int?;
         final purchaseId = await txn.insert('transactions', {
           'type': 'purchase',
+          'entity_id': entityId,
           'entity_name': supplierName,
           'reference_id': orderId,
           'date': DateTime.now().millisecondsSinceEpoch,
           'total_amount': totalAmount,
           'status': 'COMPLETED',
         });
+
+        if (entityId != null) { 
+          final ledgerQuery = await txn.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: ['SUPPLIER', entityId], orderBy: 'date DESC, id DESC', limit: 1); 
+          double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0; 
+          await txn.insert('entity_ledgers', { 
+            'entity_type': 'SUPPLIER', 
+            'entity_id': entityId, 
+            'transaction_source_type': 'PURCHASE', 
+            'transaction_reference_id': purchaseId, 
+            'date': DateTime.now().millisecondsSinceEpoch, 
+            'debit_amount': totalAmount, 
+            'credit_amount': 0.0, 
+            'materialized_running_balance': currentBalance + totalAmount, 
+            'note': 'Recepción de Pedido', 
+          }); 
+        }
 
         for (var item in items) {
           // 1. Query current WAC and stock
@@ -1969,7 +2067,7 @@ class DatabaseService {
           // 4. Update Stock Cache, Cost, and WAC
           await txn.rawUpdate(
             'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
-            [item.baseUnitsTotal, item.unitPrice, newWac, item.productId],
+            [item.baseUnitsTotal, unitCostInBaseUnits, newWac, item.productId],
           );
 
           // NEW: Link this item to the Purchase Transaction
@@ -2022,6 +2120,13 @@ class DatabaseService {
       WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
+    // Anonymous Sales Cash
+    final anonymousSalesResult = await db.rawQuery('''
+      SELECT SUM(amount_paid) as total 
+      FROM transactions 
+      WHERE type = 'sale' AND entity_id IS NULL AND status != 'VOIDED' AND date BETWEEN ? AND ?
+    ''', [startOfDay, endOfDay]);
+
     // Expenses
     final expensesResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
@@ -2029,34 +2134,46 @@ class DatabaseService {
       WHERE type = 'expense' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
-    // Payments
+    // Payments IN (Customer Deposits)
     final paymentsResult = await db.rawQuery('''
-      SELECT SUM(total_amount) as total 
-      FROM transactions 
-      WHERE type = 'payment' AND status != 'VOIDED' AND date BETWEEN ? AND ?
+      SELECT SUM(amount) as total 
+      FROM payments 
+      WHERE entity_type = 'CUSTOMER' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
-    // Purchases
+    // Payments OUT (Supplier Payments)
+    final supplierPaymentsResult = await db.rawQuery('''
+      SELECT SUM(amount) as total 
+      FROM payments 
+      WHERE entity_type = 'SUPPLIER' AND date BETWEEN ? AND ?
+    ''', [startOfDay, endOfDay]);
+
+    // Purchases (Paid amount)
     final purchasesResult = await db.rawQuery('''
-      SELECT SUM(total_amount) as total 
+      SELECT SUM(amount_paid) as total 
       FROM transactions 
       WHERE type = 'purchase' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
     final totalSales = (salesResult.first['total'] as num?)?.toDouble() ?? 0.0;
+    final totalAnonymousSalesCash = (anonymousSalesResult.first['total'] as num?)?.toDouble() ?? 0.0;
     final totalExpenses =
         (expensesResult.first['total'] as num?)?.toDouble() ?? 0.0;
     final totalPayments =
         (paymentsResult.first['total'] as num?)?.toDouble() ?? 0.0;
-    final totalPurchases =
+    final totalSupplierPayments = 
+        (supplierPaymentsResult.first['total'] as num?)?.toDouble() ?? 0.0;
+    final totalPurchasesPaid =
         (purchasesResult.first['total'] as num?)?.toDouble() ?? 0.0;
+
+    final cashIn = totalAnonymousSalesCash + totalPayments;
 
     return {
       'sales': totalSales,
       'expenses': totalExpenses,
       'payments': totalPayments,
-      'purchases': totalPurchases,
-      'balance': (totalSales + totalPayments) - totalExpenses - totalPurchases,
+      'purchases': totalPurchasesPaid,
+      'balance': cashIn - totalExpenses - totalSupplierPayments,
     };
   }
 
@@ -2077,7 +2194,7 @@ class DatabaseService {
     // Build Query
     String whereClause = "1=1";
     if (hideVoided) {
-      whereClause += " AND status != 'VOIDED'";
+      whereClause += " AND status != 'VOIDED' AND status != 'RECEIVED'";
     }
     List<dynamic> args = [];
 
@@ -2311,12 +2428,13 @@ class DatabaseService {
       };
 
       // 2. Query all INVOICES (debits) for this customer from the ledger, NEWEST to OLDEST
-      final invoices = await db.query(
-        'entity_ledgers',
-        where: 'entity_type = ? AND entity_id = ? AND transaction_source_type = ? AND debit_amount > 0',
-        whereArgs: ['CUSTOMER', c.id, 'INVOICE'],
-        orderBy: 'date DESC',
-      );
+      final invoices = await db.rawQuery(''' 
+        SELECT el.* FROM entity_ledgers el 
+        JOIN transactions t ON el.transaction_reference_id = t.id 
+        WHERE el.entity_type = ? AND el.entity_id = ? 
+        AND el.transaction_source_type = 'INVOICE' AND t.status != 'VOIDED' 
+        ORDER BY el.date DESC 
+      ''', ['CUSTOMER', c.id]);
 
       for (var inv in invoices) {
         if (remainingDebt <= 0) break;
@@ -2416,6 +2534,24 @@ class DatabaseService {
 
   Future<int> deleteSupplier(int id) async {
     final db = await database;
+
+    // Validate if you have transactions (purchases/orders) 
+    final hasHistory = await db.query('transactions', where: 'entity_id = ? AND type IN (?, ?)', whereArgs: [id, 'purchase', 'order']); 
+
+    // Validate if there are payments/credits in Treasury V13
+    final hasPayments = await db.query('payments', where: 'entity_id = ? AND entity_type = ?', whereArgs: [id, 'SUPPLIER']);
+
+    if (hasHistory.isNotEmpty || hasPayments.isNotEmpty) {
+      throw Exception('No se puede eliminar porque tiene historial contable, pedidos o abonos registrados.');
+    }
+
+    // Validate if the supplier is assigned to any product
+    final hasProducts = await db.query('products', where: 'supplier_id = ?', whereArgs: [id]);
+
+    if (hasProducts.isNotEmpty) {
+      await db.update('products', {'supplier_id': null}, where: 'supplier_id = ?', whereArgs: [id]); 
+    } 
+
     return await db.delete(
       'suppliers',
       where: 'id = ?',

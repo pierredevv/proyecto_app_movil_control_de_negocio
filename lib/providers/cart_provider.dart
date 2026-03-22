@@ -127,7 +127,7 @@ class CartProvider extends ChangeNotifier {
     try {
       final saleTotal = total;
       final received = amountReceived ?? saleTotal;
-      final String saleStatus = received >= saleTotal
+      final String saleStatus = received >= saleTotal - 0.01
           ? 'COMPLETED'
           : received > 0
               ? 'PARTIAL'

@@ -323,16 +323,35 @@ class BackupService {
     await txn.delete('categories'); 
     await txn.delete('suppliers'); 
 
-    // Restore all tables dynamically based on JSON keys
-    final tablesToRestore = data.keys.toList();
-    
-    for (final tableName in tablesToRestore) { 
-      if (data.containsKey(tableName)) { 
+    const tableOrder = [ 
+      'categories', 'suppliers', 'customers', 
+      'products', 'transactions', 'transaction_items', 
+      'sale_payments', 'inventory_movements', 'entity_ledgers', 
+      'payments', 'payment_allocations', 'notes',
+    ];
+
+    for (final tableName in tableOrder) { 
+      if (data.containsKey(tableName) && data[tableName] is List) { 
         for (final row in data[tableName]) { 
-          // Handle 'invoice_items' exported key mapping if needed
-          await txn.insert(tableName, row); 
-        } 
-      } 
+          try { 
+            await txn.insert(tableName, Map<String, dynamic>.from(row));
+          } catch (e) {
+            debugPrint('Restore skip $tableName: $e');
+          }
+        }
+      }
+    }
+    // Fallback for extra tables not in the list
+    for (final tableName in data.keys) {
+      if (!tableOrder.contains(tableName) && data[tableName] is List) {
+        for (final row in data[tableName]) {
+           try {
+             await txn.insert(tableName, Map<String, dynamic>.from(row));
+           } catch (e) {
+             debugPrint('Restore skip extra $tableName: $e');
+           }
+        }
+      }
     }
     
     // Fallback for legacy backups where transaction_items were exported as invoice_items

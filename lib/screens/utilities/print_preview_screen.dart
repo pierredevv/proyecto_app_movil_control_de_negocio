@@ -932,7 +932,9 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                     Expanded(
                         flex: 2,
                         child: Text(
-                            (item.subtotal / item.quantity).toStringAsFixed(2),
+                            item.quantity > 0 
+                                ? (item.subtotal / item.quantity).toStringAsFixed(2)
+                                : '0.00',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: textColor,

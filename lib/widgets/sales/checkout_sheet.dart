@@ -53,7 +53,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _dueDate = picked;
       });

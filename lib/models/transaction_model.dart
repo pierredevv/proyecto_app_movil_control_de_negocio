@@ -235,6 +235,7 @@ class Expense extends Transaction {
 }
 
 class Order extends Transaction {
+  final int? supplierId;
   final String? supplierName;
   final DateTime? deliveryDate;
 
@@ -244,6 +245,7 @@ class Order extends Transaction {
     required super.totalAmount,
     required super.status, // Status is required and dynamic for Orders
     super.items,
+    this.supplierId,
     this.supplierName,
     this.deliveryDate,
   }) : super(type: TransactionType.order);
@@ -253,6 +255,7 @@ class Order extends Transaction {
     return {
       'id': id,
       'type': type.name, // 'order'
+      'entity_id': supplierId,
       'entity_name': supplierName,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
@@ -267,6 +270,7 @@ class Order extends Transaction {
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
       status: map['status'] ?? 'PENDING',
+      supplierId: map['entity_id'],
       supplierName: map['entity_name'],
       deliveryDate: map['payment_due_date'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])

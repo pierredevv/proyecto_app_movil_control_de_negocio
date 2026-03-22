@@ -389,6 +389,7 @@ class _SalesScreenState extends State<SalesScreen> {
               onPressed: () {
                 cart.clearCart();
                 Navigator.pop(ctx);
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Carrito vaciado')),
                 );
@@ -446,7 +447,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
     final products = showOutOfStock
         ? provider.filteredProducts
         : provider.filteredProducts
-            .where((p) => p.stockInSaleUnits >= 1)
+            .where((p) => p.stock > 0)
             .toList();
 
     return Padding(
@@ -485,12 +486,11 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               provider.setSearchQuery(val);
             },
           ),
-          Flexible(
-            child: Container(
-              margin: const EdgeInsets.only(top: 16),
-              constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.5),
-              child: products.isEmpty
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: products.isEmpty
                   ? Center(
                       child: Text('No hay productos',
                           style: TextStyle(
@@ -524,7 +524,6 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                       },
                     ),
             ),
-          ),
         ],
       ),
     );

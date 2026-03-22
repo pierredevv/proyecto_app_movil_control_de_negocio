@@ -42,8 +42,9 @@ class NotificationProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error checking low stock: $e');
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> checkPendingSales() async {
@@ -84,9 +85,10 @@ class NotificationProvider extends ChangeNotifier {
 
       // Also refresh count whenever we check overdue
       _pendingSalesCount = await _db.getPendingSalesCount();
-      notifyListeners();
     } catch (e) {
       debugPrint('Error checking overdue sales: $e');
+    } finally {
+      notifyListeners();
     }
   }
 
@@ -104,7 +106,6 @@ class NotificationProvider extends ChangeNotifier {
       type: type,
     );
     _notifications.insert(0, notification);
-    notifyListeners();
   }
 
   void markAsRead(String id) {

@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common/glass_transaction_card.dart';
 import 'package:intl/intl.dart';
 import '../treasury/global_payment_screen.dart';
+import '../../main.dart'; // To access routeObserver
 
 class CustomerLedgerScreen extends StatefulWidget {
   final int customerId;
@@ -22,7 +23,7 @@ class CustomerLedgerScreen extends StatefulWidget {
   State<CustomerLedgerScreen> createState() => _CustomerLedgerScreenState();
 }
 
-class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with WidgetsBindingObserver {
+class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with WidgetsBindingObserver, RouteAware {
   final DatabaseService _db = DatabaseService();
   List<Sale> _pendingSales = [];
   bool _isLoading = true;
@@ -35,9 +36,25 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when the top route has been popped off, and the current route shows up.
+    if (mounted) {
+      _loadLedger();
+      context.read<CustomerProvider>().loadCustomers();
+    }
   }
 
   @override
@@ -168,18 +185,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
         icon: const Icon(Icons.payment),
         label: const Text('Cobro Global'),
         backgroundColor: AppTheme.blueIcon,
-        onPressed: () async {
-          await Navigator.push(
+        onPressed: () {
+          Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => GlobalPaymentScreen(initialCustomerId: widget.customerId),
             ),
           );
-          if (!mounted) return;
-          _loadLedger();
-          if (context.mounted) {
-            context.read<CustomerProvider>().loadCustomers();
-          }
         },
       ),
       appBar: AppBar(
