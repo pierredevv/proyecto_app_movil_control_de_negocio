@@ -7,6 +7,7 @@ abstract class Transaction {
   final TransactionType type;
   final DateTime date;
   final double totalAmount;
+  final double adjustmentAmount;
   final String status;
   final List<InvoiceItem> items;
 
@@ -15,6 +16,7 @@ abstract class Transaction {
     required this.type,
     required this.date,
     required this.totalAmount,
+    this.adjustmentAmount = 0.0,
     this.status = 'COMPLETED',
     this.items = const [],
   });
@@ -32,6 +34,7 @@ class Sale extends Transaction {
     super.id,
     required super.date,
     required super.totalAmount,
+    super.adjustmentAmount,
     super.status,
     super.items,
     this.customerId,
@@ -52,6 +55,7 @@ class Sale extends Transaction {
     int? id,
     DateTime? date,
     double? totalAmount,
+    double? adjustmentAmount,
     String? status,
     List<InvoiceItem>? items,
     int? customerId,
@@ -63,6 +67,7 @@ class Sale extends Transaction {
       id: id ?? this.id,
       date: date ?? this.date,
       totalAmount: totalAmount ?? this.totalAmount,
+      adjustmentAmount: adjustmentAmount ?? this.adjustmentAmount,
       status: status ?? this.status,
       items: items ?? this.items,
       customerId: customerId ?? this.customerId,
@@ -81,6 +86,7 @@ class Sale extends Transaction {
       'entity_name': customerName,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'adjustment_amount': adjustmentAmount,
       'amount_paid': amountPaid,
       'payment_due_date': paymentDueDate?.millisecondsSinceEpoch,
       'status': status,
@@ -92,6 +98,7 @@ class Sale extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
+      adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
       customerName: map['entity_name'],
@@ -109,6 +116,7 @@ class Sale extends Transaction {
 class Purchase extends Transaction {
   final int? supplierId;
   final String? supplierName;
+  final String? supplierInvoiceRef;
   final double amountPaid;
   final DateTime? paymentDueDate;
 
@@ -116,10 +124,12 @@ class Purchase extends Transaction {
     super.id,
     required super.date,
     required super.totalAmount,
+    super.adjustmentAmount,
     super.status,
     super.items,
     this.supplierId,
     this.supplierName,
+    this.supplierInvoiceRef,
     this.amountPaid = 0.0,
     this.paymentDueDate,
   }) : super(type: TransactionType.purchase);
@@ -139,8 +149,10 @@ class Purchase extends Transaction {
       'type': type.name, // 'purchase'
       'entity_id': supplierId,
       'entity_name': supplierName, // Storing name directly for simple purchases
+      'supplier_invoice_ref': supplierInvoiceRef,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'adjustment_amount': adjustmentAmount,
       'amount_paid': amountPaid,
       'payment_due_date': paymentDueDate?.millisecondsSinceEpoch,
       'status': status,
@@ -152,9 +164,11 @@ class Purchase extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
+      adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       supplierId: map['entity_id'],
       supplierName: map['entity_name'],
+      supplierInvoiceRef: map['supplier_invoice_ref'],
       amountPaid: map['amount_paid'] != null
           ? (map['amount_paid'] as num).toDouble()
           : (map['status'] == 'COMPLETED' ? (map['total_amount'] as num).toDouble() : 0.0),
@@ -173,6 +187,7 @@ class Payment extends Transaction {
     super.id,
     required super.date,
     required super.totalAmount,
+    super.adjustmentAmount,
     super.status,
     this.customerId,
   }) : super(type: TransactionType.payment);
@@ -185,6 +200,7 @@ class Payment extends Transaction {
       'entity_id': customerId,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'adjustment_amount': adjustmentAmount,
       'status': 'COMPLETED',
     };
   }
@@ -194,6 +210,7 @@ class Payment extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
+      adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
     );
@@ -207,6 +224,7 @@ class Expense extends Transaction {
     super.id,
     required super.date,
     required super.totalAmount,
+    super.adjustmentAmount,
     super.status,
     required this.description,
   }) : super(type: TransactionType.expense);
@@ -219,6 +237,7 @@ class Expense extends Transaction {
       'entity_name': description,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'adjustment_amount': adjustmentAmount,
       'status': status,
     };
   }
@@ -228,6 +247,7 @@ class Expense extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
+      adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       description: map['entity_name'] ?? 'Gasto sin descripción',
     );
@@ -243,6 +263,7 @@ class Order extends Transaction {
     super.id,
     required super.date,
     required super.totalAmount,
+    super.adjustmentAmount,
     required super.status, // Status is required and dynamic for Orders
     super.items,
     this.supplierId,
@@ -259,6 +280,7 @@ class Order extends Transaction {
       'entity_name': supplierName,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
+      'adjustment_amount': adjustmentAmount,
       'status': status,
       'payment_due_date': deliveryDate?.millisecondsSinceEpoch,
     };
@@ -269,6 +291,7 @@ class Order extends Transaction {
       id: map['id'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       totalAmount: map['total_amount'],
+      adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'PENDING',
       supplierId: map['entity_id'],
       supplierName: map['entity_name'],

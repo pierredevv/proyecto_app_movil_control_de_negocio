@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../providers/dashboard_provider.dart';
+import '../../models/transaction_model.dart';
+import '../sales/sale_detail_screen.dart';
+import '../purchases/purchase_details_screen.dart';
 import 'aging_report_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -140,6 +143,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             DateFormat('dd MMM yyyy • HH:mm').format(t.date),
                         amount: t.totalAmount,
                         isPositive: isSale,
+                        onTap: () {
+                          if (t is Sale) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailScreen(sale: t)));
+                          } else if (t is Purchase) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => PurchaseDetailsScreen(purchase: t)));
+                          }
+                        },
                       );
 
                       if (index < 8) {
@@ -298,6 +308,7 @@ class _AnimatedTransactionTile extends StatefulWidget {
   final String dateText;
   final double amount;
   final bool isPositive;
+  final VoidCallback onTap;
 
   const _AnimatedTransactionTile({
     required this.iconData,
@@ -306,6 +317,7 @@ class _AnimatedTransactionTile extends StatefulWidget {
     required this.dateText,
     required this.amount,
     required this.isPositive,
+    required this.onTap,
   });
 
   @override
@@ -320,7 +332,10 @@ class _AnimatedTransactionTileState extends State<_AnimatedTransactionTile> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),

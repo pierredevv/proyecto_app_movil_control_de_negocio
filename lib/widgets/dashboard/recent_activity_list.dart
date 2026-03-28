@@ -8,6 +8,7 @@ import '../../screens/history/transaction_history_screen.dart';
 import '../../screens/sales/sale_detail_screen.dart';
 import '../../screens/purchases/purchase_details_screen.dart';
 import '../../screens/customers/customer_ledger_screen.dart';
+import '../../screens/suppliers/supplier_ledger_screen.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -80,7 +81,13 @@ class RecentActivityList extends StatelessWidget {
                 isSale = true;
               } else if (t is Purchase) {
                 name = t.supplierName ?? 'Proveedor Ocasional';
-                typeLabel = 'COMPRA';
+                if (t.status == 'PARTIAL') {
+                  typeLabel = 'COMPRA · PARCIAL';
+                } else if (t.status == 'CREDIT') {
+                  typeLabel = 'COMPRA · CRÉDITO';
+                } else {
+                  typeLabel = 'COMPRA';
+                }
               } else if (t is Expense) {
                 name = t.description;
                 typeLabel = 'GASTO';
@@ -120,13 +127,13 @@ class RecentActivityList extends StatelessWidget {
       required int delay}) {
     
     Color accentColor;
-    if (isSale) {
+    if (isSale || transaction is Purchase) {
       if (transaction.status == 'PARTIAL') {
         accentColor = const Color(0xFFF59F00); // orange
       } else if (transaction.status == 'CREDIT') {
         accentColor = Colors.blueAccent;
       } else {
-        accentColor = AppTheme.greenAccent;
+        accentColor = isSale ? AppTheme.greenAccent : AppTheme.redAccent;
       }
     } else {
       accentColor = AppTheme.redAccent;
@@ -318,12 +325,13 @@ class RecentActivityList extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT'))
+                          if ((isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT')) || 
+                              (!isSale && transaction is Purchase && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT')))
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Pagado: Bs. ${transaction.amountPaid.toStringAsFixed(2)}', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11)),
-                                Text('Pendiente: Bs. ${transaction.pendingAmount.toStringAsFixed(2)}', style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                                Text('Pagado: Bs. ${(transaction is Sale ? transaction.amountPaid : (transaction as Purchase).amountPaid).toStringAsFixed(2)}', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11)),
+                                Text('Pendiente: Bs. ${(transaction is Sale ? transaction.pendingAmount : (transaction as Purchase).pendingAmount).toStringAsFixed(2)}', style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold)),
                               ]
                             ))
                           else
@@ -357,7 +365,7 @@ class RecentActivityList extends StatelessWidget {
                         ],
                       ),
                       
-                      // Row 4: Collect Installment Button
+                      // Row 4: Collect Installment Button / Pay Fee Button
                       if (isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT') && transaction.customerId != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -377,6 +385,35 @@ class RecentActivityList extends StatelessWidget {
                               },
                               icon: Icon(Icons.payment_rounded, size: 16, color: accentColor),
                               label: Text('Cobrar Cuota', style: TextStyle(color: accentColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                minimumSize: const Size(0, 32),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: accentColor.withValues(alpha: 0.1),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (!isSale && transaction is Purchase && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT') && transaction.supplierId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SupplierLedgerScreen(
+                                      supplierId: transaction.supplierId!,
+                                      supplierName: transaction.supplierName ?? 'Proveedor',
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: Icon(Icons.payment_rounded, size: 16, color: accentColor),
+                              label: Text('Pagar Deuda', style: TextStyle(color: accentColor, fontSize: 13, fontWeight: FontWeight.bold)),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 minimumSize: const Size(0, 32),

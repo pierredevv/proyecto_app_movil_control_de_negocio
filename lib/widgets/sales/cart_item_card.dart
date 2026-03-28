@@ -34,6 +34,47 @@ class _CartItemCardState extends State<CartItemCard>
     widget.onRemove();
   }
 
+  void _showQtyEditDialog(BuildContext context) {
+    final qtyController = TextEditingController(
+        text: widget.item.quantity % 1 == 0
+            ? widget.item.quantity.toInt().toString()
+            : widget.item.quantity.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Editar Cantidad'),
+          content: TextField(
+            controller: qtyController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Cantidad',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final val = double.tryParse(qtyController.text);
+                if (val != null && val > 0) {
+                  widget.onUpdateQty(val);
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // If deleting, animate out. Else animate in on mount.
@@ -113,28 +154,31 @@ class _CartItemCardState extends State<CartItemCard>
                 children: [
                   _QtyButton(
                     icon: Icons.remove,
-                    onTap: widget.item.quantity > 1
-                        ? () => widget.onUpdateQty(widget.item.quantity - 1)
-                        : null, // Disabled if 1
-                    isActive: widget.item.quantity > 1,
+                    onTap: widget.item.quantity > 0.01 // allow < 1 for decimals
+                        ? () => widget.onUpdateQty((widget.item.quantity - 1).clamp(0.01, double.infinity))
+                        : null,
+                    isActive: widget.item.quantity > 0.01,
                   ),
                   SizedBox(
-                    width: 32,
-                    child: Text(
-                      '${widget.item.quantity % 1 == 0 ? widget.item.quantity.toInt() : widget.item.quantity}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
-                    )
-                        .animate(key: ValueKey(widget.item.quantity))
-                        .scale(
-                            duration: 200.ms,
-                            begin: const Offset(1, 1),
-                            end: const Offset(1.2, 1.2))
-                        .then()
-                        .scale(end: const Offset(1, 1)),
+                    width: 48, // slightly wider for decimals
+                    child: InkWell(
+                      onTap: () => _showQtyEditDialog(context),
+                      child: Text(
+                        '${widget.item.quantity % 1 == 0 ? widget.item.quantity.toInt() : widget.item.quantity}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
+                      )
+                          .animate(key: ValueKey(widget.item.quantity))
+                          .scale(
+                              duration: 200.ms,
+                              begin: const Offset(1, 1),
+                              end: const Offset(1.2, 1.2))
+                          .then()
+                          .scale(end: const Offset(1, 1)),
+                    ),
                   ),
                   _QtyButton(
                     icon: Icons.add,

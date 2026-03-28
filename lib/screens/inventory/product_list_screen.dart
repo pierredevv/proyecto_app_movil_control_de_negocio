@@ -9,6 +9,7 @@ import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../widgets/inventory/product_list_item.dart';
 import 'product_form_screen.dart';
+import 'stock_adjustment_screen.dart';
 import 'inventory_filter_panel.dart';
 import '../../widgets/common/skeleton_list.dart';
 import '../notifications/notifications_screen.dart';
@@ -195,6 +196,14 @@ class _ProductListScreenState extends State<ProductListScreen>
                                 onEdit: () => _navigateToForm(context, product),
                                 onDelete: () =>
                                     _confirmDelete(context, product),
+                                onAdjustStock: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
+                                ).then((_) {
+                                  if (context.mounted) {
+                                    context.read<InventoryProvider>().loadProducts(reset: true);
+                                  }
+                                }),
                               ).animate().fadeIn(duration: 400.ms).slideY(
                                     begin: 0.1,
                                     end: 0,

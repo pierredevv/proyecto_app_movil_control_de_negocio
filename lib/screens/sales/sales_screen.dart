@@ -498,7 +498,6 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                               color: theme.colorScheme.onSurface
                                   .withValues(alpha: 0.5))))
                   : ListView.separated(
-                      shrinkWrap: true,
                       itemCount: products.length,
                       separatorBuilder: (_, __) => Divider(
                           color:

@@ -754,8 +754,21 @@ class _GlassTransactionCard extends StatelessWidget {
           return const Color(0xFF51CF66);
       }
     }
+    if (transaction is Purchase) {
+      final purchase = transaction as Purchase;
+      switch (purchase.status.toUpperCase()) {
+        case 'PARTIAL':
+          return const Color(0xFFF59F00); // Same Partial color
+        case 'CREDIT':
+          return const Color(0xFF4A90E2);
+        case 'VOIDED':
+          return const Color(0xFF6B7494);
+        default:
+          return const Color(0xFFFF6B6B);
+      }
+    }
     switch (transaction.type) {
-      case TransactionType.purchase:
+      case TransactionType.purchase: // fallback
         return const Color(0xFFFF6B6B);
       case TransactionType.expense:
         return const Color(0xFFFFA94D);
@@ -782,8 +795,21 @@ class _GlassTransactionCard extends StatelessWidget {
           return 'VENTA';
       }
     }
+    if (transaction is Purchase) {
+      final purchase = transaction as Purchase;
+      switch (purchase.status.toUpperCase()) {
+        case 'PARTIAL':
+          return 'COMPRA · PARCIAL';
+        case 'CREDIT':
+          return 'COMPRA · CRÉDITO';
+        case 'VOIDED':
+          return 'COMPRA · ANULADA';
+        default:
+          return 'COMPRA';
+      }
+    }
     switch (transaction.type) {
-      case TransactionType.purchase:
+      case TransactionType.purchase: // fallback
         return 'COMPRA';
       case TransactionType.expense:
         return 'GASTO';

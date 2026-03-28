@@ -31,6 +31,8 @@ class BusinessProfile {
   final bool autoClearCartAfterSale;
   final bool showOutOfStockInPOS;
   final bool lowStockAlertsEnabled;
+  final bool allowNegativeStock;
+  final bool allowInvoiceAdjustments;
 
   const BusinessProfile({
     this.businessName = 'Mi Negocio',
@@ -59,6 +61,8 @@ class BusinessProfile {
     this.autoClearCartAfterSale = true,
     this.showOutOfStockInPOS = true,
     this.lowStockAlertsEnabled = true,
+    this.allowNegativeStock = false,
+    this.allowInvoiceAdjustments = false,
   });
 
   BusinessProfile copyWith({
@@ -88,6 +92,8 @@ class BusinessProfile {
     bool? autoClearCartAfterSale,
     bool? showOutOfStockInPOS,
     bool? lowStockAlertsEnabled,
+    bool? allowNegativeStock,
+    bool? allowInvoiceAdjustments,
   }) {
     return BusinessProfile(
       businessName: businessName ?? this.businessName,
@@ -118,6 +124,9 @@ class BusinessProfile {
       showOutOfStockInPOS: showOutOfStockInPOS ?? this.showOutOfStockInPOS,
       lowStockAlertsEnabled:
           lowStockAlertsEnabled ?? this.lowStockAlertsEnabled,
+      allowNegativeStock: allowNegativeStock ?? this.allowNegativeStock,
+      allowInvoiceAdjustments:
+          allowInvoiceAdjustments ?? this.allowInvoiceAdjustments,
     );
   }
 
@@ -149,6 +158,8 @@ class BusinessProfile {
       'autoClearCartAfterSale': autoClearCartAfterSale,
       'showOutOfStockInPOS': showOutOfStockInPOS,
       'lowStockAlertsEnabled': lowStockAlertsEnabled,
+      'allowNegativeStock': allowNegativeStock,
+      'allowInvoiceAdjustments': allowInvoiceAdjustments,
     };
   }
 
@@ -180,6 +191,8 @@ class BusinessProfile {
       autoClearCartAfterSale: map['autoClearCartAfterSale'] ?? true,
       showOutOfStockInPOS: map['showOutOfStockInPOS'] ?? true,
       lowStockAlertsEnabled: map['lowStockAlertsEnabled'] ?? true,
+      allowNegativeStock: map['allowNegativeStock'] ?? false,
+      allowInvoiceAdjustments: map['allowInvoiceAdjustments'] ?? false,
     );
   }
 
@@ -211,6 +224,8 @@ class BusinessProfile {
       autoClearCartAfterSale: autoClearCartAfterSale,
       showOutOfStockInPOS: showOutOfStockInPOS,
       lowStockAlertsEnabled: lowStockAlertsEnabled,
+      allowNegativeStock: allowNegativeStock,
+      allowInvoiceAdjustments: allowInvoiceAdjustments,
     );
   }
 }

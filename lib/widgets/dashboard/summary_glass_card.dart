@@ -66,7 +66,7 @@ class SummaryGlassCard extends StatelessWidget {
           Expanded(
             child: _buildSideStat(
               context,
-              label: 'Compras',
+              label: 'Compras Emitidas',
               amount: purchasesTotal,
               color: AppTheme.redAccent,
               alignment: CrossAxisAlignment.end,

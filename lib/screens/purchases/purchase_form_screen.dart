@@ -36,6 +36,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   DateTime _selectedDate = DateTime.now();
   final List<InvoiceItem> _items = [];
   bool _isOrder = false;
+  final TextEditingController _invoiceRefController = TextEditingController();
 
   @override
   void initState() {
@@ -85,6 +86,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _invoiceRefController.dispose();
+    super.dispose();
   }
 
   void _pickDate() async {
@@ -257,6 +264,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           paymentDueDate: paymentDueDate,
           supplierId: _selectedSupplier?.id, // Passing ID is vital for Ledgers
           supplierName: _selectedSupplier?.name ?? 'Proveedor General',
+          supplierInvoiceRef: _invoiceRefController.text.isNotEmpty ? _invoiceRefController.text : null,
           items: _items,
           status: status,
         );
@@ -347,176 +355,190 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             SafeArea(
               child: Column(
                 children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 1. Supplier & Date Fields
-                          IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  flex: 3, // More space for Supplier
-                                  child: _buildGlassField(
-                                    icon: Icons.store,
-                                    label: 'Proveedor',
-                                    child: Consumer<SupplierProvider>(
-                                      builder: (context, provider, child) {
-                                        return DropdownButtonHideUnderline(
-                                          child: DropdownButton<Supplier>(
-                                            value: _selectedSupplier,
-                                            hint: const Text(
-                                                'Proveedor General',
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.w600)),
-                                            dropdownColor:
-                                                const Color(0xFF1E2432),
-                                            style: const TextStyle(
-                                                color: Colors.white),
-                                            icon: const Icon(
-                                                Icons.keyboard_arrow_down,
-                                                color: Colors.white70),
-                                            isExpanded: true,
-                                            items: [
-                                              const DropdownMenuItem<Supplier>(
-                                                value: null,
-                                                child:
-                                                    Text('Proveedor General'),
+                  // Fixed Header part
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 1. Supplier & Date Fields
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 3, // More space for Supplier
+                                child: _buildGlassField(
+                                  icon: Icons.store,
+                                  label: 'Proveedor',
+                                  child: Consumer<SupplierProvider>(
+                                    builder: (context, provider, child) {
+                                      return DropdownButtonHideUnderline(
+                                        child: DropdownButton<Supplier>(
+                                          value: _selectedSupplier,
+                                          hint: const Text(
+                                              'Proveedor General',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.w600)),
+                                          dropdownColor:
+                                              const Color(0xFF1E2432),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              color: Colors.white70),
+                                          isExpanded: true,
+                                          items: [
+                                            const DropdownMenuItem<Supplier>(
+                                              value: null,
+                                              child:
+                                                  Text('Proveedor General'),
+                                            ),
+                                            ...provider.suppliers.map(
+                                              (s) => DropdownMenuItem(
+                                                value: s,
+                                                child: Text(s.name),
                                               ),
-                                              ...provider.suppliers.map(
-                                                (s) => DropdownMenuItem(
-                                                  value: s,
-                                                  child: Text(s.name),
-                                                ),
-                                              )
-                                            ],
-                                            onChanged: (val) => setState(
-                                                () => _selectedSupplier = val),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                            )
+                                          ],
+                                          onChanged: (val) => setState(
+                                              () => _selectedSupplier = val),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: GestureDetector(
-                                    onTap: _pickDate,
-                                    child: _buildGlassField(
-                                      icon: Icons.calendar_today,
-                                      label: 'Fecha',
-                                      child: Text(
-                                        DateFormat('dd/MM/yy')
-                                            .format(_selectedDate),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: GestureDetector(
+                                  onTap: _pickDate,
+                                  child: _buildGlassField(
+                                    icon: Icons.calendar_today,
+                                    label: 'Fecha',
+                                    child: Text(
+                                      DateFormat('dd/MM/yy')
+                                          .format(_selectedDate),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 2. Schedule as Order Checkbox
-                          _buildOrderToggle(),
-
-                          const SizedBox(height: 24),
-
-                          // 3. Products Header
-                          Divider(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              height: 1),
-                          const SizedBox(height: 24),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Productos',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              TextButton.icon(
-                                onPressed: _addItem,
-                                icon: const Icon(Icons.add_circle,
-                                    color: AppTheme.primary, size: 18),
-                                label: const Text(
-                                  'Agregar Producto',
-                                  style: TextStyle(
-                                    color: AppTheme.primary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
                               ),
                             ],
                           ),
+                        ),
 
+                        if (!_isOrder) ...[
                           const SizedBox(height: 16),
-
-                          // 4. Products List or Empty State
-                          if (_items.isEmpty)
-                            _buildEmptyState()
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _items.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                return _PurchaseItemRow(
-                                  key: ValueKey(_items[index].productId),
-                                  item: _items[index],
-                                  product: context
-                                      .read<InventoryProvider>()
-                                      .products
-                                      .firstWhere(
-                                          (p) =>
-                                              p.id == _items[index].productId,
-                                          orElse: () => Product(
-                                              name: 'N/A',
-                                              barcode: '',
-                                              price: 0,
-                                              cost: 0,
-                                              stock: 0)),
-                                  onChanged: (updatedItem) {
-                                    setState(() {
-                                      _items[index] = updatedItem;
-                                    });
-                                  },
-                                  onRemove: () => _removeItem(index),
-                                );
-                              },
+                          _buildGlassField(
+                            icon: Icons.receipt_long,
+                            label: 'Nro. Factura Proveedor (Opcional)',
+                            child: TextField(
+                              controller: _invoiceRefController,
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              decoration: const InputDecoration(
+                                hintText: 'Ej. FA-00192A',
+                                hintStyle: TextStyle(color: Colors.white30),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
-
-                          // Space for fixed footer
-                          const SizedBox(height: 120),
+                          ),
                         ],
-                      ),
+
+                        const SizedBox(height: 16),
+
+                        // 2. Schedule as Order Checkbox
+                        _buildOrderToggle(),
+
+                        const SizedBox(height: 24),
+
+                        // 3. Products Header
+                        Divider(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            height: 1),
+                        const SizedBox(height: 24),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Productos',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _addItem,
+                              icon: const Icon(Icons.add_circle,
+                                  color: AppTheme.primary, size: 18),
+                              label: const Text(
+                                'Agregar Producto',
+                                style: TextStyle(
+                                  color: AppTheme.primary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+                      ],
                     ),
+                  ),
+
+                  // 4. Products List or Empty State
+                  Expanded(
+                    child: _items.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.separated(
+                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 150),
+                            itemCount: _items.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              return _PurchaseItemRow(
+                                key: ValueKey(_items[index].productId),
+                                item: _items[index],
+                                product: context
+                                    .read<InventoryProvider>()
+                                    .products
+                                    .firstWhere(
+                                        (p) =>
+                                            p.id == _items[index].productId,
+                                        orElse: () => Product(
+                                            name: 'N/A',
+                                            barcode: '',
+                                            price: 0,
+                                            cost: 0,
+                                            stock: 0)),
+                                onChanged: (updatedItem) {
+                                  setState(() {
+                                    _items[index] = updatedItem;
+                                  });
+                                },
+                                onRemove: () => _removeItem(index),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -1185,7 +1207,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                           title: Text(p.name,
                               style: const TextStyle(color: Colors.white)),
                           subtitle: Text(
-                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${(p.cost * p.unitsPerSaleUnit).toStringAsFixed(2)}',
+                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${p.cost.toStringAsFixed(2)}',
                               style: const TextStyle(color: Colors.white54)),
                           trailing:
                               const Icon(Icons.add, color: AppTheme.primary),

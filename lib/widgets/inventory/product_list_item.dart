@@ -9,6 +9,7 @@ class ProductListItem extends StatefulWidget {
   final String categoryName;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onAdjustStock;
 
   const ProductListItem({
     super.key,
@@ -16,6 +17,7 @@ class ProductListItem extends StatefulWidget {
     required this.categoryName,
     required this.onEdit,
     required this.onDelete,
+    required this.onAdjustStock,
   });
 
   @override
@@ -266,7 +268,16 @@ class _ProductListItemState extends State<ProductListItem>
                                           onTap: widget.onEdit,
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _buildGlassButton(
+                                          icon: Icons.inventory_2_outlined,
+                                          label: 'Ajustar',
+                                          color: Colors.orangeAccent,
+                                          onTap: widget.onAdjustStock,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
                                       Expanded(
                                         child: _buildGlassButton(
                                           icon: Icons.delete_outline,

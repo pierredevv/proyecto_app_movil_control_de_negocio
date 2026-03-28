@@ -72,6 +72,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
         } else {
           await _db.insertCategory(Category(name: controller.text));
         }
+        if (!mounted) return;
         _loadCategories();
       } catch (e) {
         if (mounted) {
@@ -106,6 +107,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
 
     if (confirmed == true) {
       await _db.deleteCategory(id);
+      if (!mounted) return;
       _loadCategories();
     }
   }

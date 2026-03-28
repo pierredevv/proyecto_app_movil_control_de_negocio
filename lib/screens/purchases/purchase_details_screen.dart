@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
+import '../../theme/app_theme.dart';
+import '../suppliers/supplier_ledger_screen.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../../utils/haptic_feedback_helper.dart';
 import 'purchase_form_screen.dart';
@@ -132,7 +134,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   }
 
   Widget _buildHeaderCard(bool isDark) {
-    const statusColor = Colors.green; // Purchases are typically completed
+    final statusColor = _purchase.status == 'PARTIAL'
+        ? const Color(0xFFF59F00)
+        : (_purchase.status == 'CREDIT' ? Colors.blueAccent : Colors.green);
 
     return Container(
       decoration: BoxDecoration(
@@ -155,7 +159,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                       child: CircleAvatar(
                         backgroundColor: statusColor.withValues(alpha: 0.1),
                         child:
-                            const Icon(Icons.shopping_bag, color: statusColor),
+                            Icon(Icons.shopping_bag, color: statusColor),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -190,8 +194,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                         border: Border.all(
                             color: statusColor.withValues(alpha: 0.3)),
                       ),
-                      child: const Text(
-                        'COMPLETADO',
+                      child: Text(
+                        _purchase.status == 'PARTIAL' ? 'PARCIAL' : (_purchase.status == 'CREDIT' ? 'CRÉDITO' : 'COMPLETADO'),
                         style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
@@ -229,7 +233,24 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                         ],
                       ),
                     ),
-                    // No delivery date for immediate purchases
+                    // Supplier Invoice Reference
+                    if (_purchase.supplierInvoiceRef != null && _purchase.supplierInvoiceRef!.isNotEmpty)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('Nro. Factura / Recibo',
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.white54)),
+                            const SizedBox(height: 4),
+                            Text(_purchase.supplierInvoiceRef!,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white)),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -341,37 +362,104 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   }
 
   Widget _buildTotalsCard(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('TOTAL PAGADO',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white)),
-                Text(
-                  'Bs. ${_purchase.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green),
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0x26FFFFFF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('TOTAL COMPRA',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(
+                          'Bs. ${_purchase.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    if (_purchase.amountPaid > 0 || _purchase.status == 'PARTIAL' || _purchase.status == 'CREDIT') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('PAGADO',
+                              style: TextStyle(color: Colors.white70)),
+                          Text('Bs. ${_purchase.amountPaid.toStringAsFixed(2)}',
+                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('PENDIENTE',
+                              style: TextStyle(color: Colors.white)),
+                          Text('Bs. ${_purchase.pendingAmount.toStringAsFixed(2)}',
+                              style: const TextStyle(color: Color(0xFFF59F00), fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        if (_purchase.pendingAmount > 0 && _purchase.supplierId != null) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SupplierLedgerScreen(
+                      supplierId: _purchase.supplierId!,
+                      supplierName: _purchase.supplierName ?? 'Proveedor',
+                    ),
+                  ),
+                ).then((_) {
+                  _reloadPurchaseData();
+                });
+              },
+              icon: const Icon(Icons.payment),
+              label: const Text('PAGAR DEUDA / ABONAR'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+        ]
+      ],
     );
+  }
+
+  Future<void> _reloadPurchaseData() async {
+    final updatedPurchase = await _db.getTransactionById(_purchase.id!) as Purchase?;
+    if (updatedPurchase != null && mounted) {
+      setState(() {
+        _purchase = updatedPurchase;
+      });
+    }
   }
 
   Future<void> _handleVoidPurchase() async {

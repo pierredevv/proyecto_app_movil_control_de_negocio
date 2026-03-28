@@ -36,6 +36,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
   bool _showNitOnInvoice = true;
   bool _showLogoOnInvoice = true;
+  bool _allowNegativeStock = false;
+  bool _allowInvoiceAdjustments = false;
   String? _logoPath;
 
   @override
@@ -67,6 +69,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
     _showNitOnInvoice = profile.showNitOnInvoice;
     _showLogoOnInvoice = profile.showLogoOnInvoice;
+    _allowNegativeStock = profile.allowNegativeStock;
+    _allowInvoiceAdjustments = profile.allowInvoiceAdjustments;
     _logoPath = profile.logoPath;
   }
 
@@ -132,6 +136,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       lowStockThreshold: int.tryParse(_lowStockThresholdCtrl.text) ?? 3,
       showNitOnInvoice: _showNitOnInvoice,
       showLogoOnInvoice: _showLogoOnInvoice,
+      allowNegativeStock: _allowNegativeStock,
+      allowInvoiceAdjustments: _allowInvoiceAdjustments,
     );
 
     await context.read<SettingsProvider>().updateProfile(updatedProfile);
@@ -317,6 +323,20 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
               title: const Text('Mostrar Logo en PDF'),
               value: _showLogoOnInvoice,
               onChanged: (v) => setState(() => _showLogoOnInvoice = v),
+            ),
+
+            const _SectionTitle('Reglas de Negocio / ERP'),
+            SwitchListTile(
+              title: const Text('Permitir Stock Negativo'),
+              subtitle: const Text('Permite vender aunque no haya stock (WAC congelado)'),
+              value: _allowNegativeStock,
+              onChanged: (v) => setState(() => _allowNegativeStock = v),
+            ),
+            SwitchListTile(
+              title: const Text('Ajustes Finales en Factura'),
+              subtitle: const Text('Permite redondear o modificar el total a pagar'),
+              value: _allowInvoiceAdjustments,
+              onChanged: (v) => setState(() => _allowInvoiceAdjustments = v),
             ),
 
             const SizedBox(height: 24),

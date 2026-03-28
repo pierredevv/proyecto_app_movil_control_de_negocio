@@ -37,7 +37,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 13,
+      return await openDatabase(_testDbPath!, version: 15,
           onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -55,7 +55,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 13, // Updated to version 13 for Treasury Module
+      version: 15, // Updated to version 15 for Final Price Adjustment & A/P Ledger Correction
       onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -395,6 +395,32 @@ class DatabaseService {
         debugPrint('Error adding V13 details (Treasury): $e');
       }
     }
+    
+    // Sprint 1 - Stock Adjustment and Supplier Invoices v14
+    if (oldVersion < 14) {
+      try {
+        await db.execute("ALTER TABLE transactions ADD COLUMN supplier_invoice_ref TEXT");
+      } catch (e) {
+        debugPrint('Error adding supplier_invoice_ref column: $e');
+      }
+    }
+    
+    // Sprint 2 - Vyapar Stabilization v15
+    if (oldVersion < 15) {
+      try {
+        await db.execute(
+            "ALTER TABLE transactions ADD COLUMN adjustment_amount REAL DEFAULT 0.0");
+        
+        // Repair Legacy Data: A/P Ledger Correction
+        await db.execute('''
+          UPDATE entity_ledgers 
+          SET credit_amount = debit_amount, debit_amount = 0.0 
+          WHERE entity_type = 'SUPPLIER' AND transaction_source_type = 'PURCHASE' AND debit_amount > 0 
+        ''');
+      } catch (e) {
+        debugPrint('V15 migration error: $e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -454,9 +480,11 @@ class DatabaseService {
         reference_id INTEGER,
         date INTEGER NOT NULL,
         total_amount REAL NOT NULL,
+        adjustment_amount REAL DEFAULT 0.0,
         amount_paid REAL DEFAULT 0,
         payment_due_date INTEGER,
-        status TEXT
+        status TEXT,
+        supplier_invoice_ref TEXT
       )
     ''');
 
@@ -853,7 +881,8 @@ class DatabaseService {
             final oldWac = (existingItem.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
             final newTotalStock = currentStock + row.stockBase;
             final newCost = row.cost > 0 ? row.cost : (existingItem.first['cost'] as num).toDouble();
-            final newWac = newTotalStock > 0 ? ((currentStock * oldWac) + (row.stockBase * newCost)) / newTotalStock : 0.0;
+            final costPerBaseUnit = row.unitsPerSaleUnit > 0 ? (newCost / row.unitsPerSaleUnit) : newCost;
+            final newWac = newTotalStock > 0 ? ((currentStock * oldWac) + (row.stockBase * costPerBaseUnit)) / newTotalStock : 0.0;
 
             await txn.update(
               'products',
@@ -873,19 +902,20 @@ class DatabaseService {
                 'movement_type': 'INVENTORY_ADJUSTMENT', 
                 'quantity': row.stockBase, 
                 'reference_type': 'IMPORT', 
-                'unit_cost_at_movement': row.cost > 0 ? row.cost : existingItem.first['cost'], 
+                'unit_cost_at_movement': costPerBaseUnit, 
                 'created_timestamp': DateTime.now().millisecondsSinceEpoch, 
             });
 
             updatedCount++;
           } else {
             // Insert new product
+            final costPerBaseUnitNew = row.unitsPerSaleUnit > 0 ? (row.cost / row.unitsPerSaleUnit) : row.cost;
             await txn.insert('products', {
               'name': row.name,
               'barcode': row.barcode,
               'price': row.price,
               'cost': row.cost,
-              'weighted_average_cost': row.cost,
+              'weighted_average_cost': costPerBaseUnitNew,
               'stock': row.stockBase, // Always in base units
               'min_stock': 0,
               'category_id': categoryId,
@@ -980,7 +1010,7 @@ class DatabaseService {
        ''', [transactionId]);
     }
 
-  Future<int> insertSale(Sale sale, {String paymentMethod = 'EFECTIVO'}) async {
+  Future<int> insertSale(Sale sale, {String paymentMethod = 'EFECTIVO', bool allowNegativeStock = false}) async {
     final db = await database;
 
     return await db.transaction((txn) async {
@@ -1003,8 +1033,8 @@ class DatabaseService {
         final productName = result.first['name'] as String;
         final currentWac = (result.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
 
-        // 2. Check availability (NUEVO: Validar contra baseUnitsTotal)
-        if (currentStock < item.baseUnitsTotal) {
+        // 2. Check availability
+        if (currentStock < item.baseUnitsTotal && !allowNegativeStock) {
           throw Exception(
               'Stock insuficiente para "$productName". Disponible: $currentStock unidades base');
         }
@@ -1639,19 +1669,21 @@ class DatabaseService {
       final purchaseId = await txn.insert('transactions', purchase.toMap());
 
       for (var item in purchase.items) {
-        // 1. Query current WAC and stock
+        // 1. Query current WAC, stock, and conversion unit
         final List<Map<String, dynamic>> prodResult = await txn.query(
           'products',
-          columns: ['stock', 'weighted_average_cost'],
+          columns: ['stock', 'weighted_average_cost', 'units_per_box'],
           where: 'id = ?',
           whereArgs: [item.productId],
         );
         
         double currentStock = 0.0;
         double currentWac = 0.0;
+        double unitsPerBox = 1.0;
         if (prodResult.isNotEmpty) {
            currentStock = (prodResult.first['stock'] as num).toDouble();
            currentWac = (prodResult.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+           unitsPerBox = (prodResult.first['units_per_box'] as num?)?.toDouble() ?? 1.0;
         }
 
         // 2. Insert item
@@ -1679,6 +1711,9 @@ class DatabaseService {
             ? (item.quantity * item.unitPrice) / item.baseUnitsTotal 
             : item.unitPrice;
 
+        // The true cost for the product mapping is scaled back to the Sales Unit
+        final newProductCost = unitCostBase * unitsPerBox;
+
         // 4. Insert Inventory Movement
         await txn.insert('inventory_movements', {
           'product_id': item.productId,
@@ -1693,7 +1728,7 @@ class DatabaseService {
         // 5. Update Stock Cache, Cost, and WAC
         await txn.rawUpdate(
           'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
-          [item.baseUnitsTotal, unitCostBase, newWac, item.productId],
+          [item.baseUnitsTotal, newProductCost, newWac, item.productId],
         );
       }
 
@@ -1713,8 +1748,8 @@ class DatabaseService {
           'transaction_source_type': 'PURCHASE',
           'transaction_reference_id': purchaseId,
           'date': DateTime.now().millisecondsSinceEpoch,
-          'debit_amount': purchase.totalAmount,
-          'credit_amount': 0.0,
+          'debit_amount': 0.0,
+          'credit_amount': purchase.totalAmount,
           'materialized_running_balance': currentBalance + purchase.totalAmount,
           'note': 'Registro de Compra',
         });
@@ -1727,8 +1762,8 @@ class DatabaseService {
             'transaction_source_type': 'PAYMENT',
             'transaction_reference_id': purchaseId,
             'date': DateTime.now().millisecondsSinceEpoch + 1,
-            'debit_amount': 0.0,
-            'credit_amount': purchase.amountPaid,
+            'debit_amount': purchase.amountPaid,
+            'credit_amount': 0.0,
             'materialized_running_balance': currentBalance - purchase.amountPaid,
             'note': 'Pago de Compra',
           });
@@ -1974,7 +2009,7 @@ class DatabaseService {
         'transaction_reference_id': paymentId, 'date': DateTime.now().millisecondsSinceEpoch,
         'debit_amount': entityType == 'CUSTOMER' ? amount : 0.0,
         'credit_amount': entityType == 'SUPPLIER' ? amount : 0.0,
-        'materialized_running_balance': entityType == 'CUSTOMER' ? currentBalance + amount : currentBalance - amount,
+        'materialized_running_balance': currentBalance + amount, // Eliminating a payment increases both Customer debt and Supplier liability
         'note': 'Anulación de Pago',
       });
     });
@@ -2241,19 +2276,21 @@ class DatabaseService {
         }
 
         for (var item in items) {
-          // 1. Query current WAC and stock
+          // 1. Query current WAC, stock, and conversion unit
           final List<Map<String, dynamic>> prodResult = await txn.query(
             'products',
-            columns: ['stock', 'weighted_average_cost'],
+            columns: ['stock', 'weighted_average_cost', 'units_per_box'],
             where: 'id = ?',
             whereArgs: [item.productId],
           );
           
           double currentStock = 0.0;
           double currentWac = 0.0;
+          double unitsPerBox = 1.0;
           if (prodResult.isNotEmpty) {
              currentStock = (prodResult.first['stock'] as num).toDouble();
              currentWac = (prodResult.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+             unitsPerBox = (prodResult.first['units_per_box'] as num?)?.toDouble() ?? 1.0;
           }
 
           // 2. Calculate new WAC
@@ -2263,6 +2300,7 @@ class DatabaseService {
           
           final newWac = newTotalStock > 0 ? (totalOldValue + newInvestment) / newTotalStock : 0.0;
           final unitCostInBaseUnits = item.baseUnitsTotal > 0 ? newInvestment / item.baseUnitsTotal : 0.0;
+          final newProductCost = unitCostInBaseUnits * unitsPerBox;
 
           // 3. Insert Inventory Movement
           await txn.insert('inventory_movements', {
@@ -2278,7 +2316,7 @@ class DatabaseService {
           // 4. Update Stock Cache, Cost, and WAC
           await txn.rawUpdate(
             'UPDATE products SET stock = stock + ?, cost = ?, weighted_average_cost = ? WHERE id = ?',
-            [item.baseUnitsTotal, unitCostInBaseUnits, newWac, item.productId],
+            [item.baseUnitsTotal, newProductCost, newWac, item.productId],
           );
 
           // NEW: Link this item to the Purchase Transaction
@@ -2338,6 +2376,13 @@ class DatabaseService {
       WHERE type = 'sale' AND entity_id IS NULL AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
+    // Anonymous Purchases Cash (Outflow)
+    final anonymousPurchasesResult = await db.rawQuery('''
+      SELECT SUM(amount_paid) as total 
+      FROM transactions 
+      WHERE type = 'purchase' AND entity_id IS NULL AND status != 'VOIDED' AND date BETWEEN ? AND ?
+    ''', [startOfDay, endOfDay]);
+
     // Expenses
     final expensesResult = await db.rawQuery('''
       SELECT SUM(total_amount) as total 
@@ -2376,6 +2421,8 @@ class DatabaseService {
         (supplierPaymentsResult.first['total'] as num?)?.toDouble() ?? 0.0;
     final totalPurchasesPaid =
         (purchasesResult.first['total'] as num?)?.toDouble() ?? 0.0;
+    final totalAnonymousPurchasesCash =
+        (anonymousPurchasesResult.first['total'] as num?)?.toDouble() ?? 0.0;
 
     final cashIn = totalAnonymousSalesCash + totalPayments;
 
@@ -2384,7 +2431,7 @@ class DatabaseService {
       'expenses': totalExpenses,
       'payments': totalPayments,
       'purchases': totalPurchasesPaid,
-      'balance': cashIn - totalExpenses - totalSupplierPayments,
+      'balance': cashIn - totalExpenses - totalSupplierPayments - totalAnonymousPurchasesCash,
     };
   }
 
@@ -2434,70 +2481,87 @@ class DatabaseService {
     );
 
     List<Transaction> transactions = [];
+    
+    // Batch query for transaction items (N+1 Optimization)
+    final List<int> idsWithItems = [];
+    for (var map in maps) {
+      final tType = map['type'] as String;
+      if (tType == 'sale' || tType == 'purchase' || tType == 'order') {
+        idsWithItems.add(map['id'] as int);
+      }
+    }
+
+    // Fetch all required items in one query
+    final Map<int, List<InvoiceItem>> groupedItems = {};
+    if (idsWithItems.isNotEmpty) {
+      final String idList = idsWithItems.join(',');
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id IN ($idList)',
+      );
+      for (var map in itemsMaps) {
+        final tId = map['transaction_id'] as int;
+        if (!groupedItems.containsKey(tId)) {
+          groupedItems[tId] = [];
+        }
+        groupedItems[tId]!.add(InvoiceItem.fromMap(map));
+      }
+    }
 
     for (var map in maps) {
       final tType = map['type'] as String;
+      final id = map['id'] as int;
+      final items = groupedItems[id] ?? [];
+
       if (tType == 'sale') {
-        // Optimization: Maybe don't fetch items for list view?
-        // But Transaction model requires items for Sale/Purchase currently (checking Model)
-        // Sale.fromMap expects items.
-        // Let's fetch items for now, or make items optional in fromMap.
-        // Assuming we need to show total amount, which is in 'transactions' table already.
-        // However, generic Transaction factory might need helper.
-        // Let's check Sale.fromMap.
-        // For list view, we might not need items.
-        // Let's fetch valid empty items to avoid N+1 if possible, or simple fetch.
-        // Actually, fetching items for 50 rows is 50 queries. Not ideal.
-        // But for "Refinement", let's be safe.
-        final id = map['id'] as int;
-        // Optimization: For history list, we often just need the total and name.
-        // We can pass empty list if Sale.fromMap allows.
-        // Checking Sale.fromMap... it likely assigns items.
-        // Let's just do the query for now.
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
         transactions.add(Sale.fromMap(map, items));
       } else if (tType == 'purchase') {
-        final id = map['id'] as int;
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
         transactions.add(Purchase.fromMap(map, items));
       } else if (tType == 'payment') {
         transactions.add(Payment.fromMap(map));
       } else if (tType == 'expense') {
         transactions.add(Expense.fromMap(map));
       } else if (tType == 'order') {
-        final id = map['id'] as int;
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
         transactions.add(Order.fromMap(map, items));
       }
     }
-
-    // Quick fix for Expense support if Model not ready:
-    // If I didn't create Expense class in models/transaction_model.dart, I should.
-    // For now, let's filter Expense OUT of the loop if I can't parse it.
-    // But I implemented `insertExpense`.
 
     return transactions;
   }
 
   // (Existing code)
+  Future<Transaction?> getTransactionById(int id) async {
+    final db = await database;
+    final maps = await db.query(
+      'transactions',
+      where: 'id = ? AND status != ?',
+      whereArgs: [id, 'VOIDED'],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+
+    final typeStr = maps.first['type'] as String;
+    
+    if (typeStr == 'sale' || typeStr == 'purchase') {
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id = ?',
+        whereArgs: [id],
+      );
+      final items = List.generate(
+        itemsMaps.length,
+        (i) => InvoiceItem.fromMap(itemsMaps[i]),
+      );
+      if (typeStr == 'sale') return Sale.fromMap(maps.first, items);
+      if (typeStr == 'purchase') return Purchase.fromMap(maps.first, items);
+    }
+    
+    if (typeStr == 'expense') return Expense.fromMap(maps.first);
+    if (typeStr == 'payment') return Payment.fromMap(maps.first);
+    return null;
+  }
+
   Future<List<Transaction>> getRecentTransactions({int limit = 5}) async {
     final db = await database;
 
@@ -2616,26 +2680,28 @@ class DatabaseService {
     return (result.first['count'] as int?) ?? 0;
   }
 
-  Future<List<Map<String, dynamic>>> getAgingReport() async {
+  Future<List<Map<String, dynamic>>> getAgingReport({String entityType = 'CUSTOMER'}) async {
     final db = await database;
     final now = DateTime.now();
 
-    // 1. Get true ledger running balance for all customers
-    final customers = await getCustomers();
+    final isCustomer = entityType == 'CUSTOMER';
+    final List<dynamic> entities = isCustomer ? await getCustomers() : await getSuppliers();
+    final sourceType = isCustomer ? 'INVOICE' : 'PURCHASE';
+
     final Map<int, Map<String, dynamic>> reportMap = {};
 
-    for (var c in customers) {
-      if (c.totalDebt <= 0) continue; // Skip if no debt
+    for (var e in entities) {
+      if (e.totalDebt <= 0) continue; // Skip if no debt
 
-      double remainingDebt = c.totalDebt;
+      double remainingDebt = e.totalDebt;
       
-      final Map<String, dynamic> customerReport = {
-        'customer_id': c.id,
-        'customer_name': c.name,
+      final Map<String, dynamic> entityReport = {
+        'entity_id': e.id,
+        'entity_name': e.name,
         'current': 0.0,
         'days_30_60': 0.0,
         'days_60_plus': 0.0,
-        'total': c.totalDebt,
+        'total': e.totalDebt,
       };
 
       // 2. Query all INVOICES (debits) for this customer from the ledger, NEWEST to OLDEST
@@ -2643,14 +2709,20 @@ class DatabaseService {
         SELECT el.* FROM entity_ledgers el 
         JOIN transactions t ON el.transaction_reference_id = t.id 
         WHERE el.entity_type = ? AND el.entity_id = ? 
-        AND el.transaction_source_type = 'INVOICE' AND t.status != 'VOIDED' 
+        AND el.transaction_source_type = ? AND t.status != 'VOIDED' 
         ORDER BY el.date DESC 
-      ''', ['CUSTOMER', c.id]);
+      ''', [entityType, e.id, sourceType]);
 
       for (var inv in invoices) {
         if (remainingDebt <= 0) break;
 
-        final invoiceAmount = (inv['debit_amount'] as num).toDouble();
+        final invoiceAmount = isCustomer 
+            ? (inv['debit_amount'] as num).toDouble()
+            : (inv['credit_amount'] as num).toDouble();
+        
+        // Safety check if debit_amount was mistakenly configured as 0 (e.g. some manual modifications)
+        if (invoiceAmount <= 0) continue;
+
         final dateMs = inv['date'] as int;
         final baseDate = DateTime.fromMillisecondsSinceEpoch(dateMs);
         final difference = now.difference(baseDate).inDays;
@@ -2658,11 +2730,11 @@ class DatabaseService {
         final amountToAllocate = invoiceAmount < remainingDebt ? invoiceAmount : remainingDebt;
 
         if (difference > 60) {
-          customerReport['days_60_plus'] = (customerReport['days_60_plus'] as double) + amountToAllocate;
+          entityReport['days_60_plus'] = (entityReport['days_60_plus'] as double) + amountToAllocate;
         } else if (difference > 30) {
-          customerReport['days_30_60'] = (customerReport['days_30_60'] as double) + amountToAllocate;
+          entityReport['days_30_60'] = (entityReport['days_30_60'] as double) + amountToAllocate;
         } else {
-          customerReport['current'] = (customerReport['current'] as double) + amountToAllocate;
+          entityReport['current'] = (entityReport['current'] as double) + amountToAllocate;
         }
 
         remainingDebt -= amountToAllocate;
@@ -2671,10 +2743,10 @@ class DatabaseService {
       // If there's STILL remaining debt (e.g., initial balances without invoice entries)
       if (remainingDebt > 0.01) {
           // Dump it in the oldest bucket
-          customerReport['days_60_plus'] = (customerReport['days_60_plus'] as double) + remainingDebt;
+          entityReport['days_60_plus'] = (entityReport['days_60_plus'] as double) + remainingDebt;
       }
 
-      reportMap[c.id!] = customerReport;
+      reportMap[e.id!] = entityReport;
     }
 
     final result = reportMap.values.toList();
@@ -2810,5 +2882,42 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // INVENTORY ADJUSTMENT HELPER
+  // ---------------------------------------------------------------------------
+  Future<void> adjustStock(
+      int productId,
+      double deltaBaseUnits,
+      String reason, {
+        String? note,
+      }) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final rows = await txn.query('products',
+          columns: ['stock', 'cost'],
+          where: 'id = ?',
+          whereArgs: [productId]);
+      if (rows.isEmpty) throw Exception('Product not found: $productId');
+      final currentStock = (rows.first['stock'] as num).toDouble();
+      final cost = (rows.first['cost'] as num).toDouble();
+      final newStock = currentStock + deltaBaseUnits;
+      if (newStock < -0.001) {
+        throw Exception(
+            'El ajuste resultaría en stock negativo (${newStock.toStringAsFixed(2)} u.b.)');
+      }
+      await txn.rawUpdate('UPDATE products SET stock = ? WHERE id = ?',
+          [newStock < 0 ? 0.0 : newStock, productId]);
+      await txn.insert('inventory_movements', {
+        'product_id': productId,
+        'movement_type': 'INVENTORY_ADJUSTMENT',
+        'quantity': deltaBaseUnits,
+        'reference_type': reason,
+        'reference_id': null,
+        'unit_cost_at_movement': cost,
+        'created_timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+    });
   }
 }

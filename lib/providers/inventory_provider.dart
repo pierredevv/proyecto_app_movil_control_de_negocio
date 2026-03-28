@@ -321,6 +321,19 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> adjustStock(int productId, double deltaBaseUnits, String reason, {String? note}) async {
+    try {
+      await _db.adjustStock(productId, deltaBaseUnits, reason, note: note);
+      await loadProducts(reset: true);
+      loadLowStockProducts();
+      SnackbarService.showSuccess("Stock ajustado exitosamente");
+    } catch (e) {
+      debugPrint("Error adjusting stock: $e");
+      SnackbarService.showError("Error al ajustar stock: $e");
+      rethrow;
+    }
+  }
+
   Future<void> addPurchase(Purchase purchase, {String paymentMethod = 'EFECTIVO'}) async {
     try {
       await _db.insertPurchase(purchase, paymentMethod: paymentMethod);

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../screens/sales/sales_screen.dart';
 import '../../screens/customers/customer_list_screen.dart';
+import '../../screens/suppliers/supplier_list_screen.dart';
 import '../../screens/treasury/global_payment_screen.dart';
 
 class QuickAccessGrid extends StatelessWidget {
@@ -84,6 +85,21 @@ class QuickAccessGrid extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (context) => const CustomerListScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.storefront,
+                  label: 'Proveedores',
+                  color: const Color(0xFFF59F00), // AppTheme.orangeIcon basically
+                  delay: 250,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SupplierListScreen()),
                     );
                   },
                 ),
