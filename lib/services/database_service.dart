@@ -1306,6 +1306,91 @@ class DatabaseService {
     });
   }
 
+  Future<void> receiveSupplierPayment(int purchaseId, double amount,
+      {String? note, String paymentMethod = 'EFECTIVO'}) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // 1. Get Purchase
+      final List<Map<String, dynamic>> transaction = await txn.query(
+        'transactions',
+        columns: ['status', 'entity_id', 'total_amount', 'amount_paid'],
+        where: 'id = ? AND type = ?',
+        whereArgs: [purchaseId, 'purchase'],
+      );
+
+      if (transaction.isEmpty) throw Exception('Compra no encontrada');
+      if (transaction.first['status'] == 'VOIDED') {
+        throw Exception('Esta compra está anulada');
+      }
+
+      final total = transaction.first['total_amount'] as num;
+      final currentPaid = transaction.first['amount_paid'] as num? ?? 0.0;
+      final pending = total - currentPaid;
+
+      if (amount > pending + 0.01) {
+        throw Exception(
+            'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
+      }
+
+      final supplierId = transaction.first['entity_id'];
+      if (supplierId == null) throw Exception('La compra no tiene un proveedor asignado');
+      
+      final paymentId = await txn.insert('payments', {
+        'entity_id': supplierId,
+        'entity_type': 'SUPPLIER',
+        'amount': amount,
+        'date': DateTime.now().millisecondsSinceEpoch,
+        'payment_method': paymentMethod,
+        'note': note ?? 'Abono a Proveedor',
+      });
+      
+      await txn.insert('payment_allocations', {
+        'payment_id': paymentId,
+        'transaction_id': purchaseId,
+        'allocated_amount': amount,
+      });
+
+      // 3. Update Purchase Status & amount_paid
+      final newPaid = currentPaid + amount;
+      final newStatus = (newPaid >= total - 0.01) ? 'COMPLETED' : 'PARTIAL';
+      await txn.update(
+        'transactions',
+        {
+          'amount_paid': newPaid,
+          'status': newStatus,
+        },
+        where: 'id = ?',
+        whereArgs: [purchaseId],
+      );
+
+      // 4. Update Ledger reversing logic
+      if (supplierId != null) {
+        final ledgerQuery = await txn.query(
+            'entity_ledgers',
+            where: 'entity_type = ? AND entity_id = ?',
+            whereArgs: ['SUPPLIER', supplierId],
+            orderBy: 'date DESC, id DESC',
+            limit: 1
+        );
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+        
+        // DEBIT REDUCES LIABILITY FOR A SUPPLIER
+        await txn.insert('entity_ledgers', {
+            'entity_type': 'SUPPLIER',
+            'entity_id': supplierId,
+            'transaction_source_type': 'PAYMENT',
+            'transaction_reference_id': paymentId,
+            'date': DateTime.now().millisecondsSinceEpoch,
+            'debit_amount': amount,
+            'credit_amount': 0.0,
+            'materialized_running_balance': currentBalance - amount,
+            'note': note ?? 'Abono a Proveedor',
+        });
+      }
+    });
+  }
+
   // Sprint C - Treasury Module Global Payment Distribution
   Future<int> receiveGlobalPayment({
     required int customerId,
@@ -1446,7 +1531,108 @@ class DatabaseService {
     });
   }
 
-  Future<int> insertPurchase(Purchase purchase) async {
+  Future<int> receiveSupplierGlobalPayment({
+    required int supplierId,
+    required double totalAmount,
+    required String paymentMethod,
+    String? note,
+    required Map<int, double> allocations, // purchase_id -> allocated_amount
+  }) async {
+    final db = await database;
+
+    return await db.transaction((txn) async {
+       // Validate against real ledger debt
+       final initialLedgerQuery = await txn.query('entity_ledgers',
+           where: 'entity_type = ? AND entity_id = ?',
+           whereArgs: ['SUPPLIER', supplierId],
+           orderBy: 'date DESC, id DESC',
+           limit: 1);
+       final currentDebt = initialLedgerQuery.isNotEmpty ? (initialLedgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+       if (currentDebt <= 0) {
+          throw Exception('El proveedor no tiene deudas pendientes (saldo: Bs. ${currentDebt.toStringAsFixed(2)}).');
+       }
+       if (totalAmount > currentDebt + 0.01) {
+          throw Exception('El abono (Bs. ${totalAmount.toStringAsFixed(2)}) excede la deuda total con el proveedor (Bs. ${currentDebt.toStringAsFixed(2)}).');
+       }
+
+       // 1. Insert Global Payment
+       final paymentId = await txn.insert('payments', {
+         'entity_id': supplierId,
+         'entity_type': 'SUPPLIER',
+         'amount': totalAmount,
+         'date': DateTime.now().millisecondsSinceEpoch,
+         'payment_method': paymentMethod,
+         'note': note ?? 'Abono Global a Proveedor',
+       });
+
+       double totalAllocated = 0.0;
+       
+       // 2. Process Allocations
+       for (var entry in allocations.entries) {
+          final purchaseId = entry.key;
+          final allocatedAmount = entry.value;
+
+          if (allocatedAmount <= 0) continue;
+          totalAllocated += allocatedAmount;
+
+          final txns = await txn.query('transactions', columns: ['total_amount', 'amount_paid'], where: 'id = ?', whereArgs: [purchaseId]);
+          if (txns.isEmpty) throw Exception('Compra id $purchaseId no encontrada');
+
+          final tTotal = txns.first['total_amount'] as num;
+          final tPaid = txns.first['amount_paid'] as num? ?? 0.0;
+          
+          await txn.insert('payment_allocations', {
+            'payment_id': paymentId,
+            'transaction_id': purchaseId,
+            'allocated_amount': allocatedAmount,
+          });
+
+          final newPaid = tPaid + allocatedAmount;
+          final newStatus = (newPaid >= tTotal - 0.01) ? 'COMPLETED' : 'PARTIAL';
+          await txn.update('transactions', {'amount_paid': newPaid, 'status': newStatus}, where: 'id = ?', whereArgs: [purchaseId]);
+       }
+
+       if (totalAllocated > totalAmount + 0.01) {
+           throw Exception('La suma de distribuciones supera el monto depositado.');
+       }
+
+       final double unallocated = totalAmount - totalAllocated;
+       final double applied = totalAmount - unallocated;
+       final int timestamp = DateTime.now().millisecondsSinceEpoch;
+
+       if (applied > 0) {
+         await txn.insert('entity_ledgers', {
+             'entity_type': 'SUPPLIER',
+             'entity_id': supplierId,
+             'transaction_source_type': 'PAYMENT',
+             'transaction_reference_id': paymentId,
+             'date': timestamp,
+             'debit_amount': applied, // DEBIT for Suppliers
+             'credit_amount': 0.0,
+             'materialized_running_balance': currentDebt - applied,
+             'note': note ?? 'Abono Global a Proveedor ($paymentMethod)',
+         });
+       }
+
+       if (unallocated > 0) {
+         await txn.insert('entity_ledgers', {
+             'entity_type': 'SUPPLIER',
+             'entity_id': supplierId,
+             'transaction_source_type': 'CREDIT_BALANCE',
+             'transaction_reference_id': paymentId,
+             'date': timestamp + 1, // Avoid overlapping exactly the same ms
+             'debit_amount': unallocated, // DEBIT for suppliers (reduces liability, essentially acting as an asset / advance payment)
+             'credit_amount': 0.0,
+             'materialized_running_balance': currentDebt - totalAmount, // Deduct the entire totalAmount to reflect the advance
+             'note': 'Saldo a favor (Anticipo) - $paymentMethod',
+         });
+       }
+
+       return paymentId;
+    });
+  }
+
+  Future<int> insertPurchase(Purchase purchase, {String paymentMethod = 'EFECTIVO'}) async {
     final db = await database;
 
     return await db.transaction((txn) async {
@@ -1552,8 +1738,8 @@ class DatabaseService {
             'entity_type': 'SUPPLIER',
             'amount': purchase.amountPaid,
             'date': DateTime.now().millisecondsSinceEpoch,
-            'payment_method': 'EFECTIVO',
-            'note': 'Pago en efectivo'
+            'payment_method': paymentMethod,
+            'note': 'Pago de Compra'
           });
 
           await txn.insert('payment_allocations', {
@@ -1828,6 +2014,37 @@ class DatabaseService {
         final items = List.generate(
             itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
         transactions.add(Sale.fromMap(map, items));
+      } else if (type == 'payment') {
+        transactions.add(Payment.fromMap(map));
+      }
+    }
+    return transactions;
+  }
+
+  Future<List<Transaction>> getSupplierHistory(int supplierId) async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: "entity_id = ? AND status != 'VOIDED' AND (type = ? OR type = ?)",
+      whereArgs: [supplierId, 'purchase', 'payment'],
+      orderBy: 'date DESC',
+    );
+
+    List<Transaction> transactions = [];
+
+    for (var map in maps) {
+      final type = map['type'] as String;
+      if (type == 'purchase') {
+        final id = map['id'] as int;
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id = ?',
+          whereArgs: [id],
+        );
+        final items = List.generate(
+            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
+        transactions.add(Purchase.fromMap(map, items));
       } else if (type == 'payment') {
         transactions.add(Payment.fromMap(map));
       }
@@ -2514,7 +2731,13 @@ class DatabaseService {
 
   Future<List<Supplier>> getSuppliers() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('suppliers');
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT s.*, 
+        (SELECT materialized_running_balance FROM entity_ledgers 
+         WHERE entity_type = 'SUPPLIER' AND entity_id = s.id 
+         ORDER BY date DESC, id DESC LIMIT 1) as total_debt
+      FROM suppliers s
+    ''');
     return List.generate(maps.length, (i) => Supplier.fromMap(maps[i]));
   }
 

@@ -13,6 +13,7 @@ import '../../models/invoice_item.dart';
 import '../../models/product.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/sales/checkout_sheet.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
   final Transaction? initialTransactionToDuplicate;
@@ -154,29 +155,54 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       return;
     }
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2432),
-        title: const Text('Confirmar Compra',
-            style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Se guardará la compra por Bs. ${_totalAmount.toStringAsFixed(2)}\nEsto aumentará el stock y actualizará los costos.',
-          style: const TextStyle(color: Colors.white70),
+    double amountPaid = _totalAmount;
+    DateTime? paymentDueDate;
+    String paymentMethod = 'EFECTIVO';
+    bool? confirm = true;
+
+    if (_isOrder) {
+      confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E2432),
+          title: const Text('Confirmar Pedido',
+              style: TextStyle(color: Colors.white)),
+          content: Text(
+            'Se guardará el pedido por Bs. ${_totalAmount.toStringAsFixed(2)}\nNo modificará el stock hasta ser recibido.',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar',
+                    style: TextStyle(color: Colors.white54))),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Guardar',
+                    style: TextStyle(
+                        color: AppTheme.primary, fontWeight: FontWeight.bold))),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar',
-                  style: TextStyle(color: Colors.white54))),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Guardar',
-                  style: TextStyle(
-                      color: AppTheme.primary, fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
+      );
+    } else {
+      final result = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: const Color(0xFF1E2432),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => CheckoutSheet(totalAmount: _totalAmount, isPurchase: true),
+      );
+
+      if (result == null) {
+        confirm = false;
+      } else {
+        amountPaid = (result['amountReceived'] as num?)?.toDouble() ?? 0.0;
+        paymentDueDate = result['paymentDueDate'] as DateTime?;
+        paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
+      }
+    }
 
     if (confirm != true) return;
     if (!mounted) return;
@@ -220,16 +246,22 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           );
         }
       } else {
+        final status = (amountPaid > 0)
+            ? (amountPaid >= _totalAmount - 0.01 ? 'COMPLETED' : 'PARTIAL')
+            : 'CREDIT';
+
         final purchase = Purchase(
           date: _selectedDate,
           totalAmount: _totalAmount,
-          amountPaid: _totalAmount,
+          amountPaid: amountPaid,
+          paymentDueDate: paymentDueDate,
+          supplierId: _selectedSupplier?.id, // Passing ID is vital for Ledgers
           supplierName: _selectedSupplier?.name ?? 'Proveedor General',
           items: _items,
-          status: 'COMPLETED',
+          status: status,
         );
 
-        await inventory.addPurchase(purchase);
+        await inventory.addPurchase(purchase, paymentMethod: paymentMethod);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

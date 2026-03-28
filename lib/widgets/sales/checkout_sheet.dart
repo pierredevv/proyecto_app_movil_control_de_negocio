@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 
 class CheckoutSheet extends StatefulWidget {
   final double totalAmount;
+  final bool isPurchase;
 
-  const CheckoutSheet({super.key, required this.totalAmount});
+  const CheckoutSheet({super.key, required this.totalAmount, this.isPurchase = false});
 
   @override
   State<CheckoutSheet> createState() => _CheckoutSheetState();
@@ -78,7 +79,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Confirmar Cobro',
+            widget.isPurchase ? 'Confirmar Pago' : 'Confirmar Cobro',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -92,7 +93,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total a cobrar:',
+              Text(widget.isPurchase ? 'Total a pagar:' : 'Total a cobrar:',
                   style: TextStyle(
                       fontSize: 16, color: theme.colorScheme.onSurface)),
               Text('Bs. ${widget.totalAmount.toStringAsFixed(2)}',
@@ -155,9 +156,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Vuelto a entregar:',
+                  Text(widget.isPurchase ? 'Cambio a recibir:' : 'Vuelto a entregar:',
                       style:
-                          TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
+                          const TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
                   Text('Bs. ${_changeAmount.toStringAsFixed(2)}',
                       style: const TextStyle(
                           fontSize: 18,
@@ -181,9 +182,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Saldo Pendiente:',
+                  Text(widget.isPurchase ? 'Saldo a pagar:' : 'Saldo pendiente:',
                       style:
-                          TextStyle(fontSize: 14, color: AppTheme.redAccent)),
+                          const TextStyle(fontSize: 14, color: AppTheme.redAccent)),
                   Text('Bs. ${_pendingBalance.toStringAsFixed(2)}',
                       style: const TextStyle(
                           fontSize: 16,
@@ -244,8 +245,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: const Text('Venta al Crédito'),
-                          content: const Text('¿Deseas registrar esta venta totalmente al crédito (sin pago inicial)?'),
+                          title: Text(widget.isPurchase ? 'Compra al Crédito' : 'Venta al Crédito'),
+                          content: Text(widget.isPurchase ? '¿Deseas registrar esta compra totalmente al crédito (sin pago inicial)?' : '¿Deseas registrar esta venta totalmente al crédito (sin pago inicial)?'),
                           actions: [
                             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
                             FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
@@ -262,7 +263,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       'paymentMethod': _paymentMethod,
                     });
                   },
-                  child: Text(isCredit ? 'Cobro Parcial' : 'Cobrar Completo'),
+                  child: Text(isCredit ? (widget.isPurchase ? 'Pago Parcial' : 'Cobro Parcial') : (widget.isPurchase ? 'Pago Completo' : 'Cobrar Completo')),
                 ),
               ),
             ],

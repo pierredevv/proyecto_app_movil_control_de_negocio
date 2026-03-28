@@ -8,6 +8,7 @@ import '../../models/supplier.dart';
 import 'supplier_form_screen.dart';
 import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
 import '../../utils/whatsapp_helper.dart';
+import 'supplier_ledger_screen.dart';
 
 class SupplierListScreen extends StatefulWidget {
   const SupplierListScreen({super.key});
@@ -146,6 +147,18 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                             onTap: () => _navigateToForm(context, supplier),
                             onDeleteTap: () =>
                                 _confirmDelete(context, supplier),
+                            onLedgerTap: () {
+                              if (supplier.id == null) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SupplierLedgerScreen(
+                                    supplierId: supplier.id!,
+                                    supplierName: supplier.name,
+                                  ),
+                                ),
+                              );
+                            },
                           );
 
                           if (index < 5) {
@@ -346,11 +359,13 @@ class _SupplierGlassCard extends StatefulWidget {
   final Supplier supplier;
   final VoidCallback onTap;
   final VoidCallback onDeleteTap;
+  final VoidCallback onLedgerTap;
 
   const _SupplierGlassCard({
     required this.supplier,
     required this.onTap,
     required this.onDeleteTap,
+    required this.onLedgerTap,
   });
 
   @override
@@ -409,8 +424,10 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
             )
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
@@ -515,11 +532,18 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                           },
                         ),
                       if (hasPhone) const SizedBox(width: 12),
+                      _CardActionButton(
+                        icon: Icons.receipt_long,
+                        color: const Color(0xFFF5A623), // Orange
+                        onTap: widget.onLedgerTap,
+                      ),
+                      const SizedBox(width: 12),
                       // Custom Popup Menu action button
                       _CardPopupActions(
                         supplier: widget.supplier,
                         onEdit: widget.onTap,
                         onDelete: widget.onDeleteTap,
+                        onLedger: widget.onLedgerTap,
                       ),
                     ],
                   ),
@@ -527,6 +551,31 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
               ),
             ),
           ),
+        ),
+        if (widget.supplier.totalDebt > 0)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: const BoxDecoration(
+                color: Color(0xE6EF4444),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Bs. ${widget.supplier.totalDebt.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
         ),
       ),
     );
@@ -580,9 +629,10 @@ class _CardPopupActions extends StatelessWidget {
   final Supplier supplier;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onLedger;
 
   const _CardPopupActions(
-      {required this.supplier, required this.onEdit, required this.onDelete});
+      {required this.supplier, required this.onEdit, required this.onDelete, required this.onLedger});
 
   @override
   Widget build(BuildContext context) {
@@ -590,6 +640,8 @@ class _CardPopupActions extends StatelessWidget {
       onSelected: (value) {
         if (value == 'edit') {
           onEdit();
+        } else if (value == 'ledger') {
+          onLedger();
         } else if (value == 'delete') {
           onDelete();
         }
@@ -610,6 +662,10 @@ class _CardPopupActions extends StatelessWidget {
         const PopupMenuItem<String>(
           value: 'edit',
           child: Text('Editar', style: TextStyle(color: Colors.white)),
+        ),
+        const PopupMenuItem<String>(
+          value: 'ledger',
+          child: Text('Cuentas por Pagar', style: TextStyle(color: Colors.white)),
         ),
         const PopupMenuItem<String>(
           value: 'delete',

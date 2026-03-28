@@ -1,0 +1,396 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/transaction_model.dart';
+import '../../services/database_service.dart';
+import '../../providers/supplier_provider.dart';
+import '../../theme/app_theme.dart';
+
+class SupplierPaymentScreen extends StatefulWidget {
+  final int? initialSupplierId;
+
+  const SupplierPaymentScreen({
+    super.key,
+    this.initialSupplierId,
+  });
+
+  @override
+  State<SupplierPaymentScreen> createState() => _SupplierPaymentScreenState();
+}
+
+class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
+  final DatabaseService _db = DatabaseService();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  
+  int? _selectedSupplierId;
+  List<Purchase> _pendingPurchases = [];
+  final Map<int, double> _allocations = {};
+  final Map<int, TextEditingController> _allocationControllers = {};
+  
+  bool _isLoading = false;
+  String _paymentMethod = 'EFECTIVO';
+  
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSupplierId != null) {
+      _selectedSupplierId = widget.initialSupplierId;
+      _loadPendingPurchases();
+    }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    for (var controller in _allocationControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadPendingPurchases() async {
+    if (_selectedSupplierId == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final history = await _db.getSupplierHistory(_selectedSupplierId!);
+      setState(() {
+        _pendingPurchases = history
+            .whereType<Purchase>()
+            .where((p) => p.status == 'PARTIAL' || p.status == 'CREDIT')
+            .toList();
+            
+        // Setup controllers
+        _allocations.clear();
+        for (var controller in _allocationControllers.values) {
+          controller.dispose();
+        }
+        _allocationControllers.clear();
+        
+        for (var purchase in _pendingPurchases) {
+          _allocations[purchase.id!] = 0.0;
+          final controller = TextEditingController(text: '0.00');
+          controller.addListener(() => _onManualAllocationChange(purchase.id!, controller.text));
+          _allocationControllers[purchase.id!] = controller;
+        }
+      });
+      _autoDistributeAmount();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar deudas: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  bool _isAutoDistributing = false;
+
+  void _autoDistributeAmount() {
+    if (_isAutoDistributing || _pendingPurchases.isEmpty) return;
+    
+    final totalDeposit = double.tryParse(_amountController.text) ?? 0.0;
+    
+    _isAutoDistributing = true;
+    double remaining = totalDeposit;
+    
+    // Distribute FIFO (oldest first)
+    for (var purchase in _pendingPurchases) {
+      if (remaining <= 0) {
+        _allocations[purchase.id!] = 0.0;
+        _allocationControllers[purchase.id!]!.text = '0.00';
+        continue;
+      }
+      
+      final allocation = (remaining >= purchase.pendingAmount) ? purchase.pendingAmount : remaining;
+      _allocations[purchase.id!] = allocation;
+      _allocationControllers[purchase.id!]!.text = allocation.toStringAsFixed(2);
+      
+      remaining -= allocation;
+    }
+    
+    _isAutoDistributing = false;
+    setState(() {});
+  }
+
+  void _onManualAllocationChange(int purchaseId, String val) {
+    if (_isAutoDistributing) return;
+    final amount = double.tryParse(val) ?? 0.0;
+    _allocations[purchaseId] = amount;
+    setState(() {}); // Rebuild to update sums
+  }
+
+  void _submitPayment() async {
+    if (_selectedSupplierId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione un proveedor.')));
+      return;
+    }
+
+    final totalDeposit = double.tryParse(_amountController.text) ?? 0.0;
+    if (totalDeposit <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ingrese un monto válido a pagar.')));
+      return;
+    }
+
+    double totalAllocated = _allocations.values.fold(0.0, (sum, val) => sum + val);
+    
+    // Add small tolerance for floating point comparisons
+    if ((totalAllocated - totalDeposit).abs() > 0.01 && totalAllocated > totalDeposit) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text('El monto distribuido (Bs. ${totalAllocated.toStringAsFixed(2)}) supera al desembolso total.'))
+       );
+       return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _db.receiveSupplierGlobalPayment(
+        supplierId: _selectedSupplierId!,
+        totalAmount: totalDeposit,
+        paymentMethod: _paymentMethod,
+        note: _noteController.text.isNotEmpty ? _noteController.text : null,
+        allocations: _allocations,
+      );
+
+      if (mounted) {
+        await context.read<SupplierProvider>().loadSuppliers();
+        if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pago global a proveedor registrado exitosamente.')),
+      );
+      Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suppliers = context.watch<SupplierProvider>().suppliers;
+    final double totalAllocated = _allocations.values.fold(0.0, (sum, val) => sum + val);
+    final double totalDeposit = double.tryParse(_amountController.text) ?? 0.0;
+    final double unallocated = totalDeposit - totalAllocated;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF151924),
+      appBar: AppBar(
+        title: const Text('Registrar Pago a Proveedor'),
+        backgroundColor: const Color(0xFF1E2432),
+        elevation: 0,
+      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              // Header Card Form
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E2432),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  )
+                ),
+                child: Column(
+                  children: [
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedSupplierId,
+                      dropdownColor: const Color(0xFF2E384D),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Proveedor',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      items: suppliers.map((s) {
+                        return DropdownMenuItem<int>(
+                          value: s.id,
+                          child: Text(s.name),
+                        );
+                      }).toList(),
+                      onChanged: (val) async {
+                        setState(() => _selectedSupplierId = val);
+                        await _loadPendingPurchases();
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _amountController,
+                      onEditingComplete: _autoDistributeAmount,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Color(0xFF4A90E2), fontSize: 24, fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        labelText: 'Monto Total de Pago (Bs)',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        prefixIcon: Icon(Icons.payments, color: Color(0xFF4A90E2)), // Light Blue
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _paymentMethod,
+                      dropdownColor: const Color(0xFF2E384D),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Método de Pago',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
+                        return DropdownMenuItem<String>(
+                          value: m,
+                          child: Text(m),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _paymentMethod = val);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _noteController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Nota (Opcional)',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Color(0xFF151924),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Unallocated Warning
+              if (unallocated > 0.01)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withAlpha(80)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Hay Bs. ${unallocated.toStringAsFixed(2)} sin asignar a ninguna deuda. Se registrará como anticipo/saldo a favor en el estado de cuenta del proveedor.',
+                            style: const TextStyle(color: Colors.orange, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              
+              const SizedBox(height: 8),
+              
+              // Allocations List
+              Expanded(
+                child: _selectedSupplierId == null 
+                  ? const Center(child: Text('Seleccione un proveedor para ver sus deudas.', style: TextStyle(color: Colors.white54)))
+                  : _pendingPurchases.isEmpty
+                    ? const Center(child: Text('Este proveedor no tiene cuentas por pagar pendientes.', style: TextStyle(color: Colors.white54)))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _pendingPurchases.length,
+                        itemBuilder: (context, index) {
+                          final purchase = _pendingPurchases[index];
+                          final controller = _allocationControllers[purchase.id!];
+                          
+                          return Card(
+                            color: const Color(0xFF1E2432),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Compra #${purchase.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                        const SizedBox(height: 4),
+                                        Text('Deuda Factura: Bs. ${purchase.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                                        Text('Saldo Pendiente: Bs. ${purchase.pendingAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                                      ],
+                                    ),
+                                  ),
+                                  // Removed Unnecessary Space
+                                  SizedBox(
+                                    width: 110,
+                                    child: TextField(
+                                      controller: controller,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      style: const TextStyle(color: Color(0xFF4A90E2), fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.right,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Desembolso',
+                                        labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
+                                        filled: true,
+                                        fillColor: Color(0xFF151924),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              
+              // Bottom Bar
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2432),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 10, offset: const Offset(0, -4))
+                  ],
+                ),
+                child: SafeArea(
+                  child: ElevatedButton(
+                    onPressed: _selectedSupplierId == null ? null : _submitPayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2), // Corporate Blue
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('Confirmar Pago (Bs. ${totalDeposit.toStringAsFixed(2)})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+}

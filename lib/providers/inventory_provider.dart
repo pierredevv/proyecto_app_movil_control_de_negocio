@@ -321,9 +321,9 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addPurchase(Purchase purchase) async {
+  Future<void> addPurchase(Purchase purchase, {String paymentMethod = 'EFECTIVO'}) async {
     try {
-      await _db.insertPurchase(purchase);
+      await _db.insertPurchase(purchase, paymentMethod: paymentMethod);
       // Removed optimistic update: query DB directly to adhere to SSOT
       await loadProducts(reset: true);
       loadLowStockProducts();
