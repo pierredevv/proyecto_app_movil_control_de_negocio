@@ -34,6 +34,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   }
 
   double get _appliedAmount {
+    if (_cashTendered <= 0) return 0.0;
     return _cashTendered > widget.totalAmount ? widget.totalAmount : _cashTendered;
   }
 

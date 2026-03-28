@@ -954,7 +954,10 @@ class DatabaseService {
     final db = await database;
     final hasHistory = await db.query('transactions', where: 'entity_id = ?', whereArgs: [id]);
     final hasPayments = await db.query('payments', where: 'entity_id = ? AND entity_type = ?', whereArgs: [id, 'CUSTOMER']);
-    if (hasHistory.isNotEmpty || hasPayments.isNotEmpty) throw Exception('No se puede eliminar porque tiene historial contable o abonos registrados');
+    final hasLedger = await db.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: ['CUSTOMER', id], limit: 1);
+    if (hasHistory.isNotEmpty || hasPayments.isNotEmpty || hasLedger.isNotEmpty) {
+      throw Exception('No se puede eliminar porque tiene historial contable o abonos registrados');
+    }
     return await db.delete(
       'customers',
       where: 'id = ?',
@@ -973,17 +976,8 @@ class DatabaseService {
           FROM payment_allocations pa
           JOIN payments p ON pa.payment_id = p.id
           WHERE pa.transaction_id = ?
-          UNION ALL 
-          SELECT sp.date, 'EFECTIVO' as payment_method, sp.note, sp.amount 
-          FROM sale_payments sp 
-          WHERE sp.sale_id = ? 
-          AND NOT EXISTS ( 
-            SELECT 1 FROM payment_allocations pa2 
-            JOIN payments p2 ON pa2.payment_id = p2.id 
-            WHERE pa2.transaction_id = ? 
-          ) 
           ORDER BY date DESC
-       ''', [transactionId, transactionId, transactionId]);
+       ''', [transactionId]);
     }
 
   Future<int> insertSale(Sale sale, {String paymentMethod = 'EFECTIVO'}) async {
@@ -1581,7 +1575,7 @@ class DatabaseService {
       // 1. Check if already voided
       final List<Map<String, dynamic>> transaction = await txn.query(
         'transactions',
-        columns: ['status', 'reference_id'],
+        columns: ['status', 'reference_id', 'entity_id', 'total_amount', 'amount_paid'],
         where: 'id = ?',
         whereArgs: [purchaseId],
       );
@@ -2148,9 +2142,9 @@ class DatabaseService {
       WHERE entity_type = 'SUPPLIER' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
 
-    // Purchases (Paid amount)
+    // Purchases (amount actually spent)
     final purchasesResult = await db.rawQuery('''
-      SELECT SUM(amount_paid) as total 
+      SELECT SUM(total_amount) as total 
       FROM transactions 
       WHERE type = 'purchase' AND status != 'VOIDED' AND date BETWEEN ? AND ?
     ''', [startOfDay, endOfDay]);
@@ -2486,6 +2480,7 @@ class DatabaseService {
     final entityLedgers = await db.query('entity_ledgers');
     final payments = await db.query('payments');
     final paymentAllocations = await db.query('payment_allocations');
+    final salePayments = await db.query('sale_payments');
 
     final version = await db.getVersion();
 
@@ -2504,6 +2499,7 @@ class DatabaseService {
         'entity_ledgers': entityLedgers,
         'payments': payments,
         'payment_allocations': paymentAllocations,
+        'sale_payments': salePayments,
       }
     };
   }

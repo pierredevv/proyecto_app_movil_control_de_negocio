@@ -156,6 +156,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
       try {
         await _db.receiveSalePayment(sale.id!, result['amount'],
             note: 'Cobro de cuota', paymentMethod: result['method']);
+        
+        if (!mounted) return;
+
         // We also need to reload the customer debt globally
         if (mounted) {
           await context.read<CustomerProvider>().loadCustomers();

@@ -26,6 +26,11 @@ class NotificationProvider extends ChangeNotifier {
           .where((p) => p.minStock > 0 && p.stockInSaleUnits <= p.minStock)
           .toList();
 
+      // First, clear notifications for products that already have sufficient stock
+      _notifications.removeWhere((n) =>
+          n.type == 'low_stock' &&
+          !lowStockProducts.any((p) => 'low_stock_${p.id}' == n.id));
+
       for (var product in lowStockProducts) {
         final notifId = 'low_stock_${product.id}';
         final alreadyNotified = _notifications.any((n) => n.id == notifId);

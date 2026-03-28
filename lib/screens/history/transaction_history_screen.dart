@@ -19,6 +19,7 @@ import '../customers/customer_ledger_screen.dart';
 
 import '../purchases/purchase_form_screen.dart';
 import '../../theme/app_theme.dart';
+import '../sales/sales_screen.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -72,6 +73,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         type: _selectedType,
         startDate: _dateRange?.start.millisecondsSinceEpoch,
         endDate: _dateRange?.end.millisecondsSinceEpoch,
+        hideVoided: _selectedType == null,
       );
       if (mounted) {
         setState(() {
@@ -100,6 +102,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         type: _selectedType,
         startDate: _dateRange?.start.millisecondsSinceEpoch,
         endDate: _dateRange?.end.millisecondsSinceEpoch,
+        hideVoided: _selectedType == null,
       );
       if (mounted) {
         setState(() {
@@ -249,6 +252,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen()));
       }
     } else if (t.type == TransactionType.purchase ||
         t.type == TransactionType.order) {

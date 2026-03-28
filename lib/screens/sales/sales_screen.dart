@@ -323,7 +323,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                           barcode: '',
                                           price: 0,
                                           cost: 0,
-                                          stock: 0)); // Prevent infinite stock
+                                          stock: 0)); // Prevent infinite stock constraint when not loaded
 
                               return CartItemCard(
                                 key: ValueKey(
@@ -334,13 +334,15 @@ class _SalesScreenState extends State<SalesScreen> {
                                   final otherBaseUnits = cart.items
                                       .where((i) => i.productId == item.productId && i != item)
                                       .fold(0.0, (sum, i) => sum + i.baseUnitsTotal);
-                                  final nextBaseUnits = (item.quantity + 1) * item.unitsPerSaleUnit;
-                                  return nextBaseUnits + otherBaseUnits <= product.stock;
+                                  final nextBaseUnits =
+                                      (item.quantity + 1) * item.unitsPerSaleUnit;
+                                  return nextBaseUnits + otherBaseUnits <=
+                                      (item.maxBaseStock ?? product.stock);
                                 }(),
                                 onUpdateQty: (qty) {
                                   try {
                                     cart.updateQuantity(
-                                        index, qty, product.stock);
+                                        index, qty, item.maxBaseStock ?? product.stock);
                                   } catch (e) {
                                     SnackbarService.showError(e.toString());
                                   }
@@ -486,10 +488,9 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               provider.setSearchQuery(val);
             },
           ),
-          Container(
-            margin: const EdgeInsets.only(top: 16),
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5),
+          Flexible(
+            child: Container(
+              margin: const EdgeInsets.only(top: 16),
             child: products.isEmpty
                   ? Center(
                       child: Text('No hay productos',
@@ -524,6 +525,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                       },
                     ),
             ),
+          ),
         ],
       ),
     );

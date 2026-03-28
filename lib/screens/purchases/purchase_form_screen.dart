@@ -126,9 +126,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           productId: product.id!,
           productName: product.name,
           quantity: 1,
-          unitPrice: isBox ? (product.cost * product.unitsPerSaleUnit) : product.cost,
-          subtotal: isBox ? (product.cost * product.unitsPerSaleUnit) : product.cost,
-          saleUnit: isBox ? (product.saleUnit.isEmpty ? 'CAJ' : product.saleUnit) : 'UNI',
+          unitPrice: product.cost,
+          subtotal: product.cost,
+          saleUnit: isBox ? product.saleUnit : 'UNI',
           unitsPerSaleUnit: isBox ? product.unitsPerSaleUnit : 1.0,
           packagingInfo: product.packagingInfo,
         ));
@@ -778,7 +778,7 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
     _qtyController =
         TextEditingController(text: widget.item.quantity.toString());
     _costController =
-        TextEditingController(text: widget.item.unitPrice.toString());
+        TextEditingController(text: widget.item.unitPrice.toStringAsFixed(2));
   }
 
   void _toggleUnit() {
@@ -794,11 +794,11 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
       String newSaleUnit;
       
       if (_isBox) {
-        newCost = widget.product.cost * widget.product.unitsPerSaleUnit;
+        newCost = widget.product.cost;
         newUnits = widget.product.unitsPerSaleUnit;
         newSaleUnit = widget.product.saleUnit.isNotEmpty && widget.product.saleUnit != 'UNI' ? widget.product.saleUnit : 'CAJ';
       } else {
-        newCost = widget.product.cost;
+        newCost = widget.product.cost / widget.product.unitsPerSaleUnit;
         newUnits = 1.0;
         newSaleUnit = 'UNI';
       }
@@ -1105,9 +1105,8 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               ),
             ),
           ),
-          Container(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5),
+          Flexible(
+            child: Container(
             child: products.isEmpty
                 ? const Center(
                     child: Padding(
@@ -1164,6 +1163,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                         );
                       },
                     ),
+          ),
           ),
         ],
       ),

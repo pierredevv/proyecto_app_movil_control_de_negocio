@@ -63,6 +63,7 @@ class CartProvider extends ChangeNotifier {
         quantity: qty,
         unitPrice: option.price,
         subtotal: qty * option.price,
+        maxBaseStock: product.stock,
         saleUnit: option.unitCode,
         unitsPerSaleUnit: option.unitsPerSaleUnit,
         packagingInfo: option.unitCode == 'UNI'
@@ -94,8 +95,9 @@ class CartProvider extends ChangeNotifier {
         .fold(0.0, (sum, item) => sum + item.baseUnitsTotal);
 
     // Validate using Base Units metrics cumulatively
-    if (baseUnitsRequested + otherBaseUnitsInCart > maxBaseStock) {
-      final freeBaseUnits = maxBaseStock - otherBaseUnitsInCart;
+    final effectiveMaxStock = targetItem.maxBaseStock ?? maxBaseStock;
+    if (baseUnitsRequested + otherBaseUnitsInCart > effectiveMaxStock) {
+      final freeBaseUnits = effectiveMaxStock - otherBaseUnitsInCart;
       final maxAvailableOptionUnits = freeBaseUnits > 0 ? freeBaseUnits / targetItem.unitsPerSaleUnit : 0.0;
       throw Exception(
           'Stock insuficiente. Disponible: ${maxAvailableOptionUnits.toStringAsFixed(1)} ${targetItem.saleUnit}');

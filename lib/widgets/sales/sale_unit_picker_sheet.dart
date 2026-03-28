@@ -54,7 +54,6 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.55,
       padding: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -69,6 +68,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
       ),
       child: SafeArea(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Handle bar
@@ -107,8 +107,9 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
             const SizedBox(height: 20),
 
             // Options List
-            Expanded(
+            Flexible(
               child: ListView.builder(
+                shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _options.length,
                 itemBuilder: (context, index) {

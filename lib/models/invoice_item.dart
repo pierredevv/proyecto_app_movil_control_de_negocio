@@ -7,6 +7,7 @@ class InvoiceItem {
   final double unitPrice;
   final double subtotal;
   final double unitCostAtSaleTime;
+  final double? maxBaseStock; // Cached DB stock for paginated validation
 
   // NUEVO SISTEMA (Snapshot al momento de la venta):
   final String saleUnit; // ej: 'CAJ', 'UNI', 'BOL'
@@ -22,6 +23,7 @@ class InvoiceItem {
     required this.unitPrice,
     double? subtotal,
     this.unitCostAtSaleTime = 0.0,
+    this.maxBaseStock,
     this.saleUnit = 'UNI',
     this.unitsPerSaleUnit = 1.0,
     this.packagingInfo = '',
@@ -39,6 +41,7 @@ class InvoiceItem {
     double? unitPrice,
     double? subtotal,
     double? unitCostAtSaleTime,
+    double? maxBaseStock,
     String? saleUnit,
     double? unitsPerSaleUnit,
     String? packagingInfo,
@@ -55,6 +58,7 @@ class InvoiceItem {
               ? (quantity ?? this.quantity) * (unitPrice ?? this.unitPrice)
               : this.subtotal),
       unitCostAtSaleTime: unitCostAtSaleTime ?? this.unitCostAtSaleTime,
+      maxBaseStock: maxBaseStock ?? this.maxBaseStock,
       saleUnit: saleUnit ?? this.saleUnit,
       unitsPerSaleUnit: unitsPerSaleUnit ?? this.unitsPerSaleUnit,
       packagingInfo: packagingInfo ?? this.packagingInfo,

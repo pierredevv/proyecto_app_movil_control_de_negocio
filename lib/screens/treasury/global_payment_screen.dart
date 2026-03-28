@@ -37,7 +37,6 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
       _selectedCustomerId = widget.initialCustomerId;
       _loadPendingSales();
     }
-    _amountController.addListener(_autoDistributeAmount);
   }
 
   @override
@@ -230,6 +229,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _amountController,
+                      onEditingComplete: _autoDistributeAmount,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(color: AppTheme.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
                       decoration: const InputDecoration(

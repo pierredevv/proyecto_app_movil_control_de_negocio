@@ -207,8 +207,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final stock = double.tryParse(_stockController.text) ?? 0;
     final minStock =
         _showLowStockAlert ? (int.tryParse(_minStockController.text) ?? 0) : 0;
-    final unitsPerSaleUnit =
-        double.tryParse(_unitsPerBoxController.text) ?? 1.0;
+    final rawUnits = double.tryParse(_unitsPerBoxController.text) ?? 1.0;
+    final unitsPerSaleUnit = rawUnits > 0 ? rawUnits : 1.0;
 
     final newProduct = Product(
       id: widget.product?.id,

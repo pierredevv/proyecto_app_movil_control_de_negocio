@@ -324,28 +324,8 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> addPurchase(Purchase purchase) async {
     try {
       await _db.insertPurchase(purchase);
-      // Optimistic Update
-      for (var item in purchase.items) {
-        final index = _products.indexWhere((p) => p.id == item.productId);
-        if (index != -1) {
-          final p = _products[index];
-          final unitCostInBaseUnits = item.unitsPerSaleUnit > 0 
-              ? item.unitPrice / item.unitsPerSaleUnit 
-              : item.unitPrice;
-          final totalQty = p.stock + item.baseUnitsTotal;
-          final newInvestment = item.quantity * item.unitPrice;
-          final newWac = totalQty > 0
-              ? ((p.stock * p.weightedAverageCost) + newInvestment) / totalQty
-              : unitCostInBaseUnits;
-
-          _products[index] = p.copyWith(
-            stock: totalQty,
-            cost: unitCostInBaseUnits,
-            weightedAverageCost: newWac,
-          );
-        }
-      }
-      notifyListeners();
+      // Removed optimistic update: query DB directly to adhere to SSOT
+      await loadProducts(reset: true);
       loadLowStockProducts();
     } catch (e) {
       debugPrint("Error adding purchase: $e");
