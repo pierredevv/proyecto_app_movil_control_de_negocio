@@ -11,11 +11,16 @@ class DashboardProvider extends ChangeNotifier {
   // Summary Metrics
   double _totalSalesToday = 0.0;
   double _totalPurchasesToday = 0.0;
+  double _cashInToday = 0.0;
+  double _cashOutToday = 0.0;
   double _netBalance = 0.0;
 
   double get totalSalesToday => _totalSalesToday;
   double get totalPurchasesToday => _totalPurchasesToday;
+  double get cashInToday => _cashInToday;
+  double get cashOutToday => _cashOutToday;
   double get netBalance => _netBalance;
+
 
   // Recent Activity
   List<Transaction> _recentTransactions = [];
@@ -32,9 +37,11 @@ class DashboardProvider extends ChangeNotifier {
     try {
       // 1. Load today's summary
       final summary = await _db.getTodaySummary();
-      _totalSalesToday = summary['sales'] ?? 0.0;
-      _totalPurchasesToday = summary['purchases'] ?? 0.0;
-      _netBalance = summary['balance'] ?? 0.0;
+      _totalSalesToday = summary['accrual_sales'] ?? 0.0;
+      _totalPurchasesToday = summary['accrual_purchases'] ?? 0.0;
+      _cashInToday = summary['cash_in'] ?? 0.0;
+      _cashOutToday = summary['cash_out'] ?? 0.0;
+      _netBalance = summary['net_cash_balance'] ?? 0.0;
 
       // 2. Load recent transactions
       _recentTransactions = await _db.getRecentTransactions(limit: 5);

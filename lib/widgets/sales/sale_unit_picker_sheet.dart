@@ -21,32 +21,30 @@ class SaleUnitPickerSheet extends StatefulWidget {
 class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
   late List<SaleUnitOption> _options;
   late SaleUnitOption _selectedOption;
-  double _quantity = 1.0;
+  late TextEditingController _qtyController;
 
   @override
   void initState() {
     super.initState();
     _options = SaleUnitHelper.getOptionsForProduct(widget.product);
     _selectedOption = _options.first; // Default to the main option
+    _qtyController = TextEditingController(text: '1');
+    _qtyController.addListener(() => setState(() {}));
   }
 
-  void _increaseQty() {
-    final nextQtyInBaseUnits =
-        (_quantity + 1) * _selectedOption.unitsPerSaleUnit;
-    if (nextQtyInBaseUnits <= widget.product.stock) {
-      setState(() {
-        _quantity += 1.0;
-      });
-    }
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    super.dispose();
   }
 
-  void _decreaseQty() {
-    if (_quantity > 1.0) {
-      setState(() {
-        _quantity -= 1.0;
-      });
-    }
+  double get _quantity {
+    final val = double.tryParse(_qtyController.text) ?? 1.0;
+    return val > 0 ? val : 1.0;
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,11 +118,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                     onTap: () {
                       setState(() {
                         _selectedOption = option;
-                        // Reset quantity to 1 when changing option if the new unit doesn't fit the previous quantity
-                        if ((_quantity * option.unitsPerSaleUnit) >
-                            widget.product.stock) {
-                          _quantity = 1.0;
-                        }
+                        _qtyController.text = '1';
                       });
                     },
                     child: Container(
@@ -200,36 +194,22 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                     'Cantidad:',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _decreaseQty,
-                        icon: const Icon(Icons.remove_circle_outline),
-                        color: _quantity > 1 ? AppTheme.primary : Colors.grey,
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      controller: _qtyController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _quantity.toStringAsFixed(0),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: ((_quantity + 1) *
-                                    _selectedOption.unitsPerSaleUnit) <=
-                                widget.product.stock
-                            ? _increaseQty
-                            : null,
-                        icon: const Icon(Icons.add_circle_outline),
-                        color: ((_quantity + 1) *
-                                    _selectedOption.unitsPerSaleUnit) <=
-                                widget.product.stock
-                            ? AppTheme.primary
-                            : Colors.grey,
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),

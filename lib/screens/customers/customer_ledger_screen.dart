@@ -188,13 +188,16 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
         icon: const Icon(Icons.payment),
         label: const Text('Cobro Global'),
         backgroundColor: AppTheme.blueIcon,
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => GlobalPaymentScreen(initialCustomerId: widget.customerId),
             ),
           );
+          if (!mounted || !context.mounted) return;
+          _loadLedger();
+          context.read<CustomerProvider>().loadCustomers();
         },
       ),
       appBar: AppBar(

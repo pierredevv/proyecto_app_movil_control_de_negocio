@@ -70,9 +70,10 @@ class _SalesScreenState extends State<SalesScreen> {
         product: product,
         onConfirm: (option, qty) {
           try {
+            final allowNegativeStock = context.read<SettingsProvider>().profile.allowNegativeStock;
             context
                 .read<CartProvider>()
-                .addToCart(product, option: option, qty: qty);
+                .addToCart(product, option: option, qty: qty, allowNegativeStock: allowNegativeStock);
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -85,12 +86,15 @@ class _SalesScreenState extends State<SalesScreen> {
     );
   }
 
-  void _processCheckout(BuildContext context) async {
+  void _processCheckout(BuildContext context, double finalTotal) async {
     final cart = context.read<CartProvider>();
     final inventory = context.read<InventoryProvider>();
     final db = DatabaseService();
+    final settings = context.read<SettingsProvider>().profile;
 
     if (cart.items.isEmpty) return;
+
+    final adjustmentAmount = finalTotal - cart.total;
 
     // Direct checkout or Confirmation Dialog? Dialog is safer.
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -100,7 +104,7 @@ class _SalesScreenState extends State<SalesScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => CheckoutSheet(totalAmount: cart.total),
+      builder: (ctx) => CheckoutSheet(totalAmount: finalTotal),
     );
 
     if (result == null || !context.mounted) return;
@@ -110,13 +114,14 @@ class _SalesScreenState extends State<SalesScreen> {
     final paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
 
     try {
-      final autoClear =
-          context.read<SettingsProvider>().profile.autoClearCartAfterSale;
+      final autoClear = settings.autoClearCartAfterSale;
       final sale = await cart.checkout(db,
           autoClear: autoClear,
           amountReceived: amountReceived,
           paymentDueDate: paymentDueDate,
-          paymentMethod: paymentMethod);
+          paymentMethod: paymentMethod,
+          adjustmentAmount: adjustmentAmount,
+          allowNegativeStock: settings.allowNegativeStock);
       inventory.processSale(sale.items);
 
       if (context.mounted) {
@@ -341,8 +346,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                 }(),
                                 onUpdateQty: (qty) {
                                   try {
+                                    final allowNegativeStock = context.read<SettingsProvider>().profile.allowNegativeStock;
                                     cart.updateQuantity(
-                                        index, qty, item.maxBaseStock ?? product.stock);
+                                        index, qty, item.maxBaseStock ?? product.stock, allowNegativeStock: allowNegativeStock);
                                   } catch (e) {
                                     SnackbarService.showError(e.toString());
                                   }
@@ -363,7 +369,8 @@ class _SalesScreenState extends State<SalesScreen> {
                 builder: (context, cart, _) => cart.items.isNotEmpty
                     ? CartTotalFooter(
                         total: cart.total,
-                        onCheckout: () => _processCheckout(context),
+                        allowInvoiceAdjustments: context.read<SettingsProvider>().profile.allowInvoiceAdjustments,
+                        onCheckout: (finalTotal) => _processCheckout(context, finalTotal),
                       )
                     : const SizedBox.shrink(),
               ),

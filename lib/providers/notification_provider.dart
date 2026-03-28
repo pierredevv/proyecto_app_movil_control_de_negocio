@@ -21,10 +21,7 @@ class NotificationProvider extends ChangeNotifier {
       final profile = await SettingsService.getProfile();
       if (!profile.lowStockAlertsEnabled) return;
 
-      final products = await _db.getProducts();
-      final lowStockProducts = products
-          .where((p) => p.minStock > 0 && p.stockInSaleUnits <= p.minStock)
-          .toList();
+      final lowStockProducts = await _db.getProducts(stockStatuses: ['critical']);
 
       // First, clear notifications for products that already have sufficient stock
       _notifications.removeWhere((n) =>

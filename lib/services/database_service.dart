@@ -658,7 +658,9 @@ class DatabaseService {
     final db = await database;
     final map = product.toMap();
     if (map['weighted_average_cost'] == null || map['weighted_average_cost'] == 0.0) {
-      map['weighted_average_cost'] = map['cost'];
+      final double unitsPerBox = (map['units_per_box'] as num?)?.toDouble() ?? 1.0;
+      final cost = (map['cost'] as num?)?.toDouble() ?? 0.0;
+      map['weighted_average_cost'] = cost / (unitsPerBox > 0 ? unitsPerBox : 1.0);
     }
     final id = await db.insert('products', map);
     if (product.stock > 0) {
@@ -782,7 +784,9 @@ class DatabaseService {
        
        final map = product.toMap();
        if ((map['weighted_average_cost'] as double?) == 0.0) {
-         map['weighted_average_cost'] = map['cost'];
+         final double unitsPerBox = (map['units_per_box'] as num?)?.toDouble() ?? 1.0;
+         final cost = (map['cost'] as num?)?.toDouble() ?? 0.0;
+         map['weighted_average_cost'] = cost / (unitsPerBox > 0 ? unitsPerBox : 1.0);
        }
        
        final result = await txn.update(
@@ -1964,19 +1968,46 @@ class DatabaseService {
     });
   }
 
-  Future<void> deletePayment(int paymentId) async {
+  Future<void> deletePayment(int transactionId) async {
     final db = await database;
     await db.transaction((txn) async {
-      // Point directly to the payments table (V13)
-      final results = await txn.query('payments', where: 'id = ?', whereArgs: [paymentId]);
-      if (results.isEmpty) return;
+      // Find the parent transaction
+      final tResults = await txn.query('transactions', where: 'id = ?', whereArgs: [transactionId]);
+      if (tResults.isEmpty) return;
+      
+      final tran = tResults.first;
+      final amount = (tran['total_amount'] as num).toDouble();
+      final entityId = tran['entity_id'] as int?;
+      if (entityId == null) return;
+      
+      // 0. Void the original transaction
+      await txn.update('transactions', {'status': 'VOIDED'}, where: 'id = ?', whereArgs: [transactionId]);
+
+      // 1. Point dynamically to the payments table (V13) by finding correlation
+      // Since unallocated payments might lack a back-reference, we match by entity_id, amount, and close timestamp.
+      final results = await txn.query('payments', where: 'entity_id = ? AND amount = ? AND abs(date - ?) < 10000', whereArgs: [entityId, amount, tran['date']]);
+      if (results.isEmpty) {
+        // Legacy reversal fallback for old systems
+        await txn.rawUpdate('UPDATE customers SET total_debt = total_debt + ? WHERE id = ?', [amount, entityId]);
+        final ledgerQuery = await txn.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: ['CUSTOMER', entityId], orderBy: 'date DESC, id DESC', limit: 1);
+        double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
+        await txn.insert('entity_ledgers', {
+          'entity_type': 'CUSTOMER', 'entity_id': entityId,
+          'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
+          'transaction_reference_id': transactionId, 'date': DateTime.now().millisecondsSinceEpoch,
+          'debit_amount': amount,
+          'credit_amount': 0.0,
+          'materialized_running_balance': currentBalance + amount,
+          'note': 'Anulación de Pago Legado',
+        });
+        return;
+      }
 
       final payment = results.first;
-      final amount = (payment['amount'] as num).toDouble();
-      final entityId = payment['entity_id'] as int;
+      final paymentId = payment['id'] as int;
       final entityType = payment['entity_type'] as String;
 
-      // 1. Revert assignments
+      // 2. Revert assignments safely
       final allocations = await txn.query('payment_allocations', where: 'payment_id = ?', whereArgs: [paymentId]);
       for (var a in allocations) {
         final tId = a['transaction_id'] as int;
@@ -1991,16 +2022,16 @@ class DatabaseService {
         }
       }
 
-      // 2. Reverse debt depending on entity type
+      // 3. Reverse debt depending on entity type
       if (entityType == 'CUSTOMER') {
         await txn.rawUpdate('UPDATE customers SET total_debt = total_debt + ? WHERE id = ?', [amount, entityId]);
       }
 
-      // 3. Delete payment and allocations
+      // 4. Delete payment and allocations
       await txn.delete('payment_allocations', where: 'payment_id = ?', whereArgs: [paymentId]);
       await txn.delete('payments', where: 'id = ?', whereArgs: [paymentId]);
 
-      // 4. Register reverse in Ledger
+      // 5. Register reverse in Ledger
       final ledgerQuery = await txn.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: [entityType, entityId], orderBy: 'date DESC, id DESC', limit: 1);
       double currentBalance = ledgerQuery.isNotEmpty ? (ledgerQuery.first['materialized_running_balance'] as num).toDouble() : 0.0;
       await txn.insert('entity_ledgers', {
@@ -2425,13 +2456,14 @@ class DatabaseService {
         (anonymousPurchasesResult.first['total'] as num?)?.toDouble() ?? 0.0;
 
     final cashIn = totalAnonymousSalesCash + totalPayments;
+    final cashOut = totalExpenses + totalSupplierPayments + totalAnonymousPurchasesCash;
 
     return {
-      'sales': totalSales,
-      'expenses': totalExpenses,
-      'payments': totalPayments,
-      'purchases': totalPurchasesPaid,
-      'balance': cashIn - totalExpenses - totalSupplierPayments - totalAnonymousPurchasesCash,
+      'accrual_sales': totalSales,
+      'accrual_purchases': totalPurchasesPaid,
+      'cash_in': cashIn,
+      'cash_out': cashOut,
+      'net_cash_balance': cashIn - cashOut,
     };
   }
 
@@ -2574,37 +2606,39 @@ class DatabaseService {
 
     List<Transaction> transactions = [];
 
+    // Batch query for transaction items (N+1 Optimization)
+    final List<int> idsWithItems = [];
+    for (var map in maps) {
+      final tType = map['type'] as String;
+      if (tType == 'sale' || tType == 'purchase' || tType == 'order') {
+        idsWithItems.add(map['id'] as int);
+      }
+    }
+
+    // Fetch all required items in one query
+    final Map<int, List<InvoiceItem>> groupedItems = {};
+    if (idsWithItems.isNotEmpty) {
+      final String idList = idsWithItems.join(',');
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id IN ($idList)',
+      );
+      for (var itemMap in itemsMaps) {
+        final tId = itemMap['transaction_id'] as int;
+        groupedItems.putIfAbsent(tId, () => []).add(InvoiceItem.fromMap(itemMap));
+      }
+    }
+
     for (var map in maps) {
       final id = map['id'] as int;
       final type = map['type'] as String;
 
       if (type == 'sale') {
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-        transactions.add(Sale.fromMap(map, items));
+        transactions.add(Sale.fromMap(map, groupedItems[id] ?? []));
       } else if (type == 'purchase') {
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-        transactions.add(Purchase.fromMap(map, items));
+        transactions.add(Purchase.fromMap(map, groupedItems[id] ?? []));
       } else if (type == 'order') {
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-        transactions.add(Order.fromMap(map, items));
+        transactions.add(Order.fromMap(map, groupedItems[id] ?? []));
       } else if (type == 'payment') {
         transactions.add(Payment.fromMap(map));
       } else if (type == 'expense') {

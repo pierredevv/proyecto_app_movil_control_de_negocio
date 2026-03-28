@@ -188,13 +188,16 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
         icon: const Icon(Icons.payment),
         label: const Text('Pago Global'),
         backgroundColor: const Color(0xFF4A90E2), // Corporate Blue
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => SupplierPaymentScreen(initialSupplierId: widget.supplierId),
             ),
           );
+          if (!mounted || !context.mounted) return;
+          _loadLedger();
+          context.read<SupplierProvider>().loadSuppliers();
         },
       ),
       appBar: AppBar(

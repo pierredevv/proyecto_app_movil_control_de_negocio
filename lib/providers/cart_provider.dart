@@ -22,9 +22,9 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // NUEVO: Agregado parametro 'option' y 'qty'
+  // NUEVO: Agregado parametro 'option', 'qty' y 'allowNegativeStock'
   void addToCart(Product product,
-      {required SaleUnitOption option, double qty = 1.0}) {
+      {required SaleUnitOption option, double qty = 1.0, bool allowNegativeStock = false}) {
     // Check si ya existe con la misma presentación (saleUnit + unitsPerSaleUnit)
     final index = _items.indexWhere((item) =>
         item.productId == product.id &&
@@ -40,7 +40,7 @@ class CartProvider extends ChangeNotifier {
     final newBaseUnitsRequested = qty * option.unitsPerSaleUnit;
 
     // Validación general de Stock usando UNIDADES BASE
-    if (totalBaseUnitsInCart + newBaseUnitsRequested > product.stock) {
+    if (!allowNegativeStock && totalBaseUnitsInCart + newBaseUnitsRequested > product.stock) {
       final freeBaseUnits = product.stock - totalBaseUnitsInCart;
       final availableSaleUnits = freeBaseUnits > 0 ? freeBaseUnits / option.unitsPerSaleUnit : 0.0;
       throw Exception(
@@ -80,7 +80,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   // UPDATED: Cambiando maxStock referenciándolo a baseUnits
-  void updateQuantity(int index, double newQuantity, double maxBaseStock) {
+  void updateQuantity(int index, double newQuantity, double maxBaseStock, {bool allowNegativeStock = false}) {
     if (newQuantity <= 0) {
       removeFromCart(index);
       return;
@@ -96,7 +96,7 @@ class CartProvider extends ChangeNotifier {
 
     // Validate using Base Units metrics cumulatively
     final effectiveMaxStock = targetItem.maxBaseStock ?? maxBaseStock;
-    if (baseUnitsRequested + otherBaseUnitsInCart > effectiveMaxStock) {
+    if (!allowNegativeStock && baseUnitsRequested + otherBaseUnitsInCart > effectiveMaxStock) {
       final freeBaseUnits = effectiveMaxStock - otherBaseUnitsInCart;
       final maxAvailableOptionUnits = freeBaseUnits > 0 ? freeBaseUnits / targetItem.unitsPerSaleUnit : 0.0;
       throw Exception(
@@ -120,14 +120,16 @@ class CartProvider extends ChangeNotifier {
       {bool autoClear = true,
       double? amountReceived,
       DateTime? paymentDueDate,
-      String paymentMethod = 'EFECTIVO'}) async {
+      String paymentMethod = 'EFECTIVO',
+      double adjustmentAmount = 0.0,
+      bool allowNegativeStock = false}) async {
     if (_items.isEmpty) throw Exception('El carrito está vacío');
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      final saleTotal = total;
+      final saleTotal = total + adjustmentAmount; // Base total + adjustment
       final received = amountReceived ?? saleTotal;
       final String saleStatus = received >= saleTotal - 0.01
           ? 'COMPLETED'
@@ -138,6 +140,7 @@ class CartProvider extends ChangeNotifier {
       final sale = Sale(
         date: DateTime.now(),
         totalAmount: saleTotal,
+        adjustmentAmount: adjustmentAmount,
         amountPaid: received,
         paymentDueDate: paymentDueDate,
         customerId: _selectedCustomer?.id,
@@ -146,7 +149,7 @@ class CartProvider extends ChangeNotifier {
         status: saleStatus,
       );
 
-      final id = await db.insertSale(sale, paymentMethod: paymentMethod);
+      final id = await db.insertSale(sale, paymentMethod: paymentMethod, allowNegativeStock: allowNegativeStock);
       final completedSale = sale.copyWith(id: id);
 
       if (autoClear) {

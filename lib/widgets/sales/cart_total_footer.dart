@@ -1,12 +1,46 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
-class CartTotalFooter extends StatelessWidget {
+class CartTotalFooter extends StatefulWidget {
   final double total;
-  final VoidCallback onCheckout;
+  final bool allowInvoiceAdjustments;
+  final Function(double finalTotal) onCheckout;
 
   const CartTotalFooter(
-      {super.key, required this.total, required this.onCheckout});
+      {super.key, required this.total, this.allowInvoiceAdjustments = false, required this.onCheckout});
+
+  @override
+  State<CartTotalFooter> createState() => _CartTotalFooterState();
+}
+
+class _CartTotalFooterState extends State<CartTotalFooter> {
+  late TextEditingController _totalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalController = TextEditingController(text: widget.total.toStringAsFixed(2));
+  }
+
+  @override
+  void didUpdateWidget(CartTotalFooter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only automatically update the controller if the underlying cart total changed significantly 
+    // AND the user hasn't wiped the text field entirely to type a new one
+    if (oldWidget.total != widget.total) {
+       _totalController.text = widget.total.toStringAsFixed(2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _totalController.dispose();
+    super.dispose();
+  }
+
+  double get _currentTotal {
+    return double.tryParse(_totalController.text) ?? widget.total;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,20 +78,42 @@ class CartTotalFooter extends StatelessWidget {
                 ),
               ),
               Text(
-                'Bs. ${total.toStringAsFixed(2)}',
-                style: const TextStyle(
+                'Bs. ${widget.total.toStringAsFixed(2)}',
+                style: TextStyle(
                   color: Colors.white, // Or Accent color
-                  fontSize: 24,
+                  fontSize: widget.allowInvoiceAdjustments ? 14 : 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (widget.allowInvoiceAdjustments) ...[
+                 const SizedBox(width: 8),
+                 SizedBox(
+                   width: 120,
+                   child: TextField(
+                      controller: _totalController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(50))),
+                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                      ),
+                   )
+                 )
+              ]
             ],
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: onCheckout,
+              onPressed: () => widget.onCheckout(_currentTotal),
               label: const Text('PAGAR'),
               icon: const Icon(Icons.payment),
               style: ElevatedButton.styleFrom(
