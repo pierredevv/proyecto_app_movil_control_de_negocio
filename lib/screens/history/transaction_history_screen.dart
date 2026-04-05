@@ -18,8 +18,10 @@ import '../../providers/inventory_provider.dart';
 import '../customers/customer_ledger_screen.dart';
 
 import '../purchases/purchase_form_screen.dart';
+import '../../widgets/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../sales/sales_screen.dart';
+import '../../models/product.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -203,12 +205,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     await _loadToCartAndNavigate(t);
   }
 
-  Future<void> _loadToCartAndNavigate(Transaction t) async {
+  Future<void> _loadToCartAndNavigate(Transaction t, {bool isEditing = false}) async {
     if (t.type == TransactionType.sale) {
       final cart = context.read<CartProvider>();
       final inventory = context.read<InventoryProvider>();
 
       cart.clearCart();
+
+      if (isEditing) {
+        cart.editingOriginalSaleId = t.id;
+      }
 
       if ((t as Sale).customerId != null) {
         try {
@@ -225,8 +231,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       }
 
       for (var i in t.items) {
-        final productMatch =
+        Product? productMatch =
             inventory.products.where((p) => p.id == i.productId).firstOrNull;
+            
+        if (productMatch == null) {
+          try {
+            final db = await _db.database;
+            final pMap = await db.query('products', where: 'id = ?', whereArgs: [i.productId]);
+            if (pMap.isNotEmpty) {
+              productMatch = Product.fromMap(pMap.first);
+            }
+          } catch (_) {}
+        }
+        
         if (productMatch != null) {
           final option = SaleUnitOption(
             label: '${i.productName} (${i.saleUnit})',
@@ -235,7 +252,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             price: i.unitPrice,
           );
           try {
-            cart.addToCart(productMatch, option: option, qty: i.quantity);
+            cart.addToCart(productMatch, option: option, qty: i.quantity, allowNegativeStock: isEditing);
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -261,6 +278,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         MaterialPageRoute(
           builder: (context) => PurchaseFormScreen(
             initialTransactionToDuplicate: t,
+            editingOriginalId: isEditing ? t.id : null,
           ),
         ),
       ).then((_) {
@@ -302,19 +320,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (!mounted) return;
 
     try {
-      if (t.type == TransactionType.sale) {
-        await _db.deleteSale(t.id!);
-      } else if (t.type == TransactionType.purchase ||
-          t.type == TransactionType.order) {
-        await _db.deletePurchase(t.id!);
-      } else {
+      if (t.type == TransactionType.expense ||
+          t.type == TransactionType.payment) {
         throw Exception('No soportado para este tipo de transacción');
       }
 
-      if (t.type != TransactionType.expense &&
-          t.type != TransactionType.payment) {
-        await _loadToCartAndNavigate(t);
-      }
+      await _loadToCartAndNavigate(t, isEditing: true);
 
       if (mounted) {
         context.read<DashboardProvider>().loadDashboardData();
@@ -394,35 +405,37 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       ? _buildSkeletonLoader(isDark)
                       : _transactions.isEmpty
                           ? _buildEmptyState(context, isDark)
-                          : RefreshIndicator(
-                              onRefresh: _loadData,
-                              color: const Color(0xFFFF6B6B),
-                              child: ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.only(bottom: 20),
-                                itemCount: _transactions.length + (_hasMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index == _transactions.length) {
-                                    return const Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: Center(
-                                        child: CircularProgressIndicator(color: AppTheme.primary),
-                                      ),
-                                    );
-                                  }
-                                  final t = _transactions[index];
-                                  return _GlassTransactionCard(
-                                    transaction: t,
-                                    isDark: isDark,
-                                    onVoid: () => _voidTransaction(t),
-                                    onDuplicate: () => _duplicateTransaction(t),
-                                    onEdit: () => _editTransaction(t),
-                                  ).animate().fadeIn(duration: 300.ms).slideY(
-                                      begin: 0.2,
-                                      end: 0,
-                                      curve: Curves.easeOut,
-                                      delay: ((50 * index).clamp(0, 500)).ms);
-                                },
+                          : BoundedDesktopWrapper(
+                              child: RefreshIndicator(
+                                onRefresh: _loadData,
+                                color: const Color(0xFFFF6B6B),
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.only(bottom: 20),
+                                  itemCount: _transactions.length + (_hasMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (index == _transactions.length) {
+                                      return const Padding(
+                                        padding: EdgeInsets.all(16),
+                                        child: Center(
+                                          child: CircularProgressIndicator(color: AppTheme.primary),
+                                        ),
+                                      );
+                                    }
+                                    final t = _transactions[index];
+                                    return _GlassTransactionCard(
+                                      transaction: t,
+                                      isDark: isDark,
+                                      onVoid: () => _voidTransaction(t),
+                                      onDuplicate: () => _duplicateTransaction(t),
+                                      onEdit: () => _editTransaction(t),
+                                    ).animate().fadeIn(duration: 300.ms).slideY(
+                                        begin: 0.2,
+                                        end: 0,
+                                        curve: Curves.easeOut,
+                                        delay: ((50 * index).clamp(0, 500)).ms);
+                                  },
+                                ),
                               ),
                             ),
                 ),
@@ -808,6 +821,19 @@ class _GlassTransactionCard extends StatelessWidget {
           return 'COMPRA';
       }
     }
+    if (transaction is Order) {
+      final order = transaction as Order;
+      switch (order.status.toUpperCase()) {
+        case 'PENDING':
+          return 'PEDIDO · PENDIENTE';
+        case 'RECEIVED':
+          return 'PEDIDO · RECIBIDO';
+        case 'VOIDED':
+          return 'PEDIDO · ANULADO';
+        default:
+          return 'PEDIDO';
+      }
+    }
     switch (transaction.type) {
       case TransactionType.purchase: // fallback
         return 'COMPRA';
@@ -1094,12 +1120,16 @@ class _GlassTransactionCard extends StatelessWidget {
                         // Row 4: total amount
                         Align(
                           alignment: Alignment.centerRight,
-                          child: Text(
-                            '$prefix $amountStr',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: amountColor,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '$prefix $amountStr',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: amountColor,
+                              ),
                             ),
                           ),
                         ),

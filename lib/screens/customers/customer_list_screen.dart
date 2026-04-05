@@ -484,8 +484,10 @@ class _CustomerGlassCardState extends State<_CustomerGlassCard> {
                       ),
                       const SizedBox(width: 8),
                       // Actions
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
                         children: [
                           if (widget.customer.phone != null &&
                               widget.customer.phone!.isNotEmpty)
@@ -498,15 +500,11 @@ class _CustomerGlassCardState extends State<_CustomerGlassCard> {
                                     .makePhoneCall(widget.customer.phone!);
                               },
                             ),
-                          if (widget.customer.phone != null &&
-                              widget.customer.phone!.isNotEmpty)
-                            const SizedBox(width: 12),
                           _CardActionButton(
                             icon: Icons.receipt, // or attach_money
                             color: const Color(0xFF51CF66), // Green
                             onTap: widget.onPaymentTap,
                           ),
-                          const SizedBox(width: 12),
                           // Custom Popup Menu action button
                           _CardPopupActions(
                             customer: widget.customer,

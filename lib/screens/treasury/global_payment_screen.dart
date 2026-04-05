@@ -91,6 +91,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
 
   void _autoDistributeAmount() {
     if (_isAutoDistributing || _pendingSales.isEmpty) return;
+    if (_amountController.text.isEmpty) return;
     
     final totalDeposit = double.tryParse(_amountController.text) ?? 0.0;
     

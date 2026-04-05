@@ -506,8 +506,10 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                   ),
                   const SizedBox(width: 8),
                   // Actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
                     children: [
                       if (hasPhone)
                         _CardActionButton(
@@ -519,7 +521,6 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                                 .makePhoneCall(widget.supplier.phone!);
                           },
                         ),
-                      if (hasPhone) const SizedBox(width: 12),
                       if (hasPhone)
                         _CardActionButton(
                           icon:
@@ -531,13 +532,11 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                                 "Hola ${widget.supplier.name}, quisiera hacer un pedido.");
                           },
                         ),
-                      if (hasPhone) const SizedBox(width: 12),
                       _CardActionButton(
                         icon: Icons.receipt_long,
                         color: const Color(0xFFF5A623), // Orange
                         onTap: widget.onLedgerTap,
                       ),
-                      const SizedBox(width: 12),
                       // Custom Popup Menu action button
                       _CardPopupActions(
                         supplier: widget.supplier,

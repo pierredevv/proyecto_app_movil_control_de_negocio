@@ -15,6 +15,7 @@ import '../../widgets/common/skeleton_list.dart';
 import '../notifications/notifications_screen.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../import/import_screen.dart';
+import '../../widgets/responsive_layout.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -163,53 +164,55 @@ class _ProductListScreenState extends State<ProductListScreen>
 
               if (!provider.isLoading)
                 _buildCategoryTabs(
-                    context, provider.categories, provider.selectedCategoryId),
+                    context, provider.categories, provider.selectedCategories),
 
               Expanded(
                 child: provider.isLoading
                     ? const SkeletonList()
                     : provider.filteredProducts.isEmpty
                         ? _buildEmptyState(context)
-                        : ListView.separated(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.only(
-                                top: 8, bottom: 80, left: 16, right: 16),
-                            itemCount: provider.filteredProducts.length +
-                                (provider.hasMore ? 1 : 0),
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              if (index == provider.filteredProducts.length) {
-                                return provider.hasMore
-                                    ? const Center(
-                                        child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: CircularProgressIndicator(),
-                                      ))
-                                    : const SizedBox(height: 80);
-                              }
-                              final product = provider.filteredProducts[index];
-                              return ProductListItem(
-                                product: product,
-                                categoryName: _getCategoryName(
-                                    provider.categories, product.categoryId),
-                                onEdit: () => _navigateToForm(context, product),
-                                onDelete: () =>
-                                    _confirmDelete(context, product),
-                                onAdjustStock: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
-                                ).then((_) {
-                                  if (context.mounted) {
-                                    context.read<InventoryProvider>().loadProducts(reset: true);
-                                  }
-                                }),
-                              ).animate().fadeIn(duration: 400.ms).slideY(
-                                    begin: 0.1,
-                                    end: 0,
-                                    delay: (50 * (index % 10)).ms,
-                                  );
-                            },
+                        : BoundedDesktopWrapper(
+                            child: ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.only(
+                                  top: 8, bottom: 80, left: 16, right: 16),
+                              itemCount: provider.filteredProducts.length +
+                                  (provider.hasMore ? 1 : 0),
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                if (index == provider.filteredProducts.length) {
+                                  return provider.hasMore
+                                      ? const Center(
+                                          child: Padding(
+                                          padding: EdgeInsets.all(16.0),
+                                          child: CircularProgressIndicator(),
+                                        ))
+                                      : const SizedBox(height: 80);
+                                }
+                                final product = provider.filteredProducts[index];
+                                return ProductListItem(
+                                  product: product,
+                                  categoryName: _getCategoryName(
+                                      provider.categories, product.categoryId),
+                                  onEdit: () => _navigateToForm(context, product),
+                                  onDelete: () =>
+                                      _confirmDelete(context, product),
+                                  onAdjustStock: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
+                                  ).then((_) {
+                                    if (context.mounted) {
+                                      context.read<InventoryProvider>().loadProducts(reset: true);
+                                    }
+                                  }),
+                                ).animate().fadeIn(duration: 400.ms).slideY(
+                                      begin: 0.1,
+                                      end: 0,
+                                      delay: (50 * (index % 10)).ms,
+                                    );
+                              },
+                            ),
                           ),
               ),
             ],
@@ -494,7 +497,7 @@ class _ProductListScreenState extends State<ProductListScreen>
   }
 
   Widget _buildCategoryTabs(
-      BuildContext context, List<Category> categories, int? selectedId) {
+      BuildContext context, List<Category> categories, List<int> selectedCategoryIds) {
     return Container(
       height: 60, // Increased height for underlines
       margin: const EdgeInsets.only(bottom: 16),
@@ -506,13 +509,21 @@ class _ProductListScreenState extends State<ProductListScreen>
           final isAll = index == 0;
           final category = isAll ? null : categories[index - 1];
           final isSelected =
-              isAll ? selectedId == null : selectedId == category!.id;
+              isAll ? selectedCategoryIds.isEmpty : selectedCategoryIds.contains(category!.id);
 
           return GestureDetector(
             onTap: () {
-              context
-                  .read<InventoryProvider>()
-                  .setCategoryFilter(isAll ? null : category!.id);
+              if (isAll) {
+                context.read<InventoryProvider>().setFilters(categories: []);
+              } else {
+                final current = List<int>.from(context.read<InventoryProvider>().selectedCategories);
+                if (current.contains(category!.id)) {
+                  current.remove(category.id);
+                } else {
+                  current.add(category.id!);
+                }
+                context.read<InventoryProvider>().setFilters(categories: current);
+              }
             },
             child: Container(
               margin: const EdgeInsets.only(right: 12),

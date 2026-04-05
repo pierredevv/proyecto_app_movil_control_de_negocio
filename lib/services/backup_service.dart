@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import 'package:excel/excel.dart';
 import 'package:csv/csv.dart';
 import 'database_service.dart';
@@ -143,38 +143,11 @@ class BackupService {
   // ✅ SAVE FILE (Smart Storage Selection)
   static Future<File> _saveFile(
       List<int> bytes, BackupType type, String extension) async {
-    Directory? directory;
-
-    if (!kIsWeb && Platform.isAndroid) {
-      // Android 11+ Strategy (Manage External Storage) vs Old Android
-      if (await Permission.manageExternalStorage.request().isGranted) {
-        directory =
-            Directory('/storage/emulated/0/Documents/$_backupFolderName');
-      } else if (await Permission.storage.request().isGranted) {
-        // Android 10 or lower or partial access
-        directory =
-            Directory('/storage/emulated/0/Documents/$_backupFolderName');
-      }
-    }
-
-    // Fallback to App Internal Storage if no external permission or non-Android
-    if (directory == null) {
-      final docDir = await getApplicationDocumentsDirectory();
-      directory = Directory('${docDir.path}/$_backupFolderName');
-    }
+    final docDir = await getApplicationDocumentsDirectory();
+    final directory = Directory('${docDir.path}/$_backupFolderName');
 
     if (!await directory.exists()) {
-      try {
-        await directory.create(recursive: true);
-      } catch (e) {
-        // Fallback if creating /Documents subdir fails (e.g. Scoped Storage oddity)
-        // We shouldn't get here if permissions checked, but just in case:
-        final docDir = await getApplicationDocumentsDirectory();
-        directory = Directory('${docDir.path}/$_backupFolderName');
-        if (!await directory.exists()) {
-          await directory.create(recursive: true);
-        }
-      }
+      await directory.create(recursive: true);
     }
 
     // Generate Filename
@@ -224,25 +197,8 @@ class BackupService {
 
   // ✅ LIST LOCAL BACKUPS
   static Future<List<FileSystemEntity>> listBackups() async {
-    // Check both public and private dirs
     final List<FileSystemEntity> allFiles = [];
 
-    // 1. Public Documents (Only if accessible)
-    if (!kIsWeb && Platform.isAndroid) {
-      try {
-        final publicDir =
-            Directory('/storage/emulated/0/Documents/$_backupFolderName');
-        if (await publicDir.exists()) {
-          // This might throw if we don't have permission to read even if it exists
-          allFiles.addAll(publicDir.listSync());
-        }
-      } catch (e) {
-        // Ignore permission errors here, just skip
-        debugPrint('Could not list public backups: $e');
-      }
-    }
-
-    // 2. Private App Dir
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final privateDir = Directory('${appDir.path}/$_backupFolderName');
@@ -250,7 +206,7 @@ class BackupService {
         allFiles.addAll(privateDir.listSync());
       }
     } catch (e) {
-      debugPrint('Could not list private backups: $e');
+      debugPrint('Could not list backups: $e');
     }
 
     // Filter Valid
@@ -264,8 +220,6 @@ class BackupService {
     // Sort Newest
     validFiles
         .sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
-
-    // Remove duplicates (same path?) - Paths are distinct between private and public
     return validFiles;
   }
 

@@ -96,8 +96,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             // 1. Header Card
@@ -422,9 +423,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   const SizedBox(height: 12),
                   _buildSummaryRow(
                       'Descuento', 0.00, currencyFormat, subTextColor),
-                  const SizedBox(height: 12),
-                  _buildSummaryRow('IVA Incluido (13%)', widget.sale.totalAmount * 13 / 113,
-                      currencyFormat, subTextColor),
                   const SizedBox(height: 16),
                   Divider(color: dividerColor),
                   const SizedBox(height: 16),
@@ -552,6 +550,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             ).animate().fade(delay: 400.ms).slideY(begin: 0.2, end: 0),
             const SizedBox(height: 20),
           ],
+        ),
         ),
       ),
     );
@@ -865,7 +864,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   : 'Unidad',
         );
 
-        cart.addToCart(product, qty: item.quantity, option: option);
+        cart.addToCart(product, qty: item.quantity, option: option, allowNegativeStock: true);
       } catch (e) {
         // Skip product if not found
       }
@@ -912,13 +911,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     if (!mounted) return;
 
     try {
-      final db = DatabaseService();
-      await db.deleteSale(widget.sale.id!); // Void the previous one
+      final cart = context.read<CartProvider>();
+      cart.editingOriginalSaleId = widget.sale.id;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Transacción anterior anulada. Cargando editor...'),
+            content: Text('Modo edición activado. Cargando editor...'),
             backgroundColor: Colors.blue,
           ),
         );

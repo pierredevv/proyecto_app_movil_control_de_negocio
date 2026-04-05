@@ -52,41 +52,67 @@ class SettingsScreen extends StatelessWidget {
 
           // APPEARANCE SECTION
           _SectionTitle('Apariencia', theme: theme),
-          Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              children: [
-                RadioListTile<ThemeMode>(
-                  title: const Text('Seguir al sistema'),
-                  secondary: const Icon(Icons.brightness_auto),
-                  value: ThemeMode.system,
-                  // ignore: deprecated_member_use
-                  groupValue: themeProvider.themeMode,
-                  // ignore: deprecated_member_use
-                  onChanged: (v) => themeProvider.setThemeMode(v!),
-                ),
-                const Divider(height: 1),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Modo Claro'),
-                  secondary: const Icon(Icons.light_mode),
-                  value: ThemeMode.light,
-                  // ignore: deprecated_member_use
-                  groupValue: themeProvider.themeMode,
-                  // ignore: deprecated_member_use
-                  onChanged: (v) => themeProvider.setThemeMode(v!),
-                ),
-                const Divider(height: 1),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Modo Oscuro'),
-                  secondary: const Icon(Icons.dark_mode),
-                  value: ThemeMode.dark,
-                  // ignore: deprecated_member_use
-                  groupValue: themeProvider.themeMode,
-                  // ignore: deprecated_member_use
-                  onChanged: (v) => themeProvider.setThemeMode(v!),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.system,
+                    label: Text('Sistema'),
+                    icon: Icon(Icons.brightness_auto),
+                  ),
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.light,
+                    label: Text('Claro'),
+                    icon: Icon(Icons.light_mode),
+                  ),
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.dark,
+                    label: Text('Oscuro'),
+                    icon: Icon(Icons.dark_mode),
+                  ),
+                ],
+                selected: {themeProvider.themeMode},
+                onSelectionChanged: (Set<ThemeMode> newSelection) {
+                  themeProvider.setThemeMode(newSelection.first);
+                },
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // TEXT SIZE SECTION
+          _SectionTitle('Tamaño de Texto', theme: theme),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<double>(
+                segments: const [
+                  ButtonSegment<double>(
+                    value: 0.85,
+                    label: Text('Pequeño'),
+                    icon: Icon(Icons.text_decrease),
+                  ),
+                  ButtonSegment<double>(
+                    value: 1.0,
+                    label: Text('Normal'),
+                    icon: Icon(Icons.text_format),
+                  ),
+                  ButtonSegment<double>(
+                    value: 1.15,
+                    label: Text('Grande'),
+                    icon: Icon(Icons.text_increase),
+                  ),
+                ],
+                selected: {settingsProvider.textScale},
+                onSelectionChanged: (Set<double> newSelection) {
+                  settingsProvider.setTextScale(newSelection.first);
+                },
+              ),
             ),
           ),
 

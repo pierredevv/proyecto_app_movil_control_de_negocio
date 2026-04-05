@@ -181,12 +181,16 @@ class _ProductListItemState extends State<ProductListItem>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                'Bs. ${widget.product.price.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  'Bs. ${widget.product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -258,33 +262,28 @@ class _ProductListItemState extends State<ProductListItem>
                                   ),
                                   const SizedBox(height: 20),
                                   // Action Buttons
-                                  Row(
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    alignment: WrapAlignment.center,
                                     children: [
-                                      Expanded(
-                                        child: _buildGlassButton(
-                                          icon: Icons.edit_outlined,
-                                          label: 'Editar',
-                                          color: Colors.white,
-                                          onTap: widget.onEdit,
-                                        ),
+                                      _buildGlassButton(
+                                        icon: Icons.edit_outlined,
+                                        label: 'Editar',
+                                        color: Colors.white,
+                                        onTap: widget.onEdit,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: _buildGlassButton(
-                                          icon: Icons.inventory_2_outlined,
-                                          label: 'Ajustar',
-                                          color: Colors.orangeAccent,
-                                          onTap: widget.onAdjustStock,
-                                        ),
+                                      _buildGlassButton(
+                                        icon: Icons.inventory_2_outlined,
+                                        label: 'Ajustar',
+                                        color: Colors.orangeAccent,
+                                        onTap: widget.onAdjustStock,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: _buildGlassButton(
-                                          icon: Icons.delete_outline,
-                                          label: 'Eliminar',
-                                          color: const Color(0xFFEF4444),
-                                          onTap: widget.onDelete,
-                                        ),
+                                      _buildGlassButton(
+                                        icon: Icons.delete_outline,
+                                        label: 'Eliminar',
+                                        color: const Color(0xFFEF4444),
+                                        onTap: widget.onDelete,
                                       ),
                                     ],
                                   ),
@@ -333,29 +332,34 @@ class _ProductListItemState extends State<ProductListItem>
       required String label,
       required Color color,
       required VoidCallback onTap}) {
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        side: BorderSide(color: color.withValues(alpha: 0.2)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],

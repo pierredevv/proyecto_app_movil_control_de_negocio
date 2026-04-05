@@ -390,7 +390,7 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                   Row(children: [
                     Icon(Icons.folder_open, color: Color(0xFF51CF66), size: 20),
                     SizedBox(width: 8),
-                    Text('Almacenamiento Público',
+                    Text('Almacenamiento Local',
                         style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -398,7 +398,7 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                   ]),
                   SizedBox(height: 8),
                   Text(
-                      'Los archivos exportados se guardan en la carpeta "Documents/Backups" de tu dispositivo para fácil acceso.',
+                      'Los archivos exportados se guardan de forma segura en la aplicación. Puedes usar la opción Compartir para enviarlos a otros destinos.',
                       style: TextStyle(
                           color: Color(0xFFA0A8C1), fontSize: 13, height: 1.5))
                 ],

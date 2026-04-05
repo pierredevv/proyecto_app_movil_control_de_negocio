@@ -10,6 +10,7 @@ class CartProvider extends ChangeNotifier {
   final List<InvoiceItem> _items = [];
   Customer? _selectedCustomer;
   bool _isLoading = false;
+  int? editingOriginalSaleId;
 
   List<InvoiceItem> get items => List.unmodifiable(_items);
   Customer? get selectedCustomer => _selectedCustomer;
@@ -113,6 +114,7 @@ class CartProvider extends ChangeNotifier {
   void clearCart() {
     _items.clear();
     _selectedCustomer = null;
+    editingOriginalSaleId = null;
     notifyListeners();
   }
 
@@ -131,11 +133,15 @@ class CartProvider extends ChangeNotifier {
     try {
       final saleTotal = total + adjustmentAmount; // Base total + adjustment
       final received = amountReceived ?? saleTotal;
-      final String saleStatus = received >= saleTotal - 0.01
+      final saleStatus = received >= saleTotal - 0.01
           ? 'COMPLETED'
           : received > 0
               ? 'PARTIAL'
               : 'CREDIT';
+
+      if (editingOriginalSaleId != null) {
+        await db.deleteSale(editingOriginalSaleId!);
+      }
 
       final sale = Sale(
         date: DateTime.now(),

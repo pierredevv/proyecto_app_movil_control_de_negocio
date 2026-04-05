@@ -59,7 +59,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _barcodeController = TextEditingController(text: p?.barcode);
     _priceController = TextEditingController(text: p?.price.toString());
     _costController = TextEditingController(text: p?.cost.toString());
-    _stockController = TextEditingController(text: p?.stock.toString());
+    final initialStock = p != null
+        ? (p.unitsPerSaleUnit > 0 ? p.stock / p.unitsPerSaleUnit : p.stock)
+        : null;
+    _stockController = TextEditingController(
+        text: initialStock == null
+            ? ''
+            : (initialStock.truncateToDouble() == initialStock
+                ? initialStock.toInt().toString()
+                : initialStock.toStringAsFixed(2)));
     _minStockController = TextEditingController(
         text: p?.minStock.toString() ?? defaultMinStock.toString());
     _selectedCategoryId = p?.categoryId;
@@ -204,11 +212,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final barcode = _barcodeController.text.trim();
     final price = double.tryParse(_priceController.text) ?? 0;
     final cost = double.tryParse(_costController.text) ?? 0;
-    final stock = double.tryParse(_stockController.text) ?? 0;
+    final rawStock = double.tryParse(_stockController.text) ?? 0;
     final minStock =
         _showLowStockAlert ? (int.tryParse(_minStockController.text) ?? 0) : 0;
     final rawUnits = double.tryParse(_unitsPerBoxController.text) ?? 1.0;
     final unitsPerSaleUnit = rawUnits > 0 ? rawUnits : 1.0;
+    final stock = rawStock * unitsPerSaleUnit;
 
     final newProduct = Product(
       id: widget.product?.id,
@@ -249,6 +258,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   Widget build(BuildContext context) {
     final isEdit = widget.product != null;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final topPadding = MediaQuery.of(context).padding.top;
     // Assuming dark mode for now as per design
 
     return Scaffold(
@@ -327,7 +337,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 // Scrollable Form Content
                 SingleChildScrollView(
                   padding: EdgeInsets.only(
-                      top: 100,
+                      top: topPadding + 80,
                       left: 16,
                       right: 16,
                       bottom: 100 + bottomPadding),
@@ -407,8 +417,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         _buildSectionTitle('Inventario & Alertas'),
                         _buildGlassTextField(
                           controller: _stockController,
-                          label: 'Stock Actual (En Unidades Base) *',
-                          hintText: 'Ej. Si vende cajas de 24, ingrese 24',
+                          label: 'Stock Actual *',
                           icon: Icons.inventory_2_outlined,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
@@ -462,7 +471,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: _buildHeader(isEdit),
+                  child: _buildHeader(isEdit, topPadding),
                 ),
 
                 // 7. Create/Save Button (Fixed Bottom)
@@ -479,14 +488,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   // --- Widgets ---
 
-  Widget _buildHeader(bool isEdit) {
+  Widget _buildHeader(bool isEdit, double topPadding) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          height: 90,
           padding:
-              const EdgeInsets.only(top: 30, left: 20, right: 20, bottom: 10),
+              EdgeInsets.only(top: topPadding + 16, left: 20, right: 20, bottom: 16),
           decoration: BoxDecoration(
             color: const Color(0xFF151924)
                 .withValues(alpha: 0.6), // More transparent

@@ -16,6 +16,16 @@ class SettingsService {
     await prefs.setString(_keyThemeMode, value);
   }
 
+  static Future<double> getTextScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble('text_scale') ?? 1.0;
+  }
+
+  static Future<void> setTextScale(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('text_scale', value);
+  }
+
   static Future<BusinessProfile> getProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyProfile);

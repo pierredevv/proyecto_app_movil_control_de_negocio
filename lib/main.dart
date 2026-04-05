@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -26,10 +27,22 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_BO', null);
 
-  if (Platform.isWindows || Platform.isLinux) {
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     // Initialize FFI
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1024, 768),
+      minimumSize: Size(800, 600),
+      center: true,
+      title: 'Gestion de Negocio',
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
   }
 
   runApp(const MyApp());
@@ -72,8 +85,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(
             create: (_) => SettingsProvider()..loadProfile()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
+      child: Consumer2<ThemeProvider, SettingsProvider>(
+        builder: (context, themeProvider, settingsProvider, _) {
           return MaterialApp(
             scaffoldMessengerKey: SnackbarService.messengerKey,
             title: 'Gestion de Negocio App',
@@ -82,6 +95,17 @@ class _MyAppState extends State<MyApp> {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             navigatorObservers: [routeObserver],
+            builder: (context, child) {
+              final mediaQueryData = MediaQuery.of(context);
+              final double baseSystemScale = mediaQueryData.textScaler.scale(16) / 16;
+              final double combinedFactor = (baseSystemScale * settingsProvider.textScale).clamp(0.8, 1.35);
+              final finalScaler = TextScaler.linear(combinedFactor);
+
+              return MediaQuery(
+                data: mediaQueryData.copyWith(textScaler: finalScaler),
+                child: child!,
+              );
+            },
             home: const MainScreen(),
           );
         },

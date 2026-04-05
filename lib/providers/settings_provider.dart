@@ -5,9 +5,11 @@ import '../services/settings_service.dart';
 class SettingsProvider extends ChangeNotifier {
   BusinessProfile _profile = const BusinessProfile();
   bool _isLoaded = false;
+  double _textScale = 1.0;
 
   BusinessProfile get profile => _profile;
   bool get isLoaded => _isLoaded;
+  double get textScale => _textScale;
 
   // Shortcuts
   String get whatsapp => _profile.whatsapp;
@@ -16,7 +18,14 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> loadProfile() async {
     _profile = await SettingsService.getProfile();
+    _textScale = await SettingsService.getTextScale();
     _isLoaded = true;
+    notifyListeners();
+  }
+
+  Future<void> setTextScale(double scale) async {
+    _textScale = scale;
+    await SettingsService.setTextScale(scale);
     notifyListeners();
   }
 

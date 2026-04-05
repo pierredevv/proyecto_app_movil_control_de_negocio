@@ -1238,7 +1238,37 @@ class DatabaseService {
         });
 
         // Clear payment allocations mapping to this sale so funds become unallocated global credit
+        final allocationsToClear = await txn.query('payment_allocations', where: 'transaction_id = ?', whereArgs: [saleId]);
         await txn.delete('payment_allocations', where: 'transaction_id = ?', whereArgs: [saleId]);
+
+        // Intercept & destroy orphaned treasury records
+        for (var alloc in allocationsToClear) {
+          final pId = alloc['payment_id'] as int;
+          final remaining = await txn.query('payment_allocations', where: 'payment_id = ?', whereArgs: [pId]);
+          if (remaining.isEmpty) {
+            final paymentRecord = await txn.query('payments', where: 'id = ?', whereArgs: [pId]);
+            if (paymentRecord.isNotEmpty) {
+              final pAmount = (paymentRecord.first['amount'] as num).toDouble();
+              
+              final ledgerQ = await txn.query('entity_ledgers', where: 'entity_type = ? AND entity_id = ?', whereArgs: ['CUSTOMER', customerId], orderBy: 'date DESC, id DESC', limit: 1);
+              double currBal = ledgerQ.isNotEmpty ? (ledgerQ.first['materialized_running_balance'] as num).toDouble() : 0.0;
+              
+              await txn.insert('entity_ledgers', {
+                'entity_type': 'CUSTOMER',
+                'entity_id': customerId,
+                'transaction_source_type': 'PAYMENT_VOID_REVERSAL',
+                'transaction_reference_id': pId,
+                'date': DateTime.now().millisecondsSinceEpoch + 1,
+                'debit_amount': pAmount,
+                'credit_amount': 0.0,
+                'materialized_running_balance': currBal + pAmount,
+                'note': 'Reversión de Pago Huérfano'
+              });
+              
+              await txn.delete('payments', where: 'id = ?', whereArgs: [pId]);
+            }
+          }
+        }
 
         // 5b. Update legacy customer debt (reduce by pending amount)
         await txn.rawUpdate(
@@ -2066,20 +2096,33 @@ class DatabaseService {
       orderBy: 'date DESC',
     );
 
-    List<Transaction> transactions = [];
+    List<int> saleIds = [];
+    for (var map in maps) {
+      if (map['type'] == 'sale') saleIds.add(map['id'] as int);
+    }
 
+    Map<int, List<InvoiceItem>> itemsBySale = {};
+    for (var i = 0; i < saleIds.length; i += 900) {
+      final chunk = saleIds.sublist(i, i + 900 > saleIds.length ? saleIds.length : i + 900);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id IN ($placeholders)',
+        whereArgs: chunk,
+      );
+      for (var row in itemsMaps) {
+        final tId = row['transaction_id'] as int;
+        itemsBySale.putIfAbsent(tId, () => []);
+        itemsBySale[tId]!.add(InvoiceItem.fromMap(row));
+      }
+    }
+
+    List<Transaction> transactions = [];
     for (var map in maps) {
       final type = map['type'] as String;
       if (type == 'sale') {
         final id = map['id'] as int;
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-        transactions.add(Sale.fromMap(map, items));
+        transactions.add(Sale.fromMap(map, itemsBySale[id] ?? []));
       } else if (type == 'payment') {
         transactions.add(Payment.fromMap(map));
       }
@@ -2097,20 +2140,33 @@ class DatabaseService {
       orderBy: 'date DESC',
     );
 
-    List<Transaction> transactions = [];
+    List<int> purchaseIds = [];
+    for (var map in maps) {
+      if (map['type'] == 'purchase') purchaseIds.add(map['id'] as int);
+    }
 
+    Map<int, List<InvoiceItem>> itemsByPurchase = {};
+    for (var i = 0; i < purchaseIds.length; i += 900) {
+      final chunk = purchaseIds.sublist(i, i + 900 > purchaseIds.length ? purchaseIds.length : i + 900);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final itemsMaps = await db.query(
+        'transaction_items',
+        where: 'transaction_id IN ($placeholders)',
+        whereArgs: chunk,
+      );
+      for (var row in itemsMaps) {
+        final tId = row['transaction_id'] as int;
+        itemsByPurchase.putIfAbsent(tId, () => []);
+        itemsByPurchase[tId]!.add(InvoiceItem.fromMap(row));
+      }
+    }
+
+    List<Transaction> transactions = [];
     for (var map in maps) {
       final type = map['type'] as String;
       if (type == 'purchase') {
         final id = map['id'] as int;
-        final itemsMaps = await db.query(
-          'transaction_items',
-          where: 'transaction_id = ?',
-          whereArgs: [id],
-        );
-        final items = List.generate(
-            itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-        transactions.add(Purchase.fromMap(map, items));
+        transactions.add(Purchase.fromMap(map, itemsByPurchase[id] ?? []));
       } else if (type == 'payment') {
         transactions.add(Payment.fromMap(map));
       }
@@ -2130,19 +2186,30 @@ class DatabaseService {
       offset: offset,
     );
 
-    List<Sale> sales = [];
+    List<int> saleIds = maps.map((m) => m['id'] as int).toList();
+    Map<int, List<InvoiceItem>> itemsBySale = {};
 
+    if (saleIds.isNotEmpty) {
+      for (var i = 0; i < saleIds.length; i += 900) {
+        final chunk = saleIds.sublist(i, i + 900 > saleIds.length ? saleIds.length : i + 900);
+        final placeholders = List.filled(chunk.length, '?').join(',');
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id IN ($placeholders)',
+          whereArgs: chunk,
+        );
+        for (var row in itemsMaps) {
+          final tId = row['transaction_id'] as int;
+          itemsBySale.putIfAbsent(tId, () => []);
+          itemsBySale[tId]!.add(InvoiceItem.fromMap(row));
+        }
+      }
+    }
+
+    List<Sale> sales = [];
     for (var map in maps) {
       final id = map['id'] as int;
-      final itemsMaps = await db.query(
-        'transaction_items',
-        where: 'transaction_id = ?',
-        whereArgs: [id],
-      );
-
-      final items = List.generate(
-          itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-      sales.add(Sale.fromMap(map, items));
+      sales.add(Sale.fromMap(map, itemsBySale[id] ?? []));
     }
 
     return sales;
@@ -2160,19 +2227,30 @@ class DatabaseService {
       offset: offset,
     );
 
-    List<Purchase> purchases = [];
+    List<int> purchaseIds = maps.map((m) => m['id'] as int).toList();
+    Map<int, List<InvoiceItem>> itemsByPurchase = {};
 
+    if (purchaseIds.isNotEmpty) {
+      for (var i = 0; i < purchaseIds.length; i += 900) {
+        final chunk = purchaseIds.sublist(i, i + 900 > purchaseIds.length ? purchaseIds.length : i + 900);
+        final placeholders = List.filled(chunk.length, '?').join(',');
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id IN ($placeholders)',
+          whereArgs: chunk,
+        );
+        for (var row in itemsMaps) {
+          final tId = row['transaction_id'] as int;
+          itemsByPurchase.putIfAbsent(tId, () => []);
+          itemsByPurchase[tId]!.add(InvoiceItem.fromMap(row));
+        }
+      }
+    }
+
+    List<Purchase> purchases = [];
     for (var map in maps) {
       final id = map['id'] as int;
-      final itemsMaps = await db.query(
-        'transaction_items',
-        where: 'transaction_id = ?',
-        whereArgs: [id],
-      );
-
-      final items = List.generate(
-          itemsMaps.length, (i) => InvoiceItem.fromMap(itemsMaps[i]));
-      purchases.add(Purchase.fromMap(map, items));
+      purchases.add(Purchase.fromMap(map, itemsByPurchase[id] ?? []));
     }
 
     return purchases;
@@ -2776,8 +2854,8 @@ class DatabaseService {
 
       // If there's STILL remaining debt (e.g., initial balances without invoice entries)
       if (remainingDebt > 0.01) {
-          // Dump it in the oldest bucket
-          entityReport['days_60_plus'] = (entityReport['days_60_plus'] as double) + remainingDebt;
+          // Dump it in the current bucket
+          entityReport['current'] = (entityReport['current'] as double) + remainingDebt;
       }
 
       reportMap[e.id!] = entityReport;

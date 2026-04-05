@@ -103,13 +103,19 @@ class SummaryGlassCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          currencyFormat.format(amount),
-          style: TextStyle(
-            color: color,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            fontFamily: 'Inter',
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignment == CrossAxisAlignment.start 
+              ? Alignment.centerLeft 
+              : Alignment.centerRight,
+          child: Text(
+            currencyFormat.format(amount),
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
           ),
         ),
       ],
@@ -138,12 +144,15 @@ class SummaryGlassCard extends StatelessWidget {
                     const Icon(Icons.show_chart,
                         color: AppTheme.greenAccent, size: 20),
                     const SizedBox(height: 2),
-                    Text(
-                      '+${(balancePercentage * 100).toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        color: AppTheme.greenAccent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '+${(balancePercentage * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                          color: AppTheme.greenAccent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 // Providers
 import '../providers/settings_provider.dart';
@@ -30,6 +31,8 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +41,20 @@ class _MenuScreenState extends State<MenuScreen> {
       context.read<NotificationProvider>().checkLowStock();
       context.read<NotificationProvider>().checkOverdueSales();
     });
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = info.version;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _appVersion = 'Desconocida');
+    }
   }
 
   @override
@@ -474,9 +491,9 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          '21.8.0',
-          style: TextStyle(
+        Text(
+          _appVersion.isNotEmpty ? _appVersion : '...',
+          style: const TextStyle(
               color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),

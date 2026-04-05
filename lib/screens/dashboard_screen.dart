@@ -122,8 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top +
-                        60 +
-                        16, // Header height + spacing
+                        80, // Dynamic header spacing
                     bottom: 100, // Bottom nav spacing
                   ),
                 child: Column(
@@ -325,16 +324,14 @@ class _DashboardHeader extends StatelessWidget {
     final unreadCount = context.watch<NotificationProvider>().unreadCount;
 
     return Container(
-      height: 60 + MediaQuery.of(context).padding.top,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
+        top: MediaQuery.of(context).padding.top + 12,
         left: 16,
         right: 16,
-        bottom: 0,
+        bottom: 12,
       ),
       color: theme.scaffoldBackgroundColor
           .withValues(alpha: 0.95), // Slight opacity for scroll behind
-      alignment: Alignment.centerLeft,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

@@ -353,8 +353,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
 
             SafeArea(
-              child: Column(
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
                   // Fixed Header part
                   Padding(
                     padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 8),
@@ -506,43 +507,44 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   ),
 
                   // 4. Products List or Empty State
-                  Expanded(
-                    child: _items.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 150),
-                            itemCount: _items.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              return _PurchaseItemRow(
-                                key: ValueKey(_items[index].productId),
-                                item: _items[index],
-                                product: context
-                                    .read<InventoryProvider>()
-                                    .products
-                                    .firstWhere(
-                                        (p) =>
-                                            p.id == _items[index].productId,
-                                        orElse: () => Product(
-                                            name: 'N/A',
-                                            barcode: '',
-                                            price: 0,
-                                            cost: 0,
-                                            stock: 0)),
-                                onChanged: (updatedItem) {
-                                  setState(() {
-                                    _items[index] = updatedItem;
-                                  });
-                                },
-                                onRemove: () => _removeItem(index),
-                              );
-                            },
-                          ),
-                  ),
+                  _items.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 150),
+                          itemCount: _items.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            return _PurchaseItemRow(
+                              key: ValueKey(_items[index].productId),
+                              item: _items[index],
+                              product: context
+                                  .read<InventoryProvider>()
+                                  .products
+                                  .firstWhere(
+                                      (p) =>
+                                          p.id == _items[index].productId,
+                                      orElse: () => Product(
+                                          name: 'N/A',
+                                          barcode: '',
+                                          price: 0,
+                                          cost: 0,
+                                          stock: 0)),
+                              onChanged: (updatedItem) {
+                                setState(() {
+                                  _items[index] = updatedItem;
+                                });
+                              },
+                              onRemove: () => _removeItem(index),
+                            );
+                          },
+                        ),
                 ],
               ),
             ),
+          ),
 
             // 5. Bottom Total Card (Fixed)
             Positioned(
@@ -958,40 +960,37 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                       Row(
                         children: [
                           Expanded(
-                            child: SizedBox(
-                              height: 24,
-                              child: TextField(
-                                controller: _qtyController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 13),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 4, horizontal: 8),
-                                  border: const OutlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.white10)),
-                                  enabledBorder: const OutlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.white10)),
-                                  suffix: widget.product.unitsPerSaleUnit > 1.0
-                                      ? GestureDetector(
-                                          onTap: _toggleUnit,
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(left: 4),
-                                            child: Text(_isBox ? ' Cajas' : ' Unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
-                                          ),
-                                        )
-                                      : null,
-                                  suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' Unid' : null,
-                                  suffixStyle: const TextStyle(
-                                      color: Colors.white38, fontSize: 10),
-                                ),
-                                onChanged: (_) => _updateValues(),
+                            child: TextField(
+                              controller: _qtyController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 13),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 8),
+                                border: const OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.white10)),
+                                enabledBorder: const OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.white10)),
+                                suffix: widget.product.unitsPerSaleUnit > 1.0
+                                    ? GestureDetector(
+                                        onTap: _toggleUnit,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Text(_isBox ? ' Cajas' : ' Unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        ),
+                                      )
+                                    : null,
+                                suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' Unid' : null,
+                                suffixStyle: const TextStyle(
+                                    color: Colors.white38, fontSize: 10),
                               ),
+                              onChanged: (_) => _updateValues(),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1000,41 +999,38 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                                   color: Colors.white38, fontSize: 12)),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: SizedBox(
-                              height: 24,
-                              child: TextField(
-                                controller: _costController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 13),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 4, horizontal: 8),
-                                  border: const OutlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.white10)),
-                                  enabledBorder: const OutlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.white10)),
-                                  prefixText: 'Bs. ',
-                                  suffix: widget.product.unitsPerSaleUnit > 1.0
-                                      ? GestureDetector(
-                                          onTap: _toggleUnit,
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(left: 4),
-                                            child: Text(_isBox ? ' /caja' : ' /unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
-                                          ),
-                                        )
-                                      : null,
-                                  suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' /unid' : null,
-                                  prefixStyle: const TextStyle(
-                                      color: Colors.white38, fontSize: 10),
-                                ),
-                                onChanged: (_) => _updateValues(),
+                            child: TextField(
+                              controller: _costController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 13),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 8),
+                                border: const OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.white10)),
+                                enabledBorder: const OutlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.white10)),
+                                prefixText: 'Bs. ',
+                                suffix: widget.product.unitsPerSaleUnit > 1.0
+                                    ? GestureDetector(
+                                        onTap: _toggleUnit,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Text(_isBox ? ' /caja' : ' /unid', style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        ),
+                                      )
+                                    : null,
+                                suffixText: widget.product.unitsPerSaleUnit <= 1.0 ? ' /unid' : null,
+                                prefixStyle: const TextStyle(
+                                    color: Colors.white38, fontSize: 10),
                               ),
+                              onChanged: (_) => _updateValues(),
                             ),
                           ),
                         ],
@@ -1159,8 +1155,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
               ),
             ),
           ),
-          Flexible(
-            child: Container(
+          Expanded(
             child: products.isEmpty
                 ? const Center(
                     child: Padding(
@@ -1171,7 +1166,6 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                 : ListView.separated(
                       separatorBuilder: (_, __) =>
                           const Divider(height: 1, color: Colors.white10),
-                      shrinkWrap: true,
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final p = products[index];
@@ -1217,7 +1211,6 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                         );
                       },
                     ),
-          ),
           ),
         ],
       ),

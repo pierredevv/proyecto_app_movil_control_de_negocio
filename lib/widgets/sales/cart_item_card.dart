@@ -159,25 +159,29 @@ class _CartItemCardState extends State<CartItemCard>
                         : null,
                     isActive: widget.item.quantity > 0.01,
                   ),
-                  SizedBox(
-                    width: 48, // slightly wider for decimals
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: InkWell(
                       onTap: () => _showQtyEditDialog(context),
-                      child: Text(
-                        '${widget.item.quantity % 1 == 0 ? widget.item.quantity.toInt() : widget.item.quantity}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16),
-                      )
-                          .animate(key: ValueKey(widget.item.quantity))
-                          .scale(
-                              duration: 200.ms,
-                              begin: const Offset(1, 1),
-                              end: const Offset(1.2, 1.2))
-                          .then()
-                          .scale(end: const Offset(1, 1)),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${widget.item.quantity % 1 == 0 ? widget.item.quantity.toInt() : widget.item.quantity}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
+                        )
+                        .animate(key: ValueKey(widget.item.quantity))
+                        .scale(
+                            duration: 200.ms,
+                            begin: const Offset(1, 1),
+                            end: const Offset(1.2, 1.2))
+                        .then()
+                        .scale(end: const Offset(1, 1)),
+                      ),
                     ),
                   ),
                   _QtyButton(
@@ -193,12 +197,16 @@ class _CartItemCardState extends State<CartItemCard>
               ),
               const SizedBox(height: 8),
               // Subtotal
-              Text(
-                'Bs. ${widget.item.subtotal.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Bs. ${widget.item.subtotal.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               )
                   .animate(key: ValueKey(widget.item.subtotal))
