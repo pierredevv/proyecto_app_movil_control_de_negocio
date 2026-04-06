@@ -16,6 +16,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   final _amountController = TextEditingController();
   DateTime? _dueDate;
   String _paymentMethod = 'EFECTIVO';
+  final _clientNameController = TextEditingController();
+  final _ciNitController = TextEditingController();
 
   @override
   void initState() {
@@ -27,6 +29,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   @override
   void dispose() {
     _amountController.dispose();
+    _clientNameController.dispose();
+    _ciNitController.dispose();
     super.dispose();
   }
 
@@ -143,6 +147,48 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
             ),
           ),
           const SizedBox(height: 16),
+
+          if (!widget.isPurchase) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withAlpha(30),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Datos para la Factura/Recibo (Opcional)', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _clientNameController,
+                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Señor(es) / Razón Social',
+                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
+                      prefixIcon: const Icon(Icons.person_outline, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _ciNitController,
+                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'CI / NIT',
+                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
+                      prefixIcon: const Icon(Icons.numbers, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Change Calculator
           if (_changeAmount > 0) ...[
@@ -261,6 +307,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       'amountReceived': _appliedAmount,
                       'paymentDueDate': _dueDate,
                       'paymentMethod': _paymentMethod,
+                      'clientName': _clientNameController.text.trim(),
+                      'ciNit': _ciNitController.text.trim(),
                     });
                   },
                   child: Text(isCredit ? (widget.isPurchase ? 'Pago Parcial' : 'Cobro Parcial') : (widget.isPurchase ? 'Pago Completo' : 'Cobrar Completo')),

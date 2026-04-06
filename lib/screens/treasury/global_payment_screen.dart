@@ -191,8 +191,10 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
+        : SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 60),
+            child: Column(
+              children: [
               // Header Card Form
               Container(
                 padding: const EdgeInsets.all(20),
@@ -311,61 +313,61 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
               const SizedBox(height: 8),
               
               // Allocations List
-              Expanded(
-                child: _selectedCustomerId == null 
-                  ? const Center(child: Text('Seleccione un cliente para ver sus deudas.', style: TextStyle(color: Colors.white54)))
-                  : _pendingSales.isEmpty
-                    ? const Center(child: Text('Este cliente no tiene deudas pendientes.', style: TextStyle(color: Colors.white54)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _pendingSales.length,
-                        itemBuilder: (context, index) {
-                          final sale = _pendingSales[index];
-                          final controller = _allocationControllers[sale.id!];
-                          
-                          return Card(
-                            color: const Color(0xFF1E2432),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Venta #${sale.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                        const SizedBox(height: 4),
-                                        Text('Total: Bs. ${sale.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                                        Text('Saldo Pendiente: Bs. ${sale.pendingAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
-                                      ],
+              _selectedCustomerId == null 
+                ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Seleccione un cliente para ver sus deudas.', style: TextStyle(color: Colors.white54))))
+                : _pendingSales.isEmpty
+                  ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Este cliente no tiene deudas pendientes.', style: TextStyle(color: Colors.white54))))
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _pendingSales.length,
+                      itemBuilder: (context, index) {
+                        final sale = _pendingSales[index];
+                        final controller = _allocationControllers[sale.id!];
+                        
+                        return Card(
+                          color: const Color(0xFF1E2432),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Venta #${sale.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      const SizedBox(height: 4),
+                                      Text('Total: Bs. ${sale.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                                      Text('Saldo Pendiente: Bs. ${sale.pendingAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 110,
+                                  child: TextField(
+                                    controller: controller,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    style: const TextStyle(color: AppTheme.greenAccent, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.right,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Abono',
+                                      labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
+                                      filled: true,
+                                      fillColor: Color(0xFF151924),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     ),
                                   ),
-                                  SizedBox(
-                                    width: 110,
-                                    child: TextField(
-                                      controller: controller,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(color: AppTheme.greenAccent, fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.right,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Abono',
-                                        labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
-                                        filled: true,
-                                        fillColor: Color(0xFF151924),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-              ),
+                          ),
+                        );
+                      },
+                    ),
               
               // Bottom Bar
               Container(
@@ -391,6 +393,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
               ),
             ],
           ),
+        ), // SingleChildScrollView
     );
   }
 }

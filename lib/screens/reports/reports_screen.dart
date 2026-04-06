@@ -9,6 +9,9 @@ import '../../models/transaction_model.dart';
 import '../sales/sale_detail_screen.dart';
 import '../purchases/purchase_details_screen.dart';
 import 'aging_report_screen.dart';
+import 'sales_period_report_screen.dart';
+import 'valued_inventory_report_screen.dart';
+import '../../theme/app_theme.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -63,32 +66,82 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       .fade(duration: 400.ms)
                       .slideY(begin: 0.1, end: 0, delay: 50.ms),
                   const SizedBox(height: 16),
-                  // AGING REPORT ACTION
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AgingReportScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.assessment, size: 18),
+                          label: const Text('Antigüedad\nde Deuda', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E2432),
+                            foregroundColor: const Color(0xFF4A90E2),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                  color:
+                                      const Color(0xFF4A90E2).withValues(alpha: 0.3)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SalesPeriodReportScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.trending_up, size: 18),
+                          label: const Text('Ventas por\nPeriodo', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E2432),
+                            foregroundColor: const Color(0xFF51CF66),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                  color:
+                                      const Color(0xFF51CF66).withValues(alpha: 0.3)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ).animate().fade(duration: 400.ms).slideY(begin: 0.1, end: 0, delay: 75.ms),
+                  const SizedBox(height: 8),
                   FilledButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const AgingReportScreen()),
+                            builder: (_) => const ValuedInventoryReportScreen()),
                       );
                     },
-                    icon: const Icon(Icons.assessment),
-                    label: const Text('Ver Antigüedad de Deuda'),
+                    icon: const Icon(Icons.inventory_2),
+                    label: const Text('Reporte de Inventario Valorado'),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF1E2432),
-                      foregroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: AppTheme.blueIcon,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
                             color:
-                                const Color(0xFF4A90E2).withValues(alpha: 0.3)),
+                                AppTheme.blueIcon.withValues(alpha: 0.3)),
                       ),
                     ),
-                  )
-                      .animate()
-                      .fade(duration: 400.ms)
-                      .slideY(begin: 0.1, end: 0, delay: 75.ms),
+                  ).animate().fade(duration: 400.ms).slideY(begin: 0.1, end: 0, delay: 100.ms),
                   const SizedBox(height: 24),
                   const AnimatedOpacity(
                     opacity: 1.0,
@@ -101,7 +154,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ).animate().fade(duration: 400.ms, delay: 100.ms),
+                  ).animate().fade(duration: 400.ms, delay: 125.ms),
                   const SizedBox(height: 12),
                   if (provider.recentTransactions.isEmpty)
                     Center(

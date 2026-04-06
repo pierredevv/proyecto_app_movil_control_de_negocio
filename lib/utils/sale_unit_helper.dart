@@ -13,6 +13,21 @@ class SaleUnitHelper {
       price: product.price,
     ));
 
+    // Secondary option (e.g. Strip, Pack)
+    if (product.secondaryUnit != null && 
+        product.secondaryUnit!.isNotEmpty && 
+        product.unitsPerSecondary != null && 
+        product.unitsPerSecondary! > 0) {
+      
+      final pricePerSecondary = (product.price / product.unitsPerSaleUnit) * product.unitsPerSecondary!;
+      options.add(SaleUnitOption(
+        label: '${_labelForUnit(product.secondaryUnit!, '')} (${product.unitsPerSecondary!.toInt()}u)',
+        unitCode: product.secondaryUnit!,
+        unitsPerSaleUnit: product.unitsPerSecondary!,
+        price: pricePerSecondary,
+      ));
+    }
+
     // If the product is sold in boxes/bags, also offer per unit
     if (product.unitsPerSaleUnit > 1) {
       final pricePerUnit = product.price / product.unitsPerSaleUnit;
@@ -36,6 +51,10 @@ class SaleUnitHelper {
         return 'Bolsa$info';
       case 'TIR':
         return 'Tira$info';
+      case 'PAQ':
+        return 'Paquete$info';
+      case 'MED':
+        return 'Mitad$info';
       default:
         return 'Unidad';
     }

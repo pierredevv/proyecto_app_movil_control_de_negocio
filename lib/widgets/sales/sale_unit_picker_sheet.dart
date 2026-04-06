@@ -52,7 +52,10 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.only(top: 16),
+      padding: EdgeInsets.only(
+        top: 16, 
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),

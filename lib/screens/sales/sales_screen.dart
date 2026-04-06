@@ -24,6 +24,7 @@ import '../../widgets/sales/cart_item_card.dart';
 import '../../widgets/sales/cart_total_footer.dart';
 import '../../widgets/sales/sale_unit_picker_sheet.dart';
 import '../../widgets/sales/checkout_sheet.dart'; // NEW IMPORT
+import '../inventory/barcode_scanner_view.dart';
 import '../../services/snackbar_service.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -58,6 +59,33 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (product != null && context.mounted) {
       _addToCart(product);
+    }
+  }
+
+  Future<void> _startBarcodeScan() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerView()),
+    );
+
+    if (!mounted) return;
+
+    if (result != null && result is String) {
+      // Find product by barcode
+      final inventory = context.read<InventoryProvider>();
+      final products = inventory.products;
+      final product = products.cast<Product?>().firstWhere(
+            (p) => p?.barcode == result,
+            orElse: () => null,
+          );
+
+      if (product != null) {
+        _addToCart(product);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Producto no encontrado (Código: $result)')),
+        );
+      }
     }
   }
 
@@ -112,6 +140,8 @@ class _SalesScreenState extends State<SalesScreen> {
     final amountReceived = result['amountReceived'] as double?;
     final paymentDueDate = result['paymentDueDate'] as DateTime?;
     final paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
+    final customClientName = result['clientName'] as String?;
+    final ciNit = result['ciNit'] as String?;
 
     try {
       final autoClear = settings.autoClearCartAfterSale;
@@ -131,7 +161,7 @@ class _SalesScreenState extends State<SalesScreen> {
         }
 
         // Show Success & Share
-        _showSuccessSheet(context, sale);
+        _showSuccessSheet(context, sale, customClientName: customClientName, ciNit: ciNit);
       }
     } catch (e) {
       if (context.mounted) {
@@ -141,10 +171,15 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  void _showSuccessSheet(BuildContext context, dynamic sale) async {
+  void _showSuccessSheet(BuildContext context, dynamic sale, {String? customClientName, String? ciNit}) async {
     // Generate PDF bytes
     final profile = context.read<SettingsProvider>().profile;
-    final bytes = await PdfGeneratorService().generateInvoice(sale, profile);
+    final bytes = await PdfGeneratorService().generateInvoice(
+      sale, 
+      profile, 
+      ciNit: ciNit, 
+      customClientName: customClientName != null && customClientName.isNotEmpty ? customClientName : null,
+    );
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/Ticket_${sale.id}.pdf');
     await file.writeAsBytes(bytes);
@@ -245,7 +280,10 @@ class _SalesScreenState extends State<SalesScreen> {
               ),
 
               // Search Bar
-              ProductSearchBar(onTap: () => _showProductSearch(context)),
+              ProductSearchBar(
+                onTap: () => _showProductSearch(context),
+                onScanTap: _startBarcodeScan,
+              ),
 
               // Content Area (Frequent Items + Cart List)
               Expanded(

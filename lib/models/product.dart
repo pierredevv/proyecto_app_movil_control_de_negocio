@@ -12,6 +12,8 @@ class Product {
   final String saleUnit; // 'CAJ', 'BOL', 'UNI', 'KG'
   final double
       unitsPerSaleUnit; // how many base units are in 1 saleUnit (ex: 36)
+  final String? secondaryUnit; // 'TIR', 'PAQ'
+  final double? unitsPerSecondary; // how many base units are in 1 secondaryUnit (ex: 18)
   final String
       packagingInfo; // visual string "36x32g", "18x250", "" if not applicable
   final DateTime createdAt;
@@ -30,6 +32,8 @@ class Product {
     this.supplierId,
     this.saleUnit = 'UNI',
     this.unitsPerSaleUnit = 1.0,
+    this.secondaryUnit,
+    this.unitsPerSecondary,
     this.packagingInfo = '',
     DateTime? createdAt,
     this.imagePath,
@@ -63,6 +67,8 @@ class Product {
     int? supplierId,
     String? saleUnit,
     double? unitsPerSaleUnit,
+    String? secondaryUnit,
+    double? unitsPerSecondary,
     String? packagingInfo,
     DateTime? createdAt,
     String? imagePath,
@@ -80,6 +86,8 @@ class Product {
       supplierId: supplierId ?? this.supplierId,
       saleUnit: saleUnit ?? this.saleUnit,
       unitsPerSaleUnit: unitsPerSaleUnit ?? this.unitsPerSaleUnit,
+      secondaryUnit: secondaryUnit ?? this.secondaryUnit,
+      unitsPerSecondary: unitsPerSecondary ?? this.unitsPerSecondary,
       packagingInfo: packagingInfo ?? this.packagingInfo,
       createdAt: createdAt ?? this.createdAt,
       imagePath: imagePath ?? this.imagePath,
@@ -100,6 +108,8 @@ class Product {
       'supplier_id': supplierId,
       'unit_type': saleUnit, // same column name for backward compatibility
       'units_per_box': unitsPerSaleUnit, // same column name
+      'secondary_unit': secondaryUnit,
+      'units_per_secondary': unitsPerSecondary,
       'packaging_info': packagingInfo, // NEW column
       'created_at': createdAt.millisecondsSinceEpoch,
       'image_path': imagePath,
@@ -120,6 +130,8 @@ class Product {
       supplierId: map['supplier_id'],
       saleUnit: map['unit_type'] ?? 'UNI',
       unitsPerSaleUnit: (map['units_per_box'] as num?)?.toDouble() ?? 1.0,
+      secondaryUnit: map['secondary_unit'],
+      unitsPerSecondary: (map['units_per_secondary'] as num?)?.toDouble(),
       packagingInfo: map['packaging_info'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
       imagePath: map['image_path'],

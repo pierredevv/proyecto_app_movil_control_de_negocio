@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common/glass_transaction_card.dart';
 import 'package:intl/intl.dart';
 import '../treasury/supplier_payment_screen.dart';
+import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
 
 class SupplierLedgerScreen extends StatefulWidget {
@@ -228,6 +229,35 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
               ],
             ),
           ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AccountStatementScreen(
+                        entityId: widget.supplierId,
+                        entityName: widget.supplierName,
+                        entityType: 'SUPPLIER',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.history, size: 20),
+                label: const Text('Ver Estado de Cuenta Completo'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           Expanded(
             child: _isLoading

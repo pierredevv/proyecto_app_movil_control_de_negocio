@@ -37,7 +37,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 15,
+      return await openDatabase(_testDbPath!, version: 16,
           onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -55,7 +55,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 15, // Updated to version 15 for Final Price Adjustment & A/P Ledger Correction
+      version: 16, // Updated to version 16 for Core Feature Parity (Secondary Units)
       onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -421,6 +421,39 @@ class DatabaseService {
         debugPrint('V15 migration error: $e');
       }
     }
+    
+    // Sprint 3 - Core Feature Parity v16
+    if (oldVersion < 16) {
+      try {
+        await db.execute("ALTER TABLE products ADD COLUMN secondary_unit TEXT");
+        await db.execute("ALTER TABLE products ADD COLUMN units_per_secondary REAL");
+        
+        // Repair Legacy Data: Complete Recalculation of Supplier Ledgers
+        // Ensure that purchases (credits) increase debt and payments (debits) decrease it.
+        final supplierLedgers = await db.query('entity_ledgers', where: "entity_type = 'SUPPLIER'", orderBy: 'entity_id ASC, date ASC, id ASC');
+        Map<int, double> supplierBalances = {};
+        
+        await db.transaction((txn) async {
+          for (var row in supplierLedgers) {
+            final eId = row['entity_id'] as int;
+            final cred = (row['credit_amount'] as num).toDouble(); // Purchases
+            final deb = (row['debit_amount'] as num).toDouble(); // Payments
+            
+            final newBal = (supplierBalances[eId] ?? 0.0) + cred - deb;
+            supplierBalances[eId] = newBal;
+            
+            await txn.update(
+              'entity_ledgers', 
+              {'materialized_running_balance': newBal}, 
+              where: 'id = ?', 
+              whereArgs: [row['id']]
+            );
+          }
+        });
+      } catch (e) {
+        debugPrint('V16 migration error: $e');
+      }
+    }
   }
 
   Future<void> _createNotesTable(Database db) async {
@@ -450,6 +483,8 @@ class DatabaseService {
         supplier_id INTEGER,
         unit_type TEXT DEFAULT 'UNI',
         units_per_box REAL DEFAULT 1.0,
+        secondary_unit TEXT,
+        units_per_secondary REAL,
         packaging_info TEXT DEFAULT '',
         created_at INTEGER,
         image_path TEXT,
@@ -3031,5 +3066,69 @@ class DatabaseService {
         'created_timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // LEDGER STATEMENTS
+  // ---------------------------------------------------------------------------
+  Future<List<Map<String, dynamic>>> getEntityLedgers(String entityType, int entityId) async {
+    final db = await database;
+    return await db.query(
+      'entity_ledgers',
+      where: 'entity_type = ? AND entity_id = ?',
+      whereArgs: [entityType, entityId],
+      orderBy: 'date DESC, id DESC',
+    );
+  }
+
+  Future<List<Transaction>> getTransactionsByDateRange(DateTime start, DateTime end, {TransactionType? type}) async {
+    final db = await database;
+    String whereClause = 'date >= ? AND date <= ?';
+    List<dynamic> whereArgs = [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch];
+
+    if (type != null) {
+      whereClause += ' AND type = ?';
+      if (type == TransactionType.sale) {
+        whereArgs.add('sale');
+      } else if (type == TransactionType.purchase) {
+        whereArgs.add('purchase');
+      } else if (type == TransactionType.expense) {
+        whereArgs.add('expense');
+      } else if (type == TransactionType.payment) {
+        whereArgs.add('payment');
+      } else if (type == TransactionType.order) {
+        whereArgs.add('order');
+      }
+    }
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: whereClause,
+      whereArgs: whereArgs,
+      orderBy: 'date DESC',
+    );
+
+    List<Transaction> transactions = [];
+    for (var map in maps) {
+      final itemsMap = await db.query(
+        'transaction_items',
+        where: 'transaction_id = ?',
+        whereArgs: [map['id']],
+      );
+      final items = itemsMap.map((i) => InvoiceItem.fromMap(i)).toList();
+
+      if (map['type'] == 'sale') {
+        transactions.add(Sale.fromMap(map, items));
+      } else if (map['type'] == 'purchase') {
+        transactions.add(Purchase.fromMap(map, items));
+      } else if (map['type'] == 'expense') {
+        transactions.add(Expense.fromMap(map));
+      } else if (map['type'] == 'payment') {
+        transactions.add(Payment.fromMap(map));
+      } else if (map['type'] == 'order') {
+        transactions.add(Order.fromMap(map, items));
+      }
+    }
+    return transactions;
   }
 }

@@ -14,6 +14,7 @@ import '../../models/product.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/sales/checkout_sheet.dart';
+import '../inventory/barcode_scanner_view.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
   final Transaction? initialTransactionToDuplicate;
@@ -541,6 +542,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                             );
                           },
                         ),
+                  
+                  // Extra padding to ensure we can scroll past the floating bottom card
+                  const SizedBox(height: 180),
                 ],
               ),
             ),
@@ -1139,13 +1143,26 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                     controller: _searchController,
                     autofocus: true,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Buscar por nombre o código...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      prefixIcon: Icon(Icons.search, color: Colors.white70),
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner, color: AppTheme.primary),
+                        onPressed: () async {
+                           final result = await Navigator.push(
+                             context,
+                             MaterialPageRoute(builder: (context) => const BarcodeScannerView()),
+                           );
+                           if (result != null && result is String) {
+                             provider.setSearchQuery(result);
+                             _searchController.text = result;
+                           }
+                        },
+                      ),
                       border: InputBorder.none,
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     onChanged: (val) {
                       provider.setSearchQuery(val);
