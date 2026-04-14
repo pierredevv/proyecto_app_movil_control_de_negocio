@@ -114,7 +114,7 @@ class _SalesScreenState extends State<SalesScreen> {
     );
   }
 
-  void _processCheckout(BuildContext context, double finalTotal) async {
+  void _processCheckout(BuildContext context, double finalTotal, {bool isQuick = false}) async {
     final cart = context.read<CartProvider>();
     final inventory = context.read<InventoryProvider>();
     final db = DatabaseService();
@@ -124,24 +124,34 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final adjustmentAmount = finalTotal - cart.total;
 
-    // Direct checkout or Confirmation Dialog? Dialog is safer.
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => CheckoutSheet(totalAmount: finalTotal),
-    );
+    double? amountReceived;
+    DateTime? paymentDueDate;
+    String paymentMethod = 'EFECTIVO';
+    String? customClientName;
+    String? ciNit;
 
-    if (result == null || !context.mounted) return;
+    if (isQuick) {
+      amountReceived = finalTotal;
+    } else {
+      // Direct checkout or Confirmation Dialog? Dialog is safer.
+      final result = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => CheckoutSheet(totalAmount: finalTotal),
+      );
 
-    final amountReceived = result['amountReceived'] as double?;
-    final paymentDueDate = result['paymentDueDate'] as DateTime?;
-    final paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
-    final customClientName = result['clientName'] as String?;
-    final ciNit = result['ciNit'] as String?;
+      if (result == null || !context.mounted) return;
+
+      amountReceived = result['amountReceived'] as double?;
+      paymentDueDate = result['paymentDueDate'] as DateTime?;
+      paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
+      customClientName = result['clientName'] as String?;
+      ciNit = result['ciNit'] as String?;
+    }
 
     try {
       final autoClear = settings.autoClearCartAfterSale;
@@ -409,6 +419,7 @@ class _SalesScreenState extends State<SalesScreen> {
                         total: cart.total,
                         allowInvoiceAdjustments: context.read<SettingsProvider>().profile.allowInvoiceAdjustments,
                         onCheckout: (finalTotal) => _processCheckout(context, finalTotal),
+                        onQuickCheckout: (finalTotal) => _processCheckout(context, finalTotal, isQuick: true),
                       )
                     : const SizedBox.shrink(),
               ),

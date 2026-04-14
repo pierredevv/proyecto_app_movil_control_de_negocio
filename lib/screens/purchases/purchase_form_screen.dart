@@ -300,7 +300,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(_isOrder ? 'Nuevo Pedido' : 'Registrar Compra',

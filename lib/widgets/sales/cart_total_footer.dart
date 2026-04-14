@@ -5,9 +5,10 @@ class CartTotalFooter extends StatefulWidget {
   final double total;
   final bool allowInvoiceAdjustments;
   final Function(double finalTotal) onCheckout;
+  final Function(double finalTotal)? onQuickCheckout;
 
   const CartTotalFooter(
-      {super.key, required this.total, this.allowInvoiceAdjustments = false, required this.onCheckout});
+      {super.key, required this.total, this.allowInvoiceAdjustments = false, required this.onCheckout, this.onQuickCheckout});
 
   @override
   State<CartTotalFooter> createState() => _CartTotalFooterState();
@@ -110,24 +111,47 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => widget.onCheckout(_currentTotal),
-              label: const Text('PAGAR'),
-              icon: const Icon(Icons.payment),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.redAccent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              if (widget.onQuickCheckout != null) ...[
+                Expanded(
+                  flex: 5,
+                  child: OutlinedButton.icon(
+                    onPressed: () => widget.onQuickCheckout!(_currentTotal),
+                    label: const Text('Rapido'),
+                    icon: const Icon(Icons.flash_on),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppTheme.primary),
+                      foregroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
-                elevation: 4,
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                flex: 7,
+                child: ElevatedButton.icon(
+                  onPressed: () => widget.onCheckout(_currentTotal),
+                  label: const Text('PAGAR'),
+                  icon: const Icon(Icons.payment),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.redAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle:
+                        const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

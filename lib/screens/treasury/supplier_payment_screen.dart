@@ -33,6 +33,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
   @override
   void initState() {
     super.initState();
+    _amountController.addListener(_autoDistributeAmount);
     if (widget.initialSupplierId != null) {
       _selectedSupplierId = widget.initialSupplierId;
       _loadPendingPurchases();
@@ -229,7 +230,6 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _amountController,
-                      onEditingComplete: _autoDistributeAmount,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(color: Color(0xFF4A90E2), fontSize: 24, fontWeight: FontWeight.bold),
                       decoration: const InputDecoration(

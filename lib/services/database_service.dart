@@ -2020,7 +2020,7 @@ class DatabaseService {
       });
 
       // Also insert into new system for consistency
-      await txn.insert('payments', {
+      final paymentId = await txn.insert('payments', {
         'entity_id': customerId,
         'entity_type': 'CUSTOMER',
         'amount': amount,
@@ -2028,6 +2028,8 @@ class DatabaseService {
         'payment_method': 'EFECTIVO',
         'note': 'Abono rápido',
       });
+
+      await txn.update('transactions', {'reference_id': paymentId}, where: 'id = ?', whereArgs: [id]);
 
       return id;
     });
@@ -2049,8 +2051,13 @@ class DatabaseService {
       await txn.update('transactions', {'status': 'VOIDED'}, where: 'id = ?', whereArgs: [transactionId]);
 
       // 1. Point dynamically to the payments table (V13) by finding correlation
-      // Since unallocated payments might lack a back-reference, we match by entity_id, amount, and close timestamp.
-      final results = await txn.query('payments', where: 'entity_id = ? AND amount = ? AND abs(date - ?) < 10000', whereArgs: [entityId, amount, tran['date']]);
+      // Uses exact reference_id if available (future proof), otherwise falls back to close timestamp logic
+      List<Map<String, dynamic>> results = [];
+      if (tran['reference_id'] != null) {
+          results = await txn.query('payments', where: 'id = ?', whereArgs: [tran['reference_id']]);
+      } else {
+          results = await txn.query('payments', where: 'entity_id = ? AND amount = ? AND abs(date - ?) < 10000', whereArgs: [entityId, amount, tran['date']]);
+      }
       if (results.isEmpty) {
         // Legacy reversal fallback for old systems
         await txn.rawUpdate('UPDATE customers SET total_debt = total_debt + ? WHERE id = ?', [amount, entityId]);
@@ -2835,6 +2842,29 @@ class DatabaseService {
     final List<dynamic> entities = isCustomer ? await getCustomers() : await getSuppliers();
     final sourceType = isCustomer ? 'INVOICE' : 'PURCHASE';
 
+    final entityIds = entities.where((e) => e.totalDebt > 0).map((e) => e.id).toList();
+    final Map<int, List<Map<String, dynamic>>> invoicesByEntity = {};
+
+    if (entityIds.isNotEmpty) {
+      for (var i = 0; i < entityIds.length; i += 900) {
+        final chunk = entityIds.sublist(i, i + 900 > entityIds.length ? entityIds.length : i + 900);
+        final placeholders = List.filled(chunk.length, '?').join(',');
+        final invoicesChunk = await db.rawQuery(''' 
+          SELECT el.* FROM entity_ledgers el 
+          JOIN transactions t ON el.transaction_reference_id = t.id 
+          WHERE el.entity_type = ? AND el.entity_id IN ($placeholders) 
+          AND el.transaction_source_type = ? AND t.status != 'VOIDED' 
+          ORDER BY el.date DESC 
+        ''', [entityType, ...chunk, sourceType]);
+        
+        for (var inv in invoicesChunk) {
+          final eId = inv['entity_id'] as int;
+          invoicesByEntity.putIfAbsent(eId, () => []);
+          invoicesByEntity[eId]!.add(inv);
+        }
+      }
+    }
+
     final Map<int, Map<String, dynamic>> reportMap = {};
 
     for (var e in entities) {
@@ -2851,14 +2881,7 @@ class DatabaseService {
         'total': e.totalDebt,
       };
 
-      // 2. Query all INVOICES (debits) for this customer from the ledger, NEWEST to OLDEST
-      final invoices = await db.rawQuery(''' 
-        SELECT el.* FROM entity_ledgers el 
-        JOIN transactions t ON el.transaction_reference_id = t.id 
-        WHERE el.entity_type = ? AND el.entity_id = ? 
-        AND el.transaction_source_type = ? AND t.status != 'VOIDED' 
-        ORDER BY el.date DESC 
-      ''', [entityType, e.id, sourceType]);
+      final invoices = invoicesByEntity[e.id] ?? [];
 
       for (var inv in invoices) {
         if (remainingDebt <= 0) break;
@@ -3108,14 +3131,29 @@ class DatabaseService {
       orderBy: 'date DESC',
     );
 
+    List<int> transactionIds = maps.map((m) => m['id'] as int).toList();
+    Map<int, List<InvoiceItem>> itemsByTransaction = {};
+
+    if (transactionIds.isNotEmpty) {
+      for (var i = 0; i < transactionIds.length; i += 900) {
+        final chunk = transactionIds.sublist(i, i + 900 > transactionIds.length ? transactionIds.length : i + 900);
+        final placeholders = List.filled(chunk.length, '?').join(',');
+        final itemsMaps = await db.query(
+          'transaction_items',
+          where: 'transaction_id IN ($placeholders)',
+          whereArgs: chunk,
+        );
+        for (var row in itemsMaps) {
+          final tId = row['transaction_id'] as int;
+          itemsByTransaction.putIfAbsent(tId, () => []);
+          itemsByTransaction[tId]!.add(InvoiceItem.fromMap(row));
+        }
+      }
+    }
+
     List<Transaction> transactions = [];
     for (var map in maps) {
-      final itemsMap = await db.query(
-        'transaction_items',
-        where: 'transaction_id = ?',
-        whereArgs: [map['id']],
-      );
-      final items = itemsMap.map((i) => InvoiceItem.fromMap(i)).toList();
+      final items = itemsByTransaction[map['id']] ?? [];
 
       if (map['type'] == 'sale') {
         transactions.add(Sale.fromMap(map, items));

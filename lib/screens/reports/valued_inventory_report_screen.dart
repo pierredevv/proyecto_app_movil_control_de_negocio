@@ -15,9 +15,9 @@ class ValuedInventoryReportScreen extends StatelessWidget {
 
     // Filter out products with 0 stock to avoid clutter, or keep them? Usually kept to be transparent, or filtered if requested. Let's keep stock > 0 for valued inventory.
     final valuedProducts = products.where((p) => p.stock > 0).toList()
-      ..sort((a, b) => (b.stock * b.cost).compareTo(a.stock * a.cost)); // Sort by largest value
+      ..sort((a, b) => (b.stock * b.weightedAverageCost).compareTo(a.stock * a.weightedAverageCost)); // Sort by largest value
 
-    final totalCapital = valuedProducts.fold(0.0, (sum, p) => sum + (p.stock * p.cost));
+    final totalCapital = valuedProducts.fold(0.0, (sum, p) => sum + (p.stock * p.weightedAverageCost));
 
     return Scaffold(
       backgroundColor: const Color(0xFF151924),
@@ -62,7 +62,7 @@ class ValuedInventoryReportScreen extends StatelessWidget {
                     itemCount: valuedProducts.length,
                     itemBuilder: (context, index) {
                       final p = valuedProducts[index];
-                      final value = p.stock * p.cost;
+                      final value = p.stock * p.weightedAverageCost;
                       
                       return Card(
                         color: const Color(0xFF1E2432),
@@ -101,7 +101,7 @@ class ValuedInventoryReportScreen extends StatelessWidget {
                                   children: [
                                     Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                                     const SizedBox(height: 4),
-                                    Text('Stock: ${p.stock.toStringAsFixed(1)} ${p.saleUnit} | Costo: Bs. ${p.cost.toStringAsFixed(2)}', 
+                                    Text('Stock: ${p.stock.toStringAsFixed(1)} ${p.saleUnit} | Costo WAC: Bs. ${p.weightedAverageCost.toStringAsFixed(2)}', 
                                       style: const TextStyle(color: Colors.white54, fontSize: 13)),
                                   ],
                                 ),
