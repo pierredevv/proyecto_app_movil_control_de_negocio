@@ -961,9 +961,13 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Expanded(
+                          SizedBox(
+                            width: 130, // Safe fixed width to prevent collapsing
                             child: TextField(
                               controller: _qtyController,
                               keyboardType:
@@ -997,12 +1001,11 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                               onChanged: (_) => _updateValues(),
                             ),
                           ),
-                          const SizedBox(width: 8),
                           const Text('x',
                               style: TextStyle(
                                   color: Colors.white38, fontSize: 12)),
-                          const SizedBox(width: 8),
-                          Expanded(
+                          SizedBox(
+                            width: 130, // Safe fixed width
                             child: TextField(
                               controller: _costController,
                               keyboardType:

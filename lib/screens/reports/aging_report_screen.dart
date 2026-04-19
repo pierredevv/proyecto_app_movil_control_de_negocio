@@ -83,11 +83,13 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                       fontSize: 32,
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                alignment: WrapAlignment.spaceBetween,
                 children: [
-                  _buildSummaryItem('Al Día', totalPendiente - totalVencido, isCustomer ? AppTheme.greenAccent : AppTheme.primary),
-                  _buildSummaryItem('Vencido (>30d)', totalVencido, isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00)),
+                   _buildSummaryItem('Al Día', totalPendiente - totalVencido, isCustomer ? AppTheme.greenAccent : AppTheme.primary),
+                   _buildSummaryItem('Vencido (>30d)', totalVencido, isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00)),
                 ],
               )
             ],
@@ -142,8 +144,10 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.spaceBetween,
                       children: [
                         _buildAgeColumn('0-30 días', entityData['current'], Colors.white70),
                         _buildAgeColumn('31-60 días', entityData['days_30_60'], Colors.orangeAccent),

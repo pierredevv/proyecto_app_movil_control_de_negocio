@@ -376,45 +376,36 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
                         // 3. Prices
                         _buildSectionTitle('Precios'),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildGlassTextField(
-                                controller: _costController,
-                                label: 'Costo *',
-                                hintText: '0.00',
-                                icon: Icons.attach_money,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (val) =>
-                                    InputValidators.validatePositiveDecimal(val,
-                                        fieldName: 'Costo'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildGlassTextField(
-                                controller: _priceController,
-                                label: 'Precio Venta *',
-                                hintText: '0.00',
-                                icon: Icons.sell_outlined,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (val) {
-                                  final err =
-                                      InputValidators.validatePositiveDecimal(
-                                          val,
-                                          fieldName: 'Precio');
-                                  if (err != null) return err;
-                                  return InputValidators.validatePriceVsCost(
-                                      val, _costController.text);
-                                },
-                              ),
-                            ),
-                          ],
+                        _buildGlassTextField(
+                          controller: _costController,
+                          label: 'Costo *',
+                          hintText: '0.00',
+                          icon: Icons.attach_money,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(
+                                  decimal: true),
+                          validator: (val) =>
+                              InputValidators.validatePositiveDecimal(val,
+                                  fieldName: 'Costo'),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildGlassTextField(
+                          controller: _priceController,
+                          label: 'Precio Venta *',
+                          hintText: '0.00',
+                          icon: Icons.sell_outlined,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(
+                                  decimal: true),
+                          validator: (val) {
+                            final err =
+                                InputValidators.validatePositiveDecimal(
+                                    val,
+                                    fieldName: 'Precio');
+                            if (err != null) return err;
+                            return InputValidators.validatePriceVsCost(
+                                val, _costController.text);
+                          },
                         ),
 
                         const SizedBox(height: 24),
@@ -885,15 +876,88 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           const SizedBox(height: 24),
 
           // Units
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 8),
+                    child: Text('Unidad',
+                        style: TextStyle(
+                            color: Color(0xFFA0A8C1), fontSize: 14)),
+                  ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue:
+                            _saleUnit, // Change value to initialValue
+                        dropdownColor: const Color(0xFF1E293B),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 16),
+                        icon: const Icon(Icons.expand_more,
+                            color: Color(0xFFA0A8C1)),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.1),
+                          prefixIcon: const Icon(Icons.scale,
+                              color: Color(0xFFA0A8C1)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF4A90E2), width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'UNI', child: Text('Unidad (UNI)')),
+                          DropdownMenuItem(
+                              value: 'CAJ', child: Text('Caja (CAJ)')),
+                          DropdownMenuItem(
+                              value: 'BOL', child: Text('Bolsa (BOL)')),
+                          DropdownMenuItem(
+                              value: 'KG', child: Text('Kg (KG)')),
+                        ],
+                        onChanged: (val) => setState(() => _saleUnit = val!),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_saleUnit != 'UNI') ...[
+                const SizedBox(height: 16),
+                _buildGlassTextField(
+                  controller: _unitsPerBoxController,
+                  label: 'Equivalencia',
+                  icon: Icons.numbers,
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ],
+          ),
+
+          if (_saleUnit != 'UNI') ...[
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Padding(
                       padding: EdgeInsets.only(left: 4, bottom: 8),
-                      child: Text('Unidad',
+                      child: Text('Unidad Intermedia',
                           style: TextStyle(
                               color: Color(0xFFA0A8C1), fontSize: 14)),
                     ),
@@ -901,10 +965,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: BackdropFilter(
                         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                        child: DropdownButtonFormField<String>(
+                        child: DropdownButtonFormField<String?>(
                           isExpanded: true,
-                          initialValue:
-                              _saleUnit, // Change value to initialValue
+                          initialValue: _secondaryUnit,
                           dropdownColor: const Color(0xFF1E293B),
                           style: const TextStyle(
                               color: Colors.white, fontSize: 16),
@@ -913,7 +976,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white.withValues(alpha: 0.1),
-                            prefixIcon: const Icon(Icons.scale,
+                            prefixIcon: const Icon(Icons.layers_outlined,
                                 color: Color(0xFFA0A8C1)),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -929,102 +992,24 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                                 horizontal: 16, vertical: 16),
                           ),
                           items: const [
-                            DropdownMenuItem(
-                                value: 'UNI', child: Text('Unidad (UNI)')),
-                            DropdownMenuItem(
-                                value: 'CAJ', child: Text('Caja (CAJ)')),
-                            DropdownMenuItem(
-                                value: 'BOL', child: Text('Bolsa (BOL)')),
-                            DropdownMenuItem(
-                                value: 'KG', child: Text('Kg (KG)')),
+                            DropdownMenuItem(value: null, child: Text('Ninguna')),
+                            DropdownMenuItem(value: 'TIR', child: Text('Tira/Display')),
+                            DropdownMenuItem(value: 'PAQ', child: Text('Paquete')),
+                            DropdownMenuItem(value: 'MED', child: Text('Mitad')),
                           ],
-                          onChanged: (val) => setState(() => _saleUnit = val!),
+                          onChanged: (val) => setState(() => _secondaryUnit = val),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              if (_saleUnit != 'UNI') ...[
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildGlassTextField(
-                    controller: _unitsPerBoxController,
-                    label: 'Equivalencia',
+                if (_secondaryUnit != null) ...[
+                  const SizedBox(height: 16),
+                  _buildGlassTextField(
+                    controller: _unitsPerSecondaryController,
+                    label: 'Unidades',
                     icon: Icons.numbers,
                     keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          if (_saleUnit != 'UNI') ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text('Unidad Intermedia',
-                            style: TextStyle(
-                                color: Color(0xFFA0A8C1), fontSize: 14)),
-                      ),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: BackdropFilter(
-                          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: DropdownButtonFormField<String?>(
-                            isExpanded: true,
-                            initialValue: _secondaryUnit,
-                            dropdownColor: const Color(0xFF1E293B),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16),
-                            icon: const Icon(Icons.expand_more,
-                                color: Color(0xFFA0A8C1)),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white.withValues(alpha: 0.1),
-                              prefixIcon: const Icon(Icons.layers_outlined,
-                                  color: Color(0xFFA0A8C1)),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.08)),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: Color(0xFF4A90E2), width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 16),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: null, child: Text('Ninguna')),
-                              DropdownMenuItem(value: 'TIR', child: Text('Tira/Display')),
-                              DropdownMenuItem(value: 'PAQ', child: Text('Paquete')),
-                              DropdownMenuItem(value: 'MED', child: Text('Mitad')),
-                            ],
-                            onChanged: (val) => setState(() => _secondaryUnit = val),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_secondaryUnit != null) ...[
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildGlassTextField(
-                      controller: _unitsPerSecondaryController,
-                      label: 'Unidades',
-                      icon: Icons.numbers,
-                      keyboardType: TextInputType.number,
-                    ),
                   ),
                 ],
               ],

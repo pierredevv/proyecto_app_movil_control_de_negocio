@@ -22,6 +22,7 @@ import 'utilities/utilities_screen.dart';
 import 'settings/settings_screen.dart';
 import 'backup_manager_screen.dart';
 import 'notifications/notifications_screen.dart';
+import 'marketing/marketing_hub_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -253,6 +254,23 @@ class _MenuScreenState extends State<MenuScreen> {
                     ],
                   ).animate().fade(duration: 300.ms, delay: 100.ms).slideY(
                       begin: 0.1, end: 0, duration: 300.ms, delay: 100.ms),
+                  const SizedBox(height: 12),
+                  _buildSectionCard(
+                    title: 'MARKETING (Crece tu Negocio)',
+                    items: [
+                      _MenuItemData(
+                        icon: Icons.rocket_launch,
+                        title: 'Herramientas de Venta',
+                        color: const Color(0xFF8C52FF),
+                        isNew: true,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const MarketingHubScreen())),
+                      ),
+                    ],
+                  ).animate().fade(duration: 300.ms, delay: 125.ms).slideY(
+                      begin: 0.1, end: 0, duration: 300.ms, delay: 125.ms),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     title: 'OTROS',

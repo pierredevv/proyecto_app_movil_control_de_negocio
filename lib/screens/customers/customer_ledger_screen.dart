@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../treasury/global_payment_screen.dart';
 import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
+import '../../widgets/common/glass_dialog.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   final int customerId;
@@ -93,64 +94,86 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
         TextEditingController(text: sale.pendingAmount.toStringAsFixed(2));
     String selectedMethod = 'EFECTIVO';
 
-    final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-              builder: (context, setState) => AlertDialog(
-                title: const Text('Cobrar cuota'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'Venta #${sale.id} - Saldo a favor: Bs. ${sale.pendingAmount.toStringAsFixed(2)}'),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: controller,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Monto a cobrar (Bs.)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedMethod,
-                      decoration: const InputDecoration(
-                        labelText: 'Método de Pago',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
-                        return DropdownMenuItem(value: m, child: Text(m));
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => selectedMethod = val);
-                      },
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancelar')),
-                  FilledButton(
-                      onPressed: () {
-                        final val = double.tryParse(controller.text);
-                        if (val != null &&
-                            val > 0 &&
-                            val <= sale.pendingAmount + 0.01) {
-                          Navigator.pop(ctx, {'amount': val, 'method': selectedMethod});
-                        } else {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(content: Text('Monto inválido')),
-                          );
-                        }
-                      },
-                      child: const Text('Confirmar')),
-                ],
+    final result = await showGlassDialog<Map<String, dynamic>>(
+      context: context,
+      title: 'Cobrar cuota',
+      content: StatefulBuilder(
+        builder: (context, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Venta #${sale.id} - Saldo a favor: Bs. ${sale.pendingAmount.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.white70, fontSize: 16)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Monto a cobrar (Bs.)',
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
               ),
-            ));
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: selectedMethod,
+              dropdownColor: const Color(0xFF2E384D),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Método de Pago',
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
+              ),
+              items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
+                return DropdownMenuItem(value: m, child: Text(m));
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => selectedMethod = val);
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+          ),
+          child: ElevatedButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val != null && val > 0 && val <= sale.pendingAmount + 0.01) {
+                Navigator.pop(context, {'amount': val, 'method': selectedMethod});
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Monto inválido')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Confirmar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
+    );
 
     if (result != null && mounted) {
       setState(() => _isLoading = true);

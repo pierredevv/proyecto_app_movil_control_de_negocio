@@ -71,254 +71,257 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     final theme = Theme.of(context);
     final isCredit = _pendingBalance > 0;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         left: 16,
         right: 16,
         top: 24,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            widget.isPurchase ? 'Confirmar Pago' : 'Confirmar Cobro',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-
-          // Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(widget.isPurchase ? 'Total a pagar:' : 'Total a cobrar:',
-                  style: TextStyle(
-                      fontSize: 16, color: theme.colorScheme.onSurface)),
-              Text('Bs. ${widget.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary)),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Payment Method Selector
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'EFECTIVO', label: Text('Efectivo'), icon: Icon(Icons.money)),
-              ButtonSegment(value: 'QR', label: Text('QR / Transferencia'), icon: Icon(Icons.qr_code)),
-            ],
-            selected: {_paymentMethod},
-            onSelectionChanged: (Set<String> newSelection) {
-              setState(() {
-                _paymentMethod = newSelection.first;
-              });
-            },
-            style: SegmentedButton.styleFrom(
-              backgroundColor: theme.colorScheme.surfaceContainerHighest.withAlpha(50),
-              selectedForegroundColor: Colors.white,
-              selectedBackgroundColor: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Amount Received Field
-          TextField(
-            controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18),
-            decoration: InputDecoration(
-              labelText: 'Monto recibido ahora (Bs.)',
-              labelStyle:
-                  TextStyle(color: theme.colorScheme.onSurface.withAlpha(150)),
-              prefixIcon: const Icon(Icons.payments_outlined),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-              fillColor:
-                  theme.colorScheme.surfaceContainerHighest.withAlpha(50),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          if (!widget.isPurchase) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.isPurchase ? 'Confirmar Pago' : 'Confirmar Cobro',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Datos para la Factura/Recibo (Opcional)', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _clientNameController,
-                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-                    decoration: InputDecoration(
-                      labelText: 'Señor(es) / Razón Social',
-                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
-                      prefixIcon: const Icon(Icons.person_outline, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _ciNitController,
-                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-                    decoration: InputDecoration(
-                      labelText: 'CI / NIT',
-                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
-                      prefixIcon: const Icon(Icons.numbers, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+  
+            // Total
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(widget.isPurchase ? 'Total a pagar:' : 'Total a cobrar:',
+                    style: TextStyle(
+                        fontSize: 16, color: theme.colorScheme.onSurface)),
+                Text('Bs. ${widget.totalAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary)),
+              ],
+            ),
+            const SizedBox(height: 16),
+  
+            // Payment Method Selector
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'EFECTIVO', label: Text('Efectivo'), icon: Icon(Icons.money)),
+                  ButtonSegment(value: 'QR', label: Text('QR / Transfer'), icon: Icon(Icons.qr_code)),
                 ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Change Calculator
-          if (_changeAmount > 0) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.greenAccent.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.greenAccent.withAlpha(50)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(widget.isPurchase ? 'Cambio a recibir:' : 'Vuelto a entregar:',
-                      style:
-                          const TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
-                  Text('Bs. ${_changeAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.greenAccent)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Pending Balance
-          if (isCredit) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.redAccent.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.redAccent.withAlpha(50)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(widget.isPurchase ? 'Saldo a pagar:' : 'Saldo pendiente:',
-                      style:
-                          const TextStyle(fontSize: 14, color: AppTheme.redAccent)),
-                  Text('Bs. ${_pendingBalance.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.redAccent)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Due Date Selector
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading:
-                  const Icon(Icons.calendar_today, color: AppTheme.primary),
-              title: Text(
-                  _dueDate == null
-                      ? 'Establecer Fecha Límite (Opcional)'
-                      : 'Vence: ${DateFormat('dd/MM/yyyy').format(_dueDate!)}',
-                  style: TextStyle(color: theme.colorScheme.onSurface)),
-              trailing: _dueDate != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppTheme.redAccent),
-                      onPressed: () => setState(() => _dueDate = null),
-                    )
-                  : const Icon(Icons.chevron_right),
-              onTap: _selectDueDate,
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
+                selected: {_paymentMethod},
+                onSelectionChanged: (Set<String> newSelection) {
+                  setState(() {
+                    _paymentMethod = newSelection.first;
+                  });
+                },
+                style: SegmentedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withAlpha(50),
+                  selectedForegroundColor: Colors.white,
+                  selectedBackgroundColor: AppTheme.primary,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: () async {
-                    if (_cashTendered < 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Monto inválido')),
-                      );
-                      return;
-                    }
-                    if (_cashTendered == 0) {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(widget.isPurchase ? 'Compra al Crédito' : 'Venta al Crédito'),
-                          content: Text(widget.isPurchase ? '¿Deseas registrar esta compra totalmente al crédito (sin pago inicial)?' : '¿Deseas registrar esta venta totalmente al crédito (sin pago inicial)?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
-                          ],
-                        ),
-                      );
-                      if (confirm != true) return;
-                      // if context is gone, it will be caught safely since we don't depend on context after this besides Navigator.pop if mounted
-                    }
-                    if (!context.mounted) return;
-                    Navigator.pop(context, {
-                      'amountReceived': _appliedAmount,
-                      'paymentDueDate': _dueDate,
-                      'paymentMethod': _paymentMethod,
-                      'clientName': _clientNameController.text.trim(),
-                      'ciNit': _ciNitController.text.trim(),
-                    });
-                  },
-                  child: Text(isCredit ? (widget.isPurchase ? 'Pago Parcial' : 'Cobro Parcial') : (widget.isPurchase ? 'Pago Completo' : 'Cobrar Completo')),
+            ),
+            const SizedBox(height: 16),
+  
+            // Amount Received Field
+            TextField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18),
+              decoration: InputDecoration(
+                labelText: 'Monto recibido ahora (Bs.)',
+                labelStyle:
+                    TextStyle(color: theme.colorScheme.onSurface.withAlpha(150)),
+                prefixIcon: const Icon(Icons.payments_outlined),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor:
+                    theme.colorScheme.surfaceContainerHighest.withAlpha(50),
+              ),
+            ),
+            const SizedBox(height: 16),
+  
+            if (!widget.isPurchase) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Datos para la Factura/Recibo (Opcional)', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _clientNameController,
+                      style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Señor(es) / Razón Social',
+                        labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
+                        prefixIcon: const Icon(Icons.person_outline, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _ciNitController,
+                      style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'CI / NIT',
+                        labelStyle: TextStyle(color: theme.colorScheme.onSurface.withAlpha(150), fontSize: 13),
+                        prefixIcon: const Icon(Icons.numbers, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        isDense: true,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 16),
             ],
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
+  
+            // Change Calculator
+            if (_changeAmount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.greenAccent.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.greenAccent.withAlpha(50)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(widget.isPurchase ? 'Cambio a recibir:' : 'Vuelto a entregar:',
+                        style:
+                            const TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
+                    Text('Bs. ${_changeAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.greenAccent)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+  
+            // Pending Balance
+            if (isCredit) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.redAccent.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.redAccent.withAlpha(50)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(widget.isPurchase ? 'Saldo a pagar:' : 'Saldo pendiente:',
+                        style:
+                            const TextStyle(fontSize: 14, color: AppTheme.redAccent)),
+                    Text('Bs. ${_pendingBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.redAccent)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+  
+              // Due Date Selector
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading:
+                    const Icon(Icons.calendar_today, color: AppTheme.primary),
+                title: Text(
+                    _dueDate == null
+                        ? 'Establecer Fecha Límite (Opcional)'
+                        : 'Vence: ${DateFormat('dd/MM/yyyy').format(_dueDate!)}',
+                    style: TextStyle(color: theme.colorScheme.onSurface)),
+                trailing: _dueDate != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppTheme.redAccent),
+                        onPressed: () => setState(() => _dueDate = null),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: _selectDueDate,
+              ),
+              const SizedBox(height: 16),
+            ],
+  
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: () async {
+                      if (_cashTendered < 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Monto inválido')),
+                        );
+                        return;
+                      }
+                      if (_cashTendered == 0) {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: Text(widget.isPurchase ? 'Compra al Crédito' : 'Venta al Crédito'),
+                            content: Text(widget.isPurchase ? '¿Deseas registrar esta compra totalmente al crédito (sin pago inicial)?' : '¿Deseas registrar esta venta totalmente al crédito (sin pago inicial)?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                        // if context is gone, it will be caught safely since we don't depend on context after this besides Navigator.pop if mounted
+                      }
+                      if (!context.mounted) return;
+                      Navigator.pop(context, {
+                        'amountReceived': _appliedAmount,
+                        'paymentDueDate': _dueDate,
+                        'paymentMethod': _paymentMethod,
+                        'clientName': _clientNameController.text.trim(),
+                        'ciNit': _ciNitController.text.trim(),
+                      });
+                    },
+                    child: Text(isCredit ? (widget.isPurchase ? 'Pago Parcial' : 'Cobro Parcial') : (widget.isPurchase ? 'Pago Completo' : 'Cobrar Completo')),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      );
   }
 }

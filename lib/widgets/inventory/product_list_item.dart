@@ -150,6 +150,8 @@ class _ProductListItemState extends State<ProductListItem>
                                     color: Color(0xFFA0A8C1),
                                     fontWeight: FontWeight.w400,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -163,12 +165,16 @@ class _ProductListItemState extends State<ProductListItem>
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      'Stock: ${widget.product.stockInSaleUnits.toStringAsFixed(1)} ${widget.product.saleUnit}',
-                                      style: TextStyle(
-                                        color: stockColor,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                    Expanded(
+                                      child: Text(
+                                        'Stock: ${widget.product.stockInSaleUnits.toStringAsFixed(1)} ${widget.product.saleUnit}',
+                                        style: TextStyle(
+                                          color: stockColor,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],

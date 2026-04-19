@@ -22,6 +22,7 @@ import '../../widgets/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../sales/sales_screen.dart';
 import '../../models/product.dart';
+import '../../widgets/common/glass_dialog.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -122,23 +123,34 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Future<void> _voidTransaction(Transaction t) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showGlassDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Anular Transacción'),
-        content: Text(
-            '¿Estás seguro de que deseas anular esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'} por Bs. ${t.totalAmount.toStringAsFixed(2)}?\n\nEl inventario y el balance del cliente/proveedor se revertirán.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('Sí, Anular', style: TextStyle(color: Colors.red)),
+      title: 'Anular Transacción',
+      content: Text(
+          '¿Estás seguro de que deseas anular esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'} por Bs. ${t.totalAmount.toStringAsFixed(2)}?\n\nEl inventario y el balance del cliente/proveedor se revertirán.',
+          style: const TextStyle(color: Colors.white70, fontSize: 16)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+            border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: 0.5)),
           ),
-        ],
-      ),
+          child: TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Sí, Anular', style: TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
     );
 
     if (confirm != true) return;
@@ -180,23 +192,35 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Future<void> _duplicateTransaction(Transaction t) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showGlassDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Duplicar Transacción'),
-        content: Text(
-            '¿Deseas duplicar esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'}?\n\nSe cargarán los productos en el carrito.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sí, Duplicar',
-                style: TextStyle(color: Colors.blue)),
+      title: 'Duplicar Transacción',
+      content: Text(
+          '¿Deseas duplicar esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'}?\n\nSe cargarán los productos en el carrito.',
+          style: const TextStyle(color: Colors.white70, fontSize: 16)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
           ),
-        ],
-      ),
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Sí, Duplicar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
     );
 
     if (confirm != true) return;
@@ -296,24 +320,35 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Future<void> _editTransaction(Transaction t) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showGlassDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Editar Transacción'),
-        content: const Text(
-            'Para mantener la consistencia contable, la edición anula la transacción actual y la envía al carrito.\n\n¿Deseas continuar?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Editar',
-                style:
-                    TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+      title: 'Editar Transacción',
+      content: const Text(
+          'Para mantener la consistencia contable, la edición anula la transacción actual y la envía al carrito.\n\n¿Deseas continuar?',
+          style: TextStyle(color: Colors.white70, fontSize: 16)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
           ),
-        ],
-      ),
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Editar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
     );
 
     if (confirm != true) return;

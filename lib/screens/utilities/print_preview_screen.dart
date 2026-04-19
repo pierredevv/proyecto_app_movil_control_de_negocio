@@ -748,8 +748,10 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
     final textColor = isColor ? Colors.black : Colors.black87;
     final dividerColor = isColor ? Colors.black38 : Colors.black;
 
-    return Container(
-      width: double.infinity,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+      child: Container(
+        width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -1034,7 +1036,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                   color: textColor, fontSize: 8, fontFamily: 'monospace')),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTicketTotalRow(String label, double amount, Color textColor,

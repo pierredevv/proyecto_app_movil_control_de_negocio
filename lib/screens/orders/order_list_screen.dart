@@ -10,6 +10,7 @@ import 'order_details_screen.dart';
 import '../purchases/purchase_form_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../widgets/common/glass_dialog.dart';
 
 class OrderListScreen extends StatefulWidget {
   const OrderListScreen({super.key});
@@ -119,17 +120,36 @@ class _OrderListScreenState extends State<OrderListScreen> {
                   ],
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildGlassTabBar(isDark),
-              Expanded(
-                child: _isLoading
-                    ? const SkeletonList()
-                    : _buildCurrentList(isDark),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -100,
+              right: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildGlassTabBar(isDark),
+                  Expanded(
+                    child: _isLoading
+                        ? const SkeletonList()
+                        : _buildCurrentList(isDark),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       // Only show FAB if NOT in Pending/Confirmed empty states (optional, but usually good to keep)
@@ -520,27 +540,40 @@ class _OrderListScreenState extends State<OrderListScreen> {
   }
 
   void _showReceiveConfirmation(Order order) {
-    showDialog(
+    showGlassDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Recibir Pedido'),
-        content: const Text(
-            '¿Marcar este pedido como RECIBIDO?\nEsto actualizará el inventario con los productos del pedido.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
+      title: 'Recibir Pedido',
+      content: const Text(
+          '¿Marcar este pedido como RECIBIDO?\nEsto actualizará el inventario con los productos del pedido.',
+          style: TextStyle(color: Colors.white70, fontSize: 16)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+            ),
           ),
-          ElevatedButton(
+          child: ElevatedButton(
             onPressed: () {
-              Navigator.pop(ctx);
+              Navigator.pop(context);
               _updateStatus(order, 'RECEIVED');
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirmar Recepción'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Confirmar Recepción', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

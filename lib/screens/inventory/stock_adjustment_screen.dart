@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/product.dart';
@@ -114,25 +115,61 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF151924),
       appBar: AppBar(
-        title: const Text('Ajuste de Stock'),
-        backgroundColor: const Color(0xFF1E2432),
+        title: const Text('Ajuste de Stock', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Product Info Glass Card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0x26FFFFFF),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
-                    ),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Background Gradient & Blobs
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Product Info Glass Card
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.5),
+                              ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -159,122 +196,163 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                       ],
                     ),
                   ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
-
-                  // Toggle Entrada/Salida
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() {
-                            _isAddition = true;
-                            if (_selectedReason == 'Vencimiento' || _selectedReason == 'Pérdida') {
-                              _selectedReason = 'Corrección';
-                            }
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: _isAddition ? AppTheme.greenAccent.withAlpha(50) : const Color(0xFF1E2432),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _isAddition ? AppTheme.greenAccent : Colors.transparent,
-                                width: 2,
+                        // Toggle Entrada/Salida
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _isAddition = true;
+                                  if (_selectedReason == 'Vencimiento' || _selectedReason == 'Pérdida') {
+                                    _selectedReason = 'Corrección';
+                                  }
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: _isAddition ? AppTheme.greenAccent.withAlpha(50) : Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _isAddition ? AppTheme.greenAccent : Colors.white.withValues(alpha: 0.08),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.add_circle_outline, color: _isAddition ? AppTheme.greenAccent : Colors.white54),
+                                      const SizedBox(height: 4),
+                                      Text('Entrada', style: TextStyle(color: _isAddition ? AppTheme.greenAccent : Colors.white54, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.add_circle_outline, color: AppTheme.greenAccent),
-                                SizedBox(height: 4),
-                                Text('Entrada', style: TextStyle(color: AppTheme.greenAccent, fontWeight: FontWeight.bold)),
-                              ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _isAddition = false),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: !_isAddition ? AppTheme.redAccent.withAlpha(50) : Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: !_isAddition ? AppTheme.redAccent : Colors.white.withValues(alpha: 0.08),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.remove_circle_outline, color: !_isAddition ? AppTheme.redAccent : Colors.white54),
+                                      const SizedBox(height: 4),
+                                      Text('Salida', style: TextStyle(color: !_isAddition ? AppTheme.redAccent : Colors.white54, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Quantity Field
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: TextField(
+                              controller: _quantityController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                              decoration: InputDecoration(
+                                labelText: 'Cantidad a ${_isAddition ? "sumar" : "restar"} (${widget.product.saleUnit})',
+                                labelStyle: const TextStyle(color: Colors.white70),
+                                filled: true,
+                                fillColor: Colors.white.withValues(alpha: 0.05),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                ),
+                                prefixIcon: Icon(_isAddition ? Icons.add : Icons.remove, color: Colors.white54),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isAddition = false),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: !_isAddition ? AppTheme.redAccent.withAlpha(50) : const Color(0xFF1E2432),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: !_isAddition ? AppTheme.redAccent : Colors.transparent,
-                                width: 2,
+
+                        const SizedBox(height: 16),
+
+                        // Reason Dropdown
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedReason,
+                              dropdownColor: const Color(0xFF2E384D),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Motivo del Ajuste',
+                                labelStyle: const TextStyle(color: Colors.white70),
+                                filled: true,
+                                fillColor: Colors.white.withValues(alpha: 0.05),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                ),
                               ),
-                            ),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.remove_circle_outline, color: AppTheme.redAccent),
-                                SizedBox(height: 4),
-                                Text('Salida', style: TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold)),
-                              ],
+                              items: _reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedReason = val);
+                              },
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
-                  // Quantity Field
-                  TextField(
-                    controller: _quantityController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      labelText: 'Cantidad a ${_isAddition ? "sumar" : "restar"} (${widget.product.saleUnit})',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: const Color(0xFF1E2432),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: Icon(_isAddition ? Icons.add : Icons.remove, color: Colors.white54),
-                    ),
-                  ),
+                        // Note Field
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: TextField(
+                              controller: _noteController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Nota (Opcional)',
+                                labelStyle: const TextStyle(color: Colors.white70),
+                                filled: true,
+                                fillColor: Colors.white.withValues(alpha: 0.05),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
 
-                  const SizedBox(height: 16),
-
-                  // Reason Dropdown
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedReason,
-                    dropdownColor: const Color(0xFF2E384D),
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Motivo del Ajuste',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: const Color(0xFF1E2432),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: _reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedReason = val);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Note Field
-                  TextField(
-                    controller: _noteController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Nota (Opcional)',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: const Color(0xFF1E2432),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
                   // Preview Card
                   Container(
@@ -302,20 +380,31 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Submit Button
-                  ElevatedButton(
-                    onPressed: _submitAdjustment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        // Submit Button
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+                            ),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _submitAdjustment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              minimumSize: const Size(double.infinity, 56),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Confirmar Ajuste', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Text('Confirmar Ajuste', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
-                ],
-              ),
-            ),
+          ),
+        ],
+      ),
     );
   }
 }
