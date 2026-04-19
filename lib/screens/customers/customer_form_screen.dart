@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/customer.dart';
 import '../../providers/customer_provider.dart';
 import '../../services/contact_helper.dart';
+import '../../widgets/common/glass_text_field_group.dart';
 import '../../utils/input_validators.dart';
 
 class CustomerFormScreen extends StatefulWidget {
@@ -173,7 +174,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 0.ms),
               const SizedBox(height: 24),
-              _GlassTextFieldGroup(
+              GlassTextFieldGroup(
                 label: 'Nombre Completo *',
                 controller: _nameController,
                 icon: Icons.person,
@@ -186,7 +187,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 50.ms),
               const SizedBox(height: 16),
-              _GlassTextFieldGroup(
+              GlassTextFieldGroup(
                 label: 'Teléfono',
                 controller: _phoneController,
                 icon: Icons.phone,
@@ -201,7 +202,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 100.ms),
               const SizedBox(height: 16),
-              _GlassTextFieldGroup(
+              GlassTextFieldGroup(
                 label: 'Email',
                 controller: _emailController,
                 icon: Icons.email,
@@ -215,7 +216,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 150.ms),
               const SizedBox(height: 16),
-              _GlassTextFieldGroup(
+              GlassTextFieldGroup(
                 label: 'Dirección',
                 controller: _addressController,
                 icon: Icons.location_on,
@@ -302,141 +303,7 @@ class _ImportContactButtonState extends State<_ImportContactButton> {
   }
 }
 
-class _GlassTextFieldGroup extends StatefulWidget {
-  final String label;
-  final TextEditingController controller;
-  final IconData icon;
-  final String placeholder;
-  final String? errorText;
-  final TextInputType? keyboardType;
-  final Function(String)? onChanged;
 
-  const _GlassTextFieldGroup({
-    required this.label,
-    required this.controller,
-    required this.icon,
-    required this.placeholder,
-    this.errorText,
-    this.keyboardType,
-    this.onChanged,
-  });
-
-  @override
-  State<_GlassTextFieldGroup> createState() => _GlassTextFieldGroupState();
-}
-
-class _GlassTextFieldGroupState extends State<_GlassTextFieldGroup> {
-  final FocusNode _focusNode = FocusNode();
-  bool _isFocused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasError = widget.errorText != null;
-
-    Color borderColor = Colors.white.withValues(alpha: 0.08);
-    Color bgColor = Colors.white.withValues(alpha: 0.10);
-
-    if (hasError) {
-      borderColor = const Color(0xFFFF6B6B);
-      bgColor =
-          Colors.white.withValues(alpha: 0.10); // Optionally add red tint here
-    } else if (_isFocused) {
-      borderColor = const Color(0xFF4ECDC4);
-      bgColor = Colors.white
-          .withValues(alpha: 0.15); // Slightly more opaque when focused
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.label,
-          style: const TextStyle(
-            color: Color(0xFFA0A8C1),
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 56,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: borderColor,
-              width: _isFocused || hasError ? 1.5 : 1.0,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Icon(widget.icon,
-                        color: const Color(0xFFA0A8C1), size: 24),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: _focusNode,
-                      keyboardType: widget.keyboardType,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      onChanged: widget.onChanged,
-                      decoration: InputDecoration(
-                        hintText: widget.placeholder,
-                        hintStyle: const TextStyle(
-                            color: Color(0xFF6B7494), fontSize: 16),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 18),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (hasError) ...[
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.error_outline,
-                  color: Color(0xFFFF6B6B), size: 14),
-              const SizedBox(width: 4),
-              Text(
-                widget.errorText!,
-                style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12),
-              ),
-            ],
-          ),
-        ]
-      ],
-    );
-  }
-}
 
 class _AnimatedSaveButton extends StatefulWidget {
   final VoidCallback onTap;

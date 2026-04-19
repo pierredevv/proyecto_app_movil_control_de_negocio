@@ -7,7 +7,8 @@ import '../models/transaction_model.dart';
 import '../models/business_profile.dart';
 
 class PdfGeneratorService {
-  Future<Uint8List> generateInvoice(Sale sale, BusinessProfile profile, {String? ciNit, String? customClientName}) async {
+  Future<Uint8List> generateInvoice(Sale sale, BusinessProfile profile,
+      {String? ciNit, String? customClientName}) async {
     final pdf = pw.Document();
     final currencyFormat = NumberFormat.currency(
         symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
@@ -54,7 +55,8 @@ class PdfGeneratorService {
                     pw.Text('Punto de Venta No. ${profile.posNumber}',
                         textAlign: pw.TextAlign.center,
                         style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('ZONA: ${profile.zone}, ${profile.address.isNotEmpty ? profile.address : profile.streetNumber}',
+                    pw.Text(
+                        'ZONA: ${profile.zone}, ${profile.address.isNotEmpty ? profile.address : profile.streetNumber}',
                         textAlign: pw.TextAlign.center,
                         style: const pw.TextStyle(fontSize: 10)),
                     pw.Text(profile.city.toUpperCase(),
@@ -77,7 +79,8 @@ class PdfGeneratorService {
               pw.Text(
                   'Nro. Venta: ${profile.invoicePrefix}-${sale.id?.toString().padLeft(4, '0')}'),
               pw.Text('Fecha: ${dateFormat.format(sale.date)}'),
-              pw.Text('Cliente: ${customClientName ?? sale.customerName ?? "Cliente Ocasional"}'),
+              pw.Text(
+                  'Cliente: ${customClientName ?? sale.customerName ?? "Cliente Ocasional"}'),
               if (ciNit != null && ciNit.isNotEmpty)
                 pw.Text('CI/NIT Cliente: $ciNit'),
               pw.Divider(),

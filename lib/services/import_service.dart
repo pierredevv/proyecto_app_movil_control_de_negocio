@@ -127,7 +127,8 @@ class ImportService {
   }
 
   static Future<ImportParseResult> _parseRowsStringOnly(
-      List<String> headers, List<List<String>> stringRows, {Map<String, int>? explicitMapping}) async {
+      List<String> headers, List<List<String>> stringRows,
+      {Map<String, int>? explicitMapping}) async {
     final colMap = _detectColumns(headers);
     if (explicitMapping != null) {
       colMap.addAll(explicitMapping);
@@ -216,9 +217,10 @@ class ImportService {
     );
   }
 
-  static Future<ImportParseResult> parseWithOverrides(
-      List<String> headers, List<List<String>> stringRows, Map<String, int> explicitMapping) {
-    return _parseRowsStringOnly(headers, stringRows, explicitMapping: explicitMapping);
+  static Future<ImportParseResult> parseWithOverrides(List<String> headers,
+      List<List<String>> stringRows, Map<String, int> explicitMapping) {
+    return _parseRowsStringOnly(headers, stringRows,
+        explicitMapping: explicitMapping);
   }
 
   static double _parseDoubleSafe(String val) {

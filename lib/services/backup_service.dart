@@ -261,33 +261,43 @@ class BackupService {
     final data = root['data'] as Map<String, dynamic>;
 
     // 1. Read sale_payments into memory BEFORE deletion
-    final legacySalePayments = data.containsKey('sale_payments') ? List.from(data['sale_payments']) : [];
+    final legacySalePayments = data.containsKey('sale_payments')
+        ? List.from(data['sale_payments'])
+        : [];
 
-    // Clean in correct order (respecting FK) 
-    await txn.delete('payment_allocations'); 
-    await txn.delete('payments'); 
-    await txn.delete('entity_ledgers'); 
-    await txn.delete('inventory_movements'); 
-    await txn.delete('sale_payments'); 
-    await txn.delete('notes'); 
-    await txn.delete('transaction_items'); 
-    await txn.delete('transactions'); 
-    await txn.delete('customers'); 
-    await txn.delete('products'); 
-    await txn.delete('categories'); 
-    await txn.delete('suppliers'); 
+    // Clean in correct order (respecting FK)
+    await txn.delete('payment_allocations');
+    await txn.delete('payments');
+    await txn.delete('entity_ledgers');
+    await txn.delete('inventory_movements');
+    await txn.delete('sale_payments');
+    await txn.delete('notes');
+    await txn.delete('transaction_items');
+    await txn.delete('transactions');
+    await txn.delete('customers');
+    await txn.delete('products');
+    await txn.delete('categories');
+    await txn.delete('suppliers');
 
-    const tableOrder = [ 
-      'categories', 'suppliers', 'customers', 
-      'products', 'transactions', 'transaction_items', 
-      'sale_payments', 'inventory_movements', 'entity_ledgers', 
-      'payments', 'payment_allocations', 'notes',
+    const tableOrder = [
+      'categories',
+      'suppliers',
+      'customers',
+      'products',
+      'transactions',
+      'transaction_items',
+      'sale_payments',
+      'inventory_movements',
+      'entity_ledgers',
+      'payments',
+      'payment_allocations',
+      'notes',
     ];
 
-    for (final tableName in tableOrder) { 
-      if (data.containsKey(tableName) && data[tableName] is List) { 
-        for (final row in data[tableName]) { 
-          try { 
+    for (final tableName in tableOrder) {
+      if (data.containsKey(tableName) && data[tableName] is List) {
+        for (final row in data[tableName]) {
+          try {
             await txn.insert(tableName, Map<String, dynamic>.from(row));
           } catch (e) {
             debugPrint('Restore skip $tableName: $e');
@@ -299,47 +309,49 @@ class BackupService {
     for (final tableName in data.keys) {
       if (!tableOrder.contains(tableName) && data[tableName] is List) {
         for (final row in data[tableName]) {
-           try {
-             await txn.insert(tableName, Map<String, dynamic>.from(row));
-           } catch (e) {
-             debugPrint('Restore skip extra $tableName: $e');
-           }
+          try {
+            await txn.insert(tableName, Map<String, dynamic>.from(row));
+          } catch (e) {
+            debugPrint('Restore skip extra $tableName: $e');
+          }
         }
       }
     }
-    
+
     // Fallback for legacy backups where transaction_items were exported as invoice_items
-    if (data.containsKey('invoice_items') && !data.containsKey('transaction_items')) {
+    if (data.containsKey('invoice_items') &&
+        !data.containsKey('transaction_items')) {
       for (final row in data['invoice_items']) {
         await txn.insert('transaction_items', row);
       }
     }
-    
+
     // Post-Restore Migration: If backup was pre-V13, manually transition sale_payments to payments from memory
     if (legacySalePayments.isNotEmpty && !data.containsKey('payments')) {
-        for (var op in legacySalePayments) {
-            // we need the customerId. t.entity_id from transactions
-            final transRecords = await txn.query('transactions', where: 'id = ?', whereArgs: [op['sale_id']]);
-            if (transRecords.isEmpty) continue;
-            
-            final entityId = transRecords.first['entity_id'] as int?;
-            if (entityId == null) continue; // Skip anonymous payments
-            
-            final newPaymentId = await txn.insert('payments', {
-                'entity_id': entityId,
-                'entity_type': 'CUSTOMER',
-                'amount': op['amount'],
-                'date': op['date'],
-                'payment_method': 'EFECTIVO', // Legacy default
-                'note': op['note'] ?? 'Historical anonymous sale payment'
-            });
-            
-            await txn.insert('payment_allocations', {
-                'payment_id': newPaymentId,
-                'transaction_id': op['sale_id'],
-                'allocated_amount': op['amount']
-            });
-        }
+      for (var op in legacySalePayments) {
+        // we need the customerId. t.entity_id from transactions
+        final transRecords = await txn
+            .query('transactions', where: 'id = ?', whereArgs: [op['sale_id']]);
+        if (transRecords.isEmpty) continue;
+
+        final entityId = transRecords.first['entity_id'] as int?;
+        if (entityId == null) continue; // Skip anonymous payments
+
+        final newPaymentId = await txn.insert('payments', {
+          'entity_id': entityId,
+          'entity_type': 'CUSTOMER',
+          'amount': op['amount'],
+          'date': op['date'],
+          'payment_method': 'EFECTIVO', // Legacy default
+          'note': op['note'] ?? 'Historical anonymous sale payment'
+        });
+
+        await txn.insert('payment_allocations', {
+          'payment_id': newPaymentId,
+          'transaction_id': op['sale_id'],
+          'allocated_amount': op['amount']
+        });
+      }
     }
   }
 
