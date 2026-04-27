@@ -63,6 +63,10 @@ dependencies:
   window_manager: ^0.5.1
   package_info_plus: ^9.0.1
   qr_flutter: ^4.1.0
+  print_bluetooth_thermal: ^1.1.9
+  image: ^4.3.0
+  esc_pos_utils_plus: ^2.0.4
+  device_info_plus: ^12.4.0
 
 dev_dependencies:
   flutter_test:

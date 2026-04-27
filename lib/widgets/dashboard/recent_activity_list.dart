@@ -282,7 +282,7 @@ class RecentActivityList extends StatelessWidget {
                         children: [
                           Hero(
                             tag:
-                                '${transaction.type.name}_${transaction.id}_icon',
+                                'recent_${transaction.type.name}_${transaction.id}_icon',
                             child: Material(
                               color: Colors.transparent,
                               child: Container(

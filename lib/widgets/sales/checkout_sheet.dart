@@ -5,8 +5,18 @@ import 'package:intl/intl.dart';
 class CheckoutSheet extends StatefulWidget {
   final double totalAmount;
   final bool isPurchase;
+  final String? initialClientName;
+  final String? initialCiNit;
+  final double? initialAmountReceived;
 
-  const CheckoutSheet({super.key, required this.totalAmount, this.isPurchase = false});
+  const CheckoutSheet({
+    super.key, 
+    required this.totalAmount, 
+    this.isPurchase = false,
+    this.initialClientName,
+    this.initialCiNit,
+    this.initialAmountReceived,
+  });
 
   @override
   State<CheckoutSheet> createState() => _CheckoutSheetState();
@@ -22,7 +32,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   @override
   void initState() {
     super.initState();
-    _amountController.text = widget.totalAmount.toStringAsFixed(2);
+    if (widget.initialAmountReceived != null && widget.initialAmountReceived! > 0) {
+      _amountController.text = widget.initialAmountReceived!.toStringAsFixed(2);
+    } else {
+      _amountController.text = widget.totalAmount.toStringAsFixed(2);
+    }
+    _clientNameController.text = widget.initialClientName ?? '';
+    _ciNitController.text = widget.initialCiNit ?? '';
     _amountController.addListener(() => setState(() {}));
   }
 
@@ -308,6 +324,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       if (!context.mounted) return;
                       Navigator.pop(context, {
                         'amountReceived': _appliedAmount,
+                        'amountTendered': _cashTendered,
                         'paymentDueDate': _dueDate,
                         'paymentMethod': _paymentMethod,
                         'clientName': _clientNameController.text.trim(),

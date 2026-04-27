@@ -5,6 +5,7 @@ class Supplier {
   final String? email;
   final String? category;
   final String? address;
+  final String? ciNit;
   final double totalDebt;
   final DateTime createdAt;
 
@@ -15,6 +16,7 @@ class Supplier {
     this.email,
     this.category,
     this.address,
+    this.ciNit,
     this.totalDebt = 0.0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -26,6 +28,7 @@ class Supplier {
     String? email,
     String? category,
     String? address,
+    String? ciNit,
     double? totalDebt,
     DateTime? createdAt,
   }) {
@@ -36,6 +39,7 @@ class Supplier {
       email: email ?? this.email,
       category: category ?? this.category,
       address: address ?? this.address,
+      ciNit: ciNit ?? this.ciNit,
       totalDebt: totalDebt ?? this.totalDebt,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -49,6 +53,7 @@ class Supplier {
       'email': email,
       'category': category,
       'address': address,
+      'ci_nit': ciNit,
       // We don't save totalDebt to the suppliers table, it's computed
       'created_at': createdAt.millisecondsSinceEpoch,
     };
@@ -62,6 +67,7 @@ class Supplier {
       email: map['email'],
       category: map['category'],
       address: map['address'],
+      ciNit: map['ci_nit'],
       totalDebt: (map['total_debt'] as num?)?.toDouble() ?? 0.0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
     );

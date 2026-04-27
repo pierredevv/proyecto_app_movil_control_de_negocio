@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_generator_service.dart';
 import '../../models/product.dart';
+import '../../models/customer.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/input_validators.dart';
 
@@ -117,6 +118,7 @@ class _SalesScreenState extends State<SalesScreen> {
   void _processCheckout(BuildContext context, double finalTotal, {bool isQuick = false}) async {
     final cart = context.read<CartProvider>();
     final inventory = context.read<InventoryProvider>();
+    final customers = context.read<CustomerProvider>().customers;
     final db = DatabaseService();
     final settings = context.read<SettingsProvider>().profile;
 
@@ -125,6 +127,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final adjustmentAmount = finalTotal - cart.total;
 
     double? amountReceived;
+    double amountTendered = 0.0;
     DateTime? paymentDueDate;
     String paymentMethod = 'EFECTIVO';
     String? customClientName;
@@ -132,8 +135,15 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (isQuick) {
       amountReceived = finalTotal;
+      amountTendered = finalTotal;
     } else {
-      // Direct checkout or Confirmation Dialog? Dialog is safer.
+      Customer? selectedCustomer;
+      if (cart.selectedCustomer != null) {
+        try {
+          selectedCustomer = customers.firstWhere((c) => c.id == cart.selectedCustomer?.id);
+        } catch (_) {}
+      }
+
       final result = await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
         isScrollControlled: true,
@@ -141,12 +151,18 @@ class _SalesScreenState extends State<SalesScreen> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (ctx) => CheckoutSheet(totalAmount: finalTotal),
+        builder: (ctx) => CheckoutSheet(
+          totalAmount: finalTotal,
+          initialClientName: selectedCustomer?.name,
+          initialCiNit: selectedCustomer?.ciNit,
+          initialAmountReceived: cart.editingOriginalSaleId != null ? cart.editingOriginalAmountPaid : null,
+        ),
       );
 
       if (result == null || !context.mounted) return;
 
       amountReceived = result['amountReceived'] as double?;
+      amountTendered = result['amountTendered'] as double? ?? 0.0;
       paymentDueDate = result['paymentDueDate'] as DateTime?;
       paymentMethod = result['paymentMethod'] as String? ?? 'EFECTIVO';
       customClientName = result['clientName'] as String?;
@@ -158,6 +174,8 @@ class _SalesScreenState extends State<SalesScreen> {
       final sale = await cart.checkout(db,
           autoClear: autoClear,
           amountReceived: amountReceived,
+          amountTendered: amountTendered,
+          clientCiNit: ciNit,
           paymentDueDate: paymentDueDate,
           paymentMethod: paymentMethod,
           adjustmentAmount: adjustmentAmount,

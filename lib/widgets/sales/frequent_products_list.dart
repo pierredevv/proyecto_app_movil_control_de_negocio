@@ -64,24 +64,6 @@ class _FrequentProductChip extends StatefulWidget {
 class _FrequentProductChipState extends State<_FrequentProductChip> {
   bool _isPressed = false;
 
-  IconData _getIconFor(String name) {
-    name = name.toLowerCase();
-    if (name.contains('arroz') || name.contains('comida')) {
-      return Icons.rice_bowl;
-    }
-    if (name.contains('cerveza') ||
-        name.contains('drink') ||
-        name.contains('bebida') ||
-        name.contains('refresco')) {
-      return Icons.sports_bar;
-    }
-    if (name.contains('chocolate') ||
-        name.contains('galleta') ||
-        name.contains('dulce')) {
-      return Icons.cookie;
-    }
-    return Icons.inventory_2_outlined;
-  }
 
   Color _getColorFor(String name) {
     // Deterministic color based on name length or hash
@@ -100,7 +82,6 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final icon = _getIconFor(widget.product.name);
     final color = _getColorFor(widget.product.name);
 
     // In light mode, use a slightly stronger alpha for visibility or darker text
@@ -133,6 +114,24 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: textColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.product.name.isNotEmpty ? widget.product.name.substring(0, 1).toUpperCase() : '?',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       widget.product.name,
@@ -141,8 +140,6 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(icon, size: 16, color: textColor),
                 ],
               ),
               const SizedBox(height: 4),

@@ -39,6 +39,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late TextEditingController _minStockController;
   late TextEditingController _unitsPerBoxController;
   late TextEditingController _unitsPerSecondaryController;
+  late TextEditingController _packagingInfoController;
 
   List<Category> _categories = [];
   List<Supplier> _suppliers = [];
@@ -79,6 +80,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _unitsPerBoxController =
         TextEditingController(text: p?.unitsPerSaleUnit.toString() ?? '1.0');
     _unitsPerSecondaryController = TextEditingController(text: p?.unitsPerSecondary?.toString() ?? '');
+    _packagingInfoController = TextEditingController(text: p?.packagingInfo ?? '');
     _imagePath = p?.imagePath;
     _showLowStockAlert = p != null ? p.minStock > 0 : defaultMinStock > 0;
 
@@ -114,6 +116,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _stockController.dispose();
     _minStockController.dispose();
     _unitsPerBoxController.dispose();
+    _unitsPerSecondaryController.dispose();
+    _packagingInfoController.dispose();
     super.dispose();
   }
 
@@ -238,7 +242,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       unitsPerSaleUnit: unitsPerSaleUnit,
       secondaryUnit: _secondaryUnit,
       unitsPerSecondary: double.tryParse(_unitsPerSecondaryController.text) ?? 1.0,
-      packagingInfo: widget.product?.packagingInfo ?? '',
+      packagingInfo: _packagingInfoController.text.trim(),
       createdAt: widget.product?.createdAt,
       imagePath: _imagePath,
     );
@@ -942,6 +946,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   label: 'Equivalencia',
                   icon: Icons.numbers,
                   keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                _buildGlassTextField(
+                  controller: _packagingInfoController,
+                  label: 'Información de Empaque',
+                  icon: Icons.inventory_2_outlined,
+                  hintText: 'Ej. Paquete de 6 unidades',
                 ),
               ],
             ],

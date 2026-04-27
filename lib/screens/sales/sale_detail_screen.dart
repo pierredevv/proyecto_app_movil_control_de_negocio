@@ -913,6 +913,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     try {
       final cart = context.read<CartProvider>();
       cart.editingOriginalSaleId = widget.sale.id;
+      cart.editingOriginalAmountPaid = widget.sale.amountPaid;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

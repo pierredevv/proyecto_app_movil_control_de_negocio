@@ -26,7 +26,7 @@ mixin CoreDb {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 17,
+      return await openDatabase(_testDbPath!, version: 19,
           onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -45,7 +45,7 @@ mixin CoreDb {
     return await openDatabase(
       path,
       version:
-          17, // Updated to version 17 for Treasury Stabilization
+          19, // Updated to version 19 for ci_nit fields
       onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');

@@ -104,6 +104,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Content
           Consumer<DashboardProvider>(
             builder: (context, provider, child) {
+              if (provider.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 80),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
+                        const SizedBox(height: 16),
+                        const Text('Error al cargar el resumen', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(provider.errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          onPressed: () => context.read<DashboardProvider>().loadDashboardData(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              }
+
               double balancePct = 0.0;
               if (provider.totalSalesToday > 0) {
                 balancePct =

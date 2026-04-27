@@ -975,8 +975,8 @@ mixin TransactionsDb on CoreDb {
           'transaction_source_type': 'PURCHASE_VOID_REVERSAL',
           'transaction_reference_id': purchaseId,
           'date': DateTime.now().millisecondsSinceEpoch,
-          'debit_amount': 0.0,
-          'credit_amount': totalAmount,
+          'debit_amount': totalAmount,
+          'credit_amount': 0.0,
           'materialized_running_balance': currentBalance - totalAmount,
           'note': 'Anulación de Compra',
         });

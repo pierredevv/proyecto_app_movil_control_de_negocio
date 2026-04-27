@@ -230,8 +230,8 @@ mixin SchemaDb on CoreDb {
                 'transaction_source_type': 'PURCHASE',
                 'transaction_reference_id': id,
                 'date': date,
-                'debit_amount': totalAmount,
-                'credit_amount': 0.0,
+                'debit_amount': 0.0,
+                'credit_amount': totalAmount,
                 'materialized_running_balance': currentBalance,
                 'note': 'Compra Histórica',
               });
@@ -413,6 +413,26 @@ mixin SchemaDb on CoreDb {
         debugPrint('V17 migration error: $e');
       }
     }
+
+    // Sprint 5 - Print Preview Fixes v18
+    if (oldVersion < 18) {
+      try {
+        await db.execute("ALTER TABLE transactions ADD COLUMN client_ci_nit TEXT");
+        await db.execute("ALTER TABLE transactions ADD COLUMN amount_tendered REAL DEFAULT 0.0");
+      } catch (e) {
+        debugPrint('V18 migration error: $e');
+      }
+    }
+
+    // Sprint 6 - Legal CI/NIT on Entities v19
+    if (oldVersion < 19) {
+      try {
+        await db.execute("ALTER TABLE customers ADD COLUMN ci_nit TEXT");
+        await db.execute("ALTER TABLE suppliers ADD COLUMN ci_nit TEXT");
+      } catch (e) {
+        debugPrint('V19 migration error: $e');
+      }
+    }
   }
 
   @override
@@ -461,6 +481,7 @@ mixin SchemaDb on CoreDb {
         phone TEXT,
         email TEXT,
         address TEXT,
+        ci_nit TEXT,
         total_debt REAL DEFAULT 0,
         created_at INTEGER
       )
@@ -480,7 +501,9 @@ mixin SchemaDb on CoreDb {
         amount_paid REAL DEFAULT 0,
         payment_due_date INTEGER,
         status TEXT,
-        supplier_invoice_ref TEXT
+        supplier_invoice_ref TEXT,
+        client_ci_nit TEXT,
+        amount_tendered REAL DEFAULT 0.0
       )
     ''');
 
@@ -613,6 +636,7 @@ mixin SchemaDb on CoreDb {
         email TEXT,
         category TEXT,
         address TEXT,
+        ci_nit TEXT,
         created_at INTEGER
       )
     ''');

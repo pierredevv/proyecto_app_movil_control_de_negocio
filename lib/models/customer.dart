@@ -4,6 +4,7 @@ class Customer {
   final String? phone;
   final String? email;
   final String? address;
+  final String? ciNit;
   final double totalDebt;
   final DateTime createdAt;
 
@@ -13,6 +14,7 @@ class Customer {
     this.phone,
     this.email,
     this.address,
+    this.ciNit,
     this.totalDebt = 0.0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -23,6 +25,7 @@ class Customer {
     String? phone,
     String? email,
     String? address,
+    String? ciNit,
     double? totalDebt,
     DateTime? createdAt,
   }) {
@@ -32,6 +35,7 @@ class Customer {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       address: address ?? this.address,
+      ciNit: ciNit ?? this.ciNit,
       totalDebt: totalDebt ?? this.totalDebt,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -44,6 +48,7 @@ class Customer {
       'phone': phone,
       'email': email,
       'address': address,
+      'ci_nit': ciNit,
       'total_debt': totalDebt,
       'created_at': createdAt.millisecondsSinceEpoch,
     };
@@ -56,6 +61,7 @@ class Customer {
       phone: map['phone'],
       email: map['email'],
       address: map['address'],
+      ciNit: map['ci_nit'],
       totalDebt: map['total_debt'] ?? 0.0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
     );

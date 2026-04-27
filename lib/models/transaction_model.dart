@@ -27,7 +27,9 @@ abstract class Transaction {
 class Sale extends Transaction {
   final int? customerId;
   final String? customerName;
+  final String? clientCiNit;
   final double amountPaid;
+  final double amountTendered;
   final DateTime? paymentDueDate;
 
   Sale({
@@ -39,7 +41,9 @@ class Sale extends Transaction {
     super.items,
     this.customerId,
     this.customerName,
+    this.clientCiNit,
     this.amountPaid = 0.0,
+    this.amountTendered = 0.0,
     this.paymentDueDate,
   }) : super(type: TransactionType.sale);
 
@@ -60,7 +64,9 @@ class Sale extends Transaction {
     List<InvoiceItem>? items,
     int? customerId,
     String? customerName,
+    String? clientCiNit,
     double? amountPaid,
+    double? amountTendered,
     DateTime? paymentDueDate,
   }) {
     return Sale(
@@ -72,7 +78,9 @@ class Sale extends Transaction {
       items: items ?? this.items,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
+      clientCiNit: clientCiNit ?? this.clientCiNit,
       amountPaid: amountPaid ?? this.amountPaid,
+      amountTendered: amountTendered ?? this.amountTendered,
       paymentDueDate: paymentDueDate ?? this.paymentDueDate,
     );
   }
@@ -84,10 +92,12 @@ class Sale extends Transaction {
       'type': type.name, // 'sale'
       'entity_id': customerId,
       'entity_name': customerName,
+      'client_ci_nit': clientCiNit,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
       'adjustment_amount': adjustmentAmount,
       'amount_paid': amountPaid,
+      'amount_tendered': amountTendered,
       'payment_due_date': paymentDueDate?.millisecondsSinceEpoch,
       'status': status,
     };
@@ -102,9 +112,13 @@ class Sale extends Transaction {
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
       customerName: map['entity_name'],
+      clientCiNit: map['client_ci_nit'],
       amountPaid: map['amount_paid'] != null
           ? (map['amount_paid'] as num).toDouble()
           : (map['status'] == 'COMPLETED' ? (map['total_amount'] as num).toDouble() : 0.0),
+      amountTendered: map['amount_tendered'] != null
+          ? (map['amount_tendered'] as num).toDouble()
+          : 0.0,
       paymentDueDate: map['payment_due_date'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['payment_due_date'])
           : null,

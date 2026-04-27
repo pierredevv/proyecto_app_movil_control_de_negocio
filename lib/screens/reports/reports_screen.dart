@@ -12,6 +12,7 @@ import 'aging_report_screen.dart';
 import 'sales_period_report_screen.dart';
 import 'valued_inventory_report_screen.dart';
 import '../../theme/app_theme.dart';
+import '../orders/order_details_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -26,7 +27,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     super.initState();
     // Load data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().loadDashboardData();
+      final provider = context.read<DashboardProvider>();
+      if (provider.recentTransactions.isEmpty) {
+        provider.loadDashboardData();
+      }
     });
   }
 
@@ -180,13 +184,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       final index = entry.key;
                       final t = entry.value;
 
-                      final isSale = t.type.name == 'sale';
+                      final isPositive = t.type.name == 'sale' || t.type.name == 'payment';
                       final iconData =
-                          isSale ? Icons.arrow_outward : Icons.south_west;
-                      final iconColor = isSale
+                          isPositive ? Icons.arrow_outward : Icons.south_west;
+                      final iconColor = isPositive
                           ? const Color(0xFF51CF66)
                           : const Color(0xFFFF6B6B);
-                      final titleText = isSale ? 'Venta' : 'Compra / Gasto';
+                      
+                      String titleText = 'Transacción';
+                      if (t is Sale) {
+                        titleText = 'Venta';
+                      } else if (t is Purchase) {
+                        titleText = 'Compra';
+                      } else if (t is Expense) {
+                        titleText = 'Gasto';
+                      } else if (t is Payment) {
+                        titleText = 'Pago';
+                      } else if (t is Order) {
+                        titleText = 'Pedido';
+                      }
 
                       Widget tile = _AnimatedTransactionTile(
                         iconData: iconData,
@@ -195,12 +211,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         dateText:
                             DateFormat('dd MMM yyyy • HH:mm').format(t.date),
                         amount: t.totalAmount,
-                        isPositive: isSale,
+                        isPositive: isPositive,
                         onTap: () {
                           if (t is Sale) {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => SaleDetailScreen(sale: t)));
                           } else if (t is Purchase) {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => PurchaseDetailsScreen(purchase: t)));
+                          } else if (t is Order) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsScreen(order: t)));
+                          } else if (t is Expense || t is Payment) {
+                            showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                        title: Text(t is Expense
+                                            ? 'Detalle de Gasto'
+                                            : 'Detalle de Pago'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Monto: Bs. ${t.totalAmount.toStringAsFixed(2)}'),
+                                            Text('Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(t.date)}'),
+                                            if (t is Expense)
+                                              Text('Descripción: ${t.description}'),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () => Navigator.pop(ctx),
+                                              child: const Text('Cerrar')),
+                                        ]));
                           }
                         },
                       );
@@ -272,7 +312,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
 
                 // Balance Display
                 Text(
-                  '\$${provider.netBalance.toStringAsFixed(2)}',
+                  'Bs. ${provider.netBalance.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w800,
@@ -342,7 +382,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '\$${value.toStringAsFixed(2)}',
+          'Bs. ${value.toStringAsFixed(2)}',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -446,7 +486,7 @@ class _AnimatedTransactionTileState extends State<_AnimatedTransactionTile> {
                     ),
                   ),
                   Text(
-                    '${widget.isPositive ? '+' : '-'}\$${widget.amount.toStringAsFixed(2)}',
+                    '${widget.isPositive ? '+' : '-'}Bs. ${widget.amount.toStringAsFixed(2)}',
                     style: TextStyle(
                       color: widget.isPositive
                           ? const Color(0xFF51CF66)

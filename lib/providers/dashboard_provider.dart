@@ -8,6 +8,12 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  bool _hasError = false;
+  String _errorMessage = '';
+
+  bool get hasError => _hasError;
+  String get errorMessage => _errorMessage;
+
   // Summary Metrics
   double _totalSalesToday = 0.0;
   double _totalPurchasesToday = 0.0;
@@ -32,6 +38,8 @@ class DashboardProvider extends ChangeNotifier {
 
   Future<void> loadDashboardData() async {
     _isLoading = true;
+    _hasError = false;
+    _errorMessage = '';
     notifyListeners();
 
     try {
@@ -49,6 +57,8 @@ class DashboardProvider extends ChangeNotifier {
       // 3. Load chart data
       _weeklySales = await _db.getWeeklySales();
     } catch (e) {
+      _hasError = true;
+      _errorMessage = e.toString();
       debugPrint('Error loading dashboard: $e');
     } finally {
       _isLoading = false;

@@ -238,6 +238,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
       if (isEditing) {
         cart.editingOriginalSaleId = t.id;
+        if (t is Sale) {
+          cart.editingOriginalAmountPaid = t.amountPaid;
+        }
       }
 
       if ((t as Sale).customerId != null) {

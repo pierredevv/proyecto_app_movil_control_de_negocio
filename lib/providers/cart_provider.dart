@@ -11,6 +11,7 @@ class CartProvider extends ChangeNotifier {
   Customer? _selectedCustomer;
   bool _isLoading = false;
   int? editingOriginalSaleId;
+  double editingOriginalAmountPaid = 0.0;
 
   List<InvoiceItem> get items => List.unmodifiable(_items);
   Customer? get selectedCustomer => _selectedCustomer;
@@ -115,12 +116,15 @@ class CartProvider extends ChangeNotifier {
     _items.clear();
     _selectedCustomer = null;
     editingOriginalSaleId = null;
+    editingOriginalAmountPaid = 0.0;
     notifyListeners();
   }
 
   Future<Sale> checkout(DatabaseService db,
       {bool autoClear = true,
       double? amountReceived,
+      double amountTendered = 0.0,
+      String? clientCiNit,
       DateTime? paymentDueDate,
       String paymentMethod = 'EFECTIVO',
       double adjustmentAmount = 0.0,
@@ -148,6 +152,8 @@ class CartProvider extends ChangeNotifier {
         totalAmount: saleTotal,
         adjustmentAmount: adjustmentAmount,
         amountPaid: received,
+        amountTendered: amountTendered,
+        clientCiNit: clientCiNit,
         paymentDueDate: paymentDueDate,
         customerId: _selectedCustomer?.id,
         customerName: _selectedCustomer?.name,

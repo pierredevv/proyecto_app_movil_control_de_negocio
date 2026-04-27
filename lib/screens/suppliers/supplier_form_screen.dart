@@ -25,6 +25,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   late TextEditingController _emailController;
   late TextEditingController _addressController;
   late TextEditingController _categoryController;
+  late TextEditingController _ciNitController;
 
   // Validation trackers to trigger error states on custom UI
   String? _nameError;
@@ -38,6 +39,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     _emailController = TextEditingController(text: s?.email ?? '');
     _addressController = TextEditingController(text: s?.address ?? '');
     _categoryController = TextEditingController(text: s?.category ?? '');
+    _ciNitController = TextEditingController(text: s?.ciNit ?? '');
   }
 
   @override
@@ -47,6 +49,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     _emailController.dispose();
     _addressController.dispose();
     _categoryController.dispose();
+    _ciNitController.dispose();
     super.dispose();
   }
 
@@ -84,6 +87,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     final email = _emailController.text.trim();
     final address = _addressController.text.trim();
     final category = _categoryController.text.trim();
+    final ciNit = _ciNitController.text.trim();
 
     final supplier = Supplier(
       id: widget.supplier?.id,
@@ -92,6 +96,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       email: email.isEmpty ? null : email,
       address: address.isEmpty ? null : address,
       category: category.isEmpty ? null : category,
+      ciNit: ciNit.isEmpty ? null : ciNit,
       createdAt: widget.supplier?.createdAt,
     );
 
@@ -163,6 +168,16 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
                   .animate()
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 100.ms),
+              const SizedBox(height: 16),
+              GlassTextFieldGroup(
+                label: 'NIT/CI',
+                controller: _ciNitController,
+                icon: Icons.badge,
+                placeholder: 'NIT o Carnet de Identidad',
+              )
+                  .animate()
+                  .fade(duration: 300.ms)
+                  .slideY(begin: 0.1, end: 0, delay: 125.ms),
               const SizedBox(height: 16),
               GlassTextFieldGroup(
                 label: 'Teléfono / WhatsApp',

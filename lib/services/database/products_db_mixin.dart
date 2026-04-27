@@ -328,10 +328,10 @@ mixin ProductsDb on CoreDb {
     final db = await database;
     await db.transaction((txn) async {
       final rows = await txn.query('products',
-          columns: ['stock', 'cost'], where: 'id = ?', whereArgs: [productId]);
+          columns: ['stock', 'weighted_average_cost'], where: 'id = ?', whereArgs: [productId]);
       if (rows.isEmpty) throw Exception('Product not found: $productId');
       final currentStock = (rows.first['stock'] as num).toDouble();
-      final cost = (rows.first['cost'] as num).toDouble();
+      final wac = (rows.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
       final newStock = currentStock + deltaBaseUnits;
       if (newStock < -0.001) {
         throw Exception(
@@ -345,7 +345,7 @@ mixin ProductsDb on CoreDb {
         'quantity': deltaBaseUnits,
         'reference_type': reason,
         'reference_id': null,
-        'unit_cost_at_movement': cost,
+        'unit_cost_at_movement': wac,
         'created_timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     });
