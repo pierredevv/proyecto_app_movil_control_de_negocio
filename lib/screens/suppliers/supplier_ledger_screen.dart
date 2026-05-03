@@ -10,6 +10,7 @@ import '../treasury/supplier_payment_screen.dart';
 import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
 import '../../widgets/common/glass_dialog.dart';
+import '../purchases/purchase_details_screen.dart';
 
 class SupplierLedgerScreen extends StatefulWidget {
   final int supplierId;
@@ -198,6 +199,19 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
     }
   }
 
+  /// Navigates to PurchaseDetailsScreen and refreshes ledger on return.
+  Future<void> _navigateToPurchaseDetail(
+      BuildContext context, Purchase purchase) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => PurchaseDetailsScreen(purchase: purchase)),
+    );
+    if (!mounted || !context.mounted) return;
+    _loadLedger();
+    context.read<SupplierProvider>().loadSuppliers();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get real-time debt
@@ -305,6 +319,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
                             status: purchase.status,
                             color: AppTheme.redAccent,
                             icon: Icons.receipt_long,
+                            onTap: () => _navigateToPurchaseDetail(context, purchase),
                             actionButtons: Center(
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(

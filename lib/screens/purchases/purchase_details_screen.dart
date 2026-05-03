@@ -134,9 +134,12 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   }
 
   Widget _buildHeaderCard(bool isDark) {
-    final statusColor = _purchase.status == 'PARTIAL'
-        ? const Color(0xFFF59F00)
-        : (_purchase.status == 'CREDIT' ? Colors.blueAccent : Colors.green);
+    final statusColor = switch (_purchase.status) {
+      'PARTIAL' => const Color(0xFFF59F00),
+      'CREDIT' => Colors.blueAccent,
+      'VOIDED' => const Color(0xFF6B7494), // P1 FIX: VOIDED was showing green
+      _ => Colors.green,
+    };
 
     return Container(
       decoration: BoxDecoration(
@@ -195,7 +198,13 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                             color: statusColor.withValues(alpha: 0.3)),
                       ),
                       child: Text(
-                        _purchase.status == 'PARTIAL' ? 'PARCIAL' : (_purchase.status == 'CREDIT' ? 'CRÉDITO' : 'COMPLETADO'),
+                        // P1 FIX: Added VOIDED label
+                        switch (_purchase.status) {
+                          'PARTIAL' => 'PARCIAL',
+                          'CREDIT' => 'CRÉDITO',
+                          'VOIDED' => 'ANULADO',
+                          _ => 'COMPLETADO',
+                        },
                         style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,

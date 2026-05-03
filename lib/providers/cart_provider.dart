@@ -137,7 +137,8 @@ class CartProvider extends ChangeNotifier {
     try {
       final saleTotal = total + adjustmentAmount; // Base total + adjustment
       final received = amountReceived ?? saleTotal;
-      final saleStatus = received >= saleTotal - 0.01
+      // M5 FIX: Use symmetric abs() tolerance to correctly handle floating-point edge cases
+      final saleStatus = (received - saleTotal).abs() < 0.02
           ? 'COMPLETED'
           : received > 0
               ? 'PARTIAL'

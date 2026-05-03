@@ -321,9 +321,9 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> adjustStock(int productId, double deltaBaseUnits, String reason, {String? note}) async {
+  Future<void> adjustStock(int productId, double deltaBaseUnits, String reason, {String? note, double? unitCost}) async {
     try {
-      await _db.adjustStock(productId, deltaBaseUnits, reason, note: note);
+      await _db.adjustStock(productId, deltaBaseUnits, reason, note: note, unitCost: unitCost);
       await loadProducts(reset: true);
       loadLowStockProducts();
       SnackbarService.showSuccess("Stock ajustado exitosamente");

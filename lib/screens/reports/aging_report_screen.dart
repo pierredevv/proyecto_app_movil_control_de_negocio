@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
 import '../customers/customer_ledger_screen.dart';
@@ -58,8 +59,9 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
       );
     }
 
-    final totalPendiente = report.fold<double>(0, (sum, item) => sum + (item['total'] as double));
-    final totalVencido = report.fold<double>(0, (sum, item) => sum + (item['days_30_60'] as double) + (item['days_60_plus'] as double));
+    final totalPendiente = report.fold<double>(0, (sum, item) => sum + (item['total'] as num).toDouble());
+    final totalVencido = report.fold<double>(0, (sum, item) => sum + (item['days_30_60'] as num).toDouble() + (item['days_60_plus'] as num).toDouble());
+    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
 
     return Column(
       children: [
@@ -77,7 +79,7 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
               Text(isCustomer ? 'Cartera Total por Cobrar' : 'Cartera Total por Pagar',
                   style: const TextStyle(color: Colors.white70, fontSize: 16)),
               const SizedBox(height: 8),
-              Text('Bs. ${totalPendiente.toStringAsFixed(2)}',
+              Text(fmt.format(totalPendiente),
                   style: TextStyle(
                       color: isCustomer ? AppTheme.primary : AppTheme.redAccent,
                       fontSize: 32,
@@ -88,8 +90,8 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                 runSpacing: 12,
                 alignment: WrapAlignment.spaceBetween,
                 children: [
-                   _buildSummaryItem('Al Día', totalPendiente - totalVencido, isCustomer ? AppTheme.greenAccent : AppTheme.primary),
-                   _buildSummaryItem('Vencido (>30d)', totalVencido, isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00)),
+                   _buildSummaryItem('Al Día', totalPendiente - totalVencido, isCustomer ? AppTheme.greenAccent : AppTheme.primary, fmt),
+                   _buildSummaryItem('Vencido (>30d)', totalVencido, isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00), fmt),
                 ],
               )
             ],
@@ -137,9 +139,9 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(entityData['entity_name'] ?? 'Desconocido',
+                        Text((entityData['entity_name'] as String?) ?? 'Desconocido',
                             style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('Bs. ${(entityData['total'] as double).toStringAsFixed(2)}',
+                        Text(NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO').format((entityData['total'] as num).toDouble()),
                             style: TextStyle(color: isCustomer ? AppTheme.redAccent : AppTheme.primary, fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -149,9 +151,9 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                       runSpacing: 12,
                       alignment: WrapAlignment.spaceBetween,
                       children: [
-                        _buildAgeColumn('0-30 días', entityData['current'], Colors.white70),
-                        _buildAgeColumn('31-60 días', entityData['days_30_60'], Colors.orangeAccent),
-                        _buildAgeColumn('+60 días', entityData['days_60_plus'], isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00)),
+                        _buildAgeColumn('0-30 días', (entityData['current'] as num).toDouble(), Colors.white70),
+                        _buildAgeColumn('31-60 días', (entityData['days_30_60'] as num).toDouble(), Colors.orangeAccent),
+                        _buildAgeColumn('+60 días', (entityData['days_60_plus'] as num).toDouble(), isCustomer ? AppTheme.redAccent : const Color(0xFFF59F00)),
                       ],
                     )
                   ],
@@ -164,30 +166,35 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
     );
   }
 
-  Widget _buildSummaryItem(String label, double amount, Color color) {
+  Widget _buildSummaryItem(String label, double amount, Color color, NumberFormat fmt) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        Text('Bs. ${amount.toStringAsFixed(2)}',
+        Text(fmt.format(amount),
             style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
   Widget _buildAgeColumn(String label, double amount, Color color) {
+    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
         const SizedBox(height: 4),
-        Text('Bs. ${amount.toStringAsFixed(2)}', style: TextStyle(color: color, fontSize: 14)),
+        Text(fmt.format(amount), style: TextStyle(color: color, fontSize: 14)),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // N4 NOTE: This screen intentionally uses hardcoded dark theme colors
+    // (0xFF151924 background, 0xFF1E2432 cards). If light theme support is
+    // added in the future, migrate to Theme.of(context).scaffoldBackgroundColor
+    // and colorScheme equivalents.
     return DefaultTabController(
       length: 2,
       child: Scaffold(

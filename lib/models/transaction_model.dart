@@ -196,6 +196,7 @@ class Purchase extends Transaction {
 
 class Payment extends Transaction {
   final int? customerId;
+  final String entityType;
 
   Payment({
     super.id,
@@ -204,6 +205,7 @@ class Payment extends Transaction {
     super.adjustmentAmount,
     super.status,
     this.customerId,
+    this.entityType = 'CUSTOMER',
   }) : super(type: TransactionType.payment);
 
   @override
@@ -212,6 +214,7 @@ class Payment extends Transaction {
       'id': id,
       'type': type.name, // 'payment'
       'entity_id': customerId,
+      'entity_type': entityType,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
       'adjustment_amount': adjustmentAmount,
@@ -227,6 +230,7 @@ class Payment extends Transaction {
       adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       customerId: map['entity_id'],
+      entityType: map['entity_type'] as String? ?? 'CUSTOMER',
     );
   }
 }

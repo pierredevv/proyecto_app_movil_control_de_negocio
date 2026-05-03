@@ -10,6 +10,7 @@ import '../treasury/global_payment_screen.dart';
 import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
 import '../../widgets/common/glass_dialog.dart';
+import '../sales/sale_detail_screen.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   final int customerId;
@@ -157,6 +158,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
             onPressed: () {
               final val = double.tryParse(controller.text);
               if (val != null && val > 0 && val <= sale.pendingAmount + 0.01) {
+                // UX #5 FIX: warn the user if they are entering slightly more than owed (credit generated)
+                if (val > sale.pendingAmount + 0.001) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'ℹ️ Se generará un crédito de Bs. ${(val - sale.pendingAmount).toStringAsFixed(2)} a favor del cliente.'),
+                      backgroundColor: Colors.blue[700],
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
                 Navigator.pop(context, {'amount': val, 'method': selectedMethod});
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -197,6 +209,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
         }
       }
     }
+  }
+
+  /// Navigates to SaleDetailScreen and refreshes ledger on return.
+  Future<void> _navigateToSaleDetail(
+      BuildContext context, Sale sale) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SaleDetailScreen(sale: sale)),
+    );
+    if (!mounted || !context.mounted) return;
+    _loadLedger();
+    context.read<CustomerProvider>().loadCustomers();
   }
 
   @override
@@ -306,6 +330,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
                             status: sale.status,
                             color: AppTheme.primary,
                             icon: Icons.receipt_long,
+                            onTap: () => _navigateToSaleDetail(context, sale),
                             actionButtons: ElevatedButton.icon(
                               onPressed: () => _showReceivePaymentDialog(sale),
                               icon: const Icon(Icons.payment, size: 18),

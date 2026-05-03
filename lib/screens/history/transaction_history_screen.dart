@@ -295,8 +295,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesScreen()));
       }
     } else if (t.type == TransactionType.purchase ||
         t.type == TransactionType.order) {
@@ -467,6 +466,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       onVoid: () => _voidTransaction(t),
                                       onDuplicate: () => _duplicateTransaction(t),
                                       onEdit: () => _editTransaction(t),
+                                      // N5 FIX: pass _loadData so the card can refresh the list on pop
+                                      onRefresh: _loadData,
                                     ).animate().fadeIn(duration: 300.ms).slideY(
                                         begin: 0.2,
                                         end: 0,
@@ -538,7 +539,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$count registros • $dateStr',
+                    '$count cargados • $dateStr',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
@@ -780,6 +781,8 @@ class _GlassTransactionCard extends StatelessWidget {
   final VoidCallback onVoid;
   final VoidCallback onDuplicate;
   final VoidCallback onEdit;
+  // N5 FIX: callback so the card can trigger a list refresh after navigating away
+  final VoidCallback? onRefresh;
 
   const _GlassTransactionCard({
     required this.transaction,
@@ -787,6 +790,7 @@ class _GlassTransactionCard extends StatelessWidget {
     required this.onVoid,
     required this.onDuplicate,
     required this.onEdit,
+    this.onRefresh,
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -892,6 +896,9 @@ class _GlassTransactionCard extends StatelessWidget {
 
   void _navigateToDetail(BuildContext context, String heroTag) {
     if (transaction is Sale) {
+      // N5 FIX: Refresh list when returning from detail (void, payment, etc.)
+      // Uses onRefresh callback (passed from _TransactionHistoryScreenState._loadData)
+      // and context.mounted since _GlassTransactionCard is a StatelessWidget.
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -900,7 +907,9 @@ class _GlassTransactionCard extends StatelessWidget {
             heroTag: heroTag,
           ),
         ),
-      );
+      ).then((_) {
+        if (context.mounted) onRefresh?.call();
+      });
     } else if (transaction is Purchase) {
       Navigator.push(
         context,
@@ -1000,16 +1009,21 @@ class _GlassTransactionCard extends StatelessWidget {
         isPositive = false;
         break;
       case TransactionType.sale:
-        name = (transaction as Sale).customerName ?? 'Cliente General';
-        isPositive = true;
+        final sale = transaction as Sale;
+        name = sale.customerName ?? 'Cliente General';
+        // N8 FIX: VOIDED sales are not income — show as neutral/negative
+        isPositive = sale.status != 'VOIDED';
         break;
       case TransactionType.expense:
         name = (transaction as Expense).description;
         isPositive = false;
         break;
       case TransactionType.payment:
-        name = 'Abono de Cliente';
-        isPositive = true;
+        final payment = transaction as Payment;
+        name = payment.entityType == 'SUPPLIER'
+            ? 'Pago a Proveedor'
+            : 'Abono de Cliente';
+        isPositive = payment.entityType != 'SUPPLIER';
         break;
       case TransactionType.order:
         name = (transaction as Order).supplierName ?? 'Proveedor General';

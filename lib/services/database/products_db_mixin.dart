@@ -324,6 +324,7 @@ mixin ProductsDb on CoreDb {
     double deltaBaseUnits,
     String reason, {
     String? note,
+    double? unitCost, // UX #6: optional cost to recalculate WAC on entry adjustments
   }) async {
     final db = await database;
     await db.transaction((txn) async {
@@ -331,21 +332,30 @@ mixin ProductsDb on CoreDb {
           columns: ['stock', 'weighted_average_cost'], where: 'id = ?', whereArgs: [productId]);
       if (rows.isEmpty) throw Exception('Product not found: $productId');
       final currentStock = (rows.first['stock'] as num).toDouble();
-      final wac = (rows.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
+      final oldWac = (rows.first['weighted_average_cost'] as num?)?.toDouble() ?? 0.0;
       final newStock = currentStock + deltaBaseUnits;
       if (newStock < -0.001) {
         throw Exception(
             'El ajuste resultaría en stock negativo (${newStock.toStringAsFixed(2)} u.b.)');
       }
-      await txn.rawUpdate('UPDATE products SET stock = ? WHERE id = ?',
-          [newStock < 0 ? 0.0 : newStock, productId]);
+
+      // UX #6: Recalculate WAC if unit cost is provided for an entry adjustment
+      double newWac = oldWac;
+      if (unitCost != null && unitCost > 0 && deltaBaseUnits > 0) {
+        final totalStock = newStock > 0 ? newStock : 1.0;
+        newWac = ((currentStock * oldWac) + (deltaBaseUnits * unitCost)) / totalStock;
+      }
+
+      await txn.rawUpdate(
+          'UPDATE products SET stock = ?, weighted_average_cost = ? WHERE id = ?',
+          [newStock < 0 ? 0.0 : newStock, newWac, productId]);
       await txn.insert('inventory_movements', {
         'product_id': productId,
         'movement_type': 'INVENTORY_ADJUSTMENT',
         'quantity': deltaBaseUnits,
         'reference_type': reason,
         'reference_id': null,
-        'unit_cost_at_movement': wac,
+        'unit_cost_at_movement': unitCost ?? newWac,
         'created_timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     });

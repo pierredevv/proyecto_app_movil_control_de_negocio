@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../models/transaction_model.dart';
 import '../models/business_profile.dart';
 import '../utils/number_to_words.dart';
@@ -9,7 +10,16 @@ import '../utils/number_to_words.dart';
 class PdfGeneratorService {
   Future<Uint8List> generateInvoice(Transaction transaction, BusinessProfile profile,
       {String? ciNit, String? customClientName}) async {
-    final pdf = pw.Document();
+    
+    final font = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: font,
+        bold: fontBold,
+      ),
+    );
     
     final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', 'es_BO');
     
@@ -79,13 +89,13 @@ class PdfGeneratorService {
                 cellAlignment: pw.Alignment.center,
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
                 cellStyle: const pw.TextStyle(fontSize: 8),
-                headers: ['CANTIDAD', 'DESCRIPCIÓN (CÓDIGO - PRODUCTO)', 'PRECIO', 'DCTO', 'TOTAL'],
+                // N7 FIX: Removed DCTO column (always 0.00) to maximize width on 80mm thermal paper
+                headers: ['CANT.', 'DESCRIPCIÓN', 'P.UNIT.', 'TOTAL'],
                 data: transaction.items.map((item) {
                   return [
                     '${item.quantity.toStringAsFixed(2)} ${item.saleUnit}',
                     '${item.productId} - ${item.productName}',
                     item.unitPrice.toStringAsFixed(2),
-                    '0.00', // No item-level discount tracked yet
                     item.subtotal.toStringAsFixed(2),
                   ];
                 }).toList(),
@@ -101,9 +111,20 @@ class PdfGeneratorService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.RichText(text: pw.TextSpan(text: 'SUBTOTAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${(transaction.totalAmount + transaction.adjustmentAmount).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
-                    pw.RichText(text: pw.TextSpan(text: 'DESCUENTO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.adjustmentAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
-                    pw.RichText(text: pw.TextSpan(text: 'TOTAL A PAGAR: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                    // C3 FIX: grossAmount = totalAmount - adjustmentAmount
+                    // adjustmentAmount is negative for discounts, so this recovers pre-discount total
+                    pw.Builder(builder: (context) {
+                      final grossAmount = transaction.totalAmount - transaction.adjustmentAmount;
+                      return pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.RichText(text: pw.TextSpan(text: 'SUBTOTAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${grossAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                          if (transaction.adjustmentAmount != 0)
+                            pw.RichText(text: pw.TextSpan(text: 'DESCUENTO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.adjustmentAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                          pw.RichText(text: pw.TextSpan(text: 'TOTAL A PAGAR: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                        ],
+                      );
+                    }),
                     
                     if (transaction is Sale) ...[
                       pw.RichText(text: pw.TextSpan(text: 'EFECTIVO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.amountTendered.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),

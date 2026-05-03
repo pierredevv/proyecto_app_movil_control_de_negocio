@@ -17,9 +17,12 @@ class StockAdjustmentScreen extends StatefulWidget {
 class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
-  
+  // UX #6: Optional unit cost for entry adjustments to enable WAC recalculation
+  final TextEditingController _unitCostController = TextEditingController();
+
   String _selectedReason = 'Vencimiento';
-  bool _isAddition = false; // false = subtraction (Loss/Expiration), true = addition (Correction)
+  bool _isAddition =
+      false; // false = subtraction (Loss/Expiration), true = addition (Correction)
   bool _isLoading = false;
 
   final List<String> _reasons = [
@@ -41,6 +44,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
   void dispose() {
     _quantityController.dispose();
     _noteController.dispose();
+    _unitCostController.dispose();
     super.dispose();
   }
 
@@ -55,7 +59,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
   double get _newStockBaseUnits {
     return widget.product.stock + _deltaBaseUnits;
   }
-  
+
   double get _newStockSalesUnits {
     return _newStockBaseUnits / widget.product.unitsPerSaleUnit;
   }
@@ -72,24 +76,39 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
     if (_newStockBaseUnits < -0.001) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: El stock resultante sería negativo (${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit})'),
+          content: Text(
+              'Error: El stock resultante sería negativo (${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit})'),
           backgroundColor: AppTheme.redAccent,
         ),
       );
       return;
     }
 
+    // UX #6: Parse optional unit cost for WAC recalculation on entry adjustments
+    final double? unitCost = _isAddition && _unitCostController.text.isNotEmpty
+        ? (double.tryParse(_unitCostController.text) ?? 0.0) > 0
+            ? double.tryParse(_unitCostController.text)
+            : null
+        : null;
+
     setState(() => _isLoading = true);
 
     try {
       await context.read<InventoryProvider>().adjustStock(
-        widget.product.id!,
-        _deltaBaseUnits,
-        _selectedReason,
-        note: _noteController.text.isNotEmpty ? _noteController.text : null,
-      );
+            widget.product.id!,
+            _deltaBaseUnits,
+            _selectedReason,
+            note: _noteController.text.isNotEmpty ? _noteController.text : null,
+            unitCost: unitCost,
+          );
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ajuste de stock confirmado (${_isAddition ? "+" : "-"}${qty.toStringAsFixed(2)} ${widget.product.saleUnit})'),
+            backgroundColor: AppTheme.greenAccent,
+          ),
+        );
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -108,14 +127,15 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final previewColor = _newStockBaseUnits < 0 
-        ? AppTheme.redAccent 
+    final previewColor = _newStockBaseUnits < 0
+        ? AppTheme.redAccent
         : (_isAddition ? AppTheme.greenAccent : Colors.orangeAccent);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Ajuste de Stock', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Ajuste de Stock',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -123,14 +143,21 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Background Gradient & Blobs
+          // N6 NOTE: This gradient is intentionally hardcoded dark (glassmorphism design language).
+          // The scaffoldBackgroundColor (set above) only affects the Scaffold layer beneath.
+          // If light theme support is added, conditionally show this gradient only in dark mode:
+          //   if (Theme.of(context).brightness == Brightness.dark) ...
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [
+                    Color(0xFF0F172A),
+                    Color(0xFF1E293B),
+                    Color(0xFF0F172A)
+                  ],
                 ),
               ),
             ),
@@ -145,7 +172,10 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                 color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  BoxShadow(
+                      color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                      blurRadius: 100,
+                      spreadRadius: 20),
                 ],
               ),
             ),
@@ -168,38 +198,42 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.5),
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    width: 1.5),
                               ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(widget.product.name,
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Stock Actual:',
-                                style: TextStyle(color: Colors.white70)),
-                            Text(
-                              '${widget.product.stockInSaleUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(widget.product.name,
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white)),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('Stock Actual:',
+                                          style:
+                                              TextStyle(color: Colors.white70)),
+                                      Text(
+                                        '${widget.product.stockInSaleUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
+                                        style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
+
+                        const SizedBox(height: 24),
 
                         // Toggle Entrada/Salida
                         Row(
@@ -208,26 +242,41 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                               child: GestureDetector(
                                 onTap: () => setState(() {
                                   _isAddition = true;
-                                  if (_selectedReason == 'Vencimiento' || _selectedReason == 'Pérdida') {
+                                  if (_selectedReason == 'Vencimiento' ||
+                                      _selectedReason == 'Pérdida') {
                                     _selectedReason = 'Corrección';
                                   }
                                 }),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   decoration: BoxDecoration(
-                                    color: _isAddition ? AppTheme.greenAccent.withAlpha(50) : Colors.white.withValues(alpha: 0.05),
+                                    color: _isAddition
+                                        ? AppTheme.greenAccent.withAlpha(50)
+                                        : Colors.white.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: _isAddition ? AppTheme.greenAccent : Colors.white.withValues(alpha: 0.08),
+                                      color: _isAddition
+                                          ? AppTheme.greenAccent
+                                          : Colors.white
+                                              .withValues(alpha: 0.08),
                                       width: 2,
                                     ),
                                   ),
                                   child: Column(
                                     children: [
-                                      Icon(Icons.add_circle_outline, color: _isAddition ? AppTheme.greenAccent : Colors.white54),
+                                      Icon(Icons.add_circle_outline,
+                                          color: _isAddition
+                                              ? AppTheme.greenAccent
+                                              : Colors.white54),
                                       const SizedBox(height: 4),
-                                      Text('Entrada', style: TextStyle(color: _isAddition ? AppTheme.greenAccent : Colors.white54, fontWeight: FontWeight.bold)),
+                                      Text('Entrada',
+                                          style: TextStyle(
+                                              color: _isAddition
+                                                  ? AppTheme.greenAccent
+                                                  : Colors.white54,
+                                              fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
@@ -236,23 +285,38 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => setState(() => _isAddition = false),
+                                onTap: () =>
+                                    setState(() => _isAddition = false),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   decoration: BoxDecoration(
-                                    color: !_isAddition ? AppTheme.redAccent.withAlpha(50) : Colors.white.withValues(alpha: 0.05),
+                                    color: !_isAddition
+                                        ? AppTheme.redAccent.withAlpha(50)
+                                        : Colors.white.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: !_isAddition ? AppTheme.redAccent : Colors.white.withValues(alpha: 0.08),
+                                      color: !_isAddition
+                                          ? AppTheme.redAccent
+                                          : Colors.white
+                                              .withValues(alpha: 0.08),
                                       width: 2,
                                     ),
                                   ),
                                   child: Column(
                                     children: [
-                                      Icon(Icons.remove_circle_outline, color: !_isAddition ? AppTheme.redAccent : Colors.white54),
+                                      Icon(Icons.remove_circle_outline,
+                                          color: !_isAddition
+                                              ? AppTheme.redAccent
+                                              : Colors.white54),
                                       const SizedBox(height: 4),
-                                      Text('Salida', style: TextStyle(color: !_isAddition ? AppTheme.redAccent : Colors.white54, fontWeight: FontWeight.bold)),
+                                      Text('Salida',
+                                          style: TextStyle(
+                                              color: !_isAddition
+                                                  ? AppTheme.redAccent
+                                                  : Colors.white54,
+                                              fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
@@ -270,28 +334,86 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                             filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                             child: TextField(
                               controller: _quantityController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold),
                               decoration: InputDecoration(
-                                labelText: 'Cantidad a ${_isAddition ? "sumar" : "restar"} (${widget.product.saleUnit})',
-                                labelStyle: const TextStyle(color: Colors.white70),
+                                labelText:
+                                    'Cantidad a ${_isAddition ? "sumar" : "restar"} (${widget.product.saleUnit})',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
                                 filled: true,
                                 fillColor: Colors.white.withValues(alpha: 0.05),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                  borderSide: BorderSide(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.08)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF4A90E2), width: 1.5),
                                 ),
-                                prefixIcon: Icon(_isAddition ? Icons.add : Icons.remove, color: Colors.white54),
+                                prefixIcon: Icon(
+                                    _isAddition ? Icons.add : Icons.remove,
+                                    color: Colors.white54),
                               ),
                             ),
                           ),
                         ),
 
                         const SizedBox(height: 16),
+
+                        // UX #6: Optional unit cost field for entry adjustments
+                        if (_isAddition) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: BackdropFilter(
+                              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                              child: TextField(
+                                controller: _unitCostController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Costo Unitario (Bs.) — Opcional (recalcula CMPp)',
+                                  labelStyle: const TextStyle(
+                                      color: Colors.white70, fontSize: 13),
+                                  hintText:
+                                      'Dejar vacío para mantener CMPp actual',
+                                  hintStyle: const TextStyle(
+                                      color: Colors.white30, fontSize: 13),
+                                  filled: true,
+                                  fillColor:
+                                      Colors.white.withValues(alpha: 0.05),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: AppTheme.greenAccent
+                                            .withValues(alpha: 0.3)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: AppTheme.greenAccent,
+                                        width: 1.5),
+                                  ),
+                                  prefixIcon: const Icon(Icons.attach_money,
+                                      color: Colors.white54),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // Reason Dropdown
                         ClipRRect(
@@ -304,21 +426,30 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: 'Motivo del Ajuste',
-                                labelStyle: const TextStyle(color: Colors.white70),
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
                                 filled: true,
                                 fillColor: Colors.white.withValues(alpha: 0.05),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                  borderSide: BorderSide(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.08)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF4A90E2), width: 1.5),
                                 ),
                               ),
-                              items: _reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                              items: _reasons
+                                  .map((r) => DropdownMenuItem(
+                                      value: r, child: Text(r)))
+                                  .toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _selectedReason = val);
+                                if (val != null) {
+                                  setState(() => _selectedReason = val);
+                                }
                               },
                             ),
                           ),
@@ -336,16 +467,20 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: 'Nota (Opcional)',
-                                labelStyle: const TextStyle(color: Colors.white70),
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
                                 filled: true,
                                 fillColor: Colors.white.withValues(alpha: 0.05),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                                  borderSide: BorderSide(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.08)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF4A90E2), width: 1.5),
                                 ),
                               ),
                             ),
@@ -354,31 +489,33 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
 
                         const SizedBox(height: 24),
 
-                  // Preview Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: previewColor.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: previewColor.withAlpha(50)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Stock Final Resultante:',
-                            style: TextStyle(color: Colors.white, fontSize: 16)),
-                        Text(
-                          '${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
-                          style: TextStyle(
-                              color: previewColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold),
+                        // Preview Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: previewColor.withAlpha(20),
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: previewColor.withAlpha(50)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Stock Final Resultante:',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 16)),
+                              Text(
+                                '${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
+                                style: TextStyle(
+                                    color: previewColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
                         // Submit Button
                         Container(
@@ -394,9 +531,14 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
                               minimumSize: const Size(double.infinity, 56),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('Confirmar Ajuste', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            child: const Text('Confirmar Ajuste',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],

@@ -130,13 +130,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
     if (product != null) {
       final isBox = product.unitsPerSaleUnit > 1.0;
+      // M6 FIX: Use WAC as the default reference cost; fall back to catalog cost if WAC is 0
+      final defaultCost = product.weightedAverageCost > 0
+          ? product.weightedAverageCost
+          : product.cost;
       setState(() {
         _items.add(InvoiceItem(
           productId: product.id!,
           productName: product.name,
           quantity: 1,
-          unitPrice: product.cost,
-          subtotal: product.cost,
+          unitPrice: defaultCost,
+          subtotal: defaultCost,
           saleUnit: isBox ? product.saleUnit : 'UNI',
           unitsPerSaleUnit: isBox ? product.unitsPerSaleUnit : 1.0,
           packagingInfo: product.packagingInfo,

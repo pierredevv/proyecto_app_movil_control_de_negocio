@@ -184,7 +184,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       final index = entry.key;
                       final t = entry.value;
 
-                      final isPositive = t.type.name == 'sale' || t.type.name == 'payment';
+                      // N2 FIX: Supplier payments are outflows — only customer payments are inflows
+                      bool isPositive;
+                      if (t is Payment) {
+                        isPositive = t.entityType != 'SUPPLIER';
+                      } else {
+                        isPositive = t.type.name == 'sale';
+                      }
                       final iconData =
                           isPositive ? Icons.arrow_outward : Icons.south_west;
                       final iconColor = isPositive
@@ -332,7 +338,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                   ),
                 ),
                 const Text(
-                  'Balance Neto',
+                  'Balance Neto (base caja)',
                   style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
                 ),
 
@@ -347,8 +353,10 @@ class _AnimatedSummaryCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    // UX #3 FIX: Show accrual sales with a sub-label clarifying it includes A/R
                     _buildMetricCol(
                       label: 'Ventas',
+                      sublabel: '(incl. crédito)',
                       value: provider.totalSalesToday,
                       color: const Color(0xFF51CF66),
                     ),
@@ -357,8 +365,21 @@ class _AnimatedSummaryCard extends StatelessWidget {
                       width: 1,
                       color: Colors.white.withValues(alpha: 0.05),
                     ),
+                    // UX #3 FIX: Show cash received separately from accrual sales
+                    _buildMetricCol(
+                      label: 'Cobrado',
+                      sublabel: '(efectivo hoy)',
+                      value: provider.cashInToday,
+                      color: const Color(0xFF4ECDC4),
+                    ),
+                    Container(
+                      height: 40,
+                      width: 1,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                     _buildMetricCol(
                       label: 'Compras',
+                      sublabel: '',
                       value: provider.totalPurchasesToday,
                       color: const Color(0xFFFF6B6B),
                     ),
@@ -373,7 +394,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
   }
 
   Widget _buildMetricCol(
-      {required String label, required double value, required Color color}) {
+      {required String label, String sublabel = '', required double value, required Color color}) {
     return Column(
       children: [
         Text(
@@ -384,11 +405,16 @@ class _AnimatedSummaryCard extends StatelessWidget {
         Text(
           'Bs. ${value.toStringAsFixed(2)}',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
+        if (sublabel.isNotEmpty)
+          Text(
+            sublabel,
+            style: const TextStyle(color: Color(0xFF6B7494), fontSize: 10),
+          ),
       ],
     );
   }

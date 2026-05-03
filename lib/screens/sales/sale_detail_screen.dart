@@ -27,6 +27,21 @@ class SaleDetailScreen extends StatefulWidget {
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
   bool _isSendingReceipt = false;
+  Future<List<Map<String, dynamic>>>? _paymentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPayments();
+  }
+
+  void _refreshPayments() {
+    if (widget.sale.id != null) {
+      setState(() {
+        _paymentsFuture = DatabaseService().getTransactionPayments(widget.sale.id!);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,9 +139,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                     bottom: 20,
                     child: Container(
                       width: 4,
-                      decoration: const BoxDecoration(
-                        color: greenColor,
-                        borderRadius: BorderRadius.only(
+                      decoration: BoxDecoration(
+                        color: widget.sale.status == 'VOIDED' ? Colors.grey : greenColor,
+                        borderRadius: const BorderRadius.only(
                           topRight: Radius.circular(4),
                           bottomRight: Radius.circular(4),
                         ),
@@ -271,7 +286,35 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                               ),
                             ),
                           ],
-                        )
+                        ),
+                        // UX #1 — Due date row for credit sales
+                        if (widget.sale.paymentDueDate != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.event_outlined,
+                                    size: 16, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Vence: ${dateFormat.format(widget.sale.paymentDueDate!)}',
+                                  style: const TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -418,14 +461,48 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Subtotal', widget.sale.totalAmount,
-                      currencyFormat, subTextColor),
-                  const SizedBox(height: 12),
+                  // C2 FIX: Gross subtotal = totalAmount - adjustmentAmount
+                  // (adjustmentAmount is negative for discounts)
                   _buildSummaryRow(
-                      'Descuento', 0.00, currencyFormat, subTextColor),
+                      'Subtotal',
+                      widget.sale.totalAmount - widget.sale.adjustmentAmount,
+                      currencyFormat,
+                      subTextColor),
+                  const SizedBox(height: 12),
+                  // C2 FIX: Show actual discount from adjustmentAmount
+                  if (widget.sale.adjustmentAmount != 0)
+                    _buildSummaryRow(
+                        'Descuento',
+                        widget.sale.adjustmentAmount,
+                        currencyFormat,
+                        subTextColor),
                   const SizedBox(height: 16),
                   Divider(color: dividerColor),
                   const SizedBox(height: 16),
+                  // Total Invoice row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Factura',
+                        style: TextStyle(
+                          color: subTextColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        currencyFormat.format(widget.sale.totalAmount),
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // C1 FIX: Show amountPaid (not totalAmount)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -438,7 +515,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                         ),
                       ),
                       Text(
-                        currencyFormat.format(widget.sale.totalAmount),
+                        currencyFormat.format(widget.sale.amountPaid),
                         style: TextStyle(
                           color: textColor,
                           fontSize: 24,
@@ -447,38 +524,82 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                       ),
                     ],
                   ),
+                  // Show outstanding balance for CREDIT/PARTIAL sales
+                  if (widget.sale.pendingAmount > 0.001) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Saldo Pendiente',
+                          style: TextStyle(
+                            color: Colors.red[400],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          currencyFormat.format(widget.sale.pendingAmount),
+                          style: TextStyle(
+                            color: Colors.red[400],
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ).animate().fade(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
             const SizedBox(height: 16),
 
-            // Linked Payments Section
-            if (widget.sale.id != null && widget.sale.amountPaid > 0) ...[
+            // Linked Payments Section — C3 FIX: always render when id is present
+            // (FutureBuilder inside handles the empty state)
+            if (widget.sale.id != null) ...[
                _buildLinkedPaymentsSection(theme, cardColor, textColor, subTextColor, dividerColor),
                const SizedBox(height: 16),
             ],
 
-            // Info Note
+            // Info Note — Minor #7 FIX: distinguish VOIDED status
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E2432)
-                    : Colors.blue.withValues(alpha: 0.05), // Darker for info
+                color: widget.sale.status == 'VOIDED'
+                    ? Colors.red.withValues(alpha: 0.07)
+                    : isDark
+                        ? const Color(0xFF1E2432)
+                        : Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: widget.sale.status == 'VOIDED'
+                        ? Colors.red.withValues(alpha: 0.4)
+                        : Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      color: Colors.blue, size: 20),
+                  Icon(
+                    widget.sale.status == 'VOIDED'
+                        ? Icons.warning_amber_rounded
+                        : Icons.info_outline_rounded,
+                    color: widget.sale.status == 'VOIDED'
+                        ? Colors.red
+                        : Colors.blue,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Esta transacción fue procesada exitosamente.',
+                      widget.sale.status == 'VOIDED'
+                          ? '⚠️ Esta transacción fue ANULADA. El inventario fue restaurado.'
+                          : 'Esta transacción fue procesada exitosamente.',
                       style: TextStyle(
-                          color: subTextColor, fontSize: 12, height: 1.4),
+                          color: widget.sale.status == 'VOIDED'
+                              ? Colors.red[300]
+                              : subTextColor,
+                          fontSize: 12,
+                          height: 1.4),
                     ),
                   )
                 ],
@@ -493,27 +614,33 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 Expanded(
                   child: SizedBox(
                     height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _handleGeneratePdf,
-                      icon: Icon(Icons.receipt_long_rounded,
-                          color: isDark ? Colors.white : Colors.black87,
-                          size: 20),
-                      label: Text('Emitir Factura',
-                          style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black87)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? const Color(0xFF2E323F)
-                            : Colors
-                                .grey[200], // Dark Gray Button vs Light Gray
-                        foregroundColor: isDark ? Colors.white : Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : Colors.grey.withValues(alpha: 0.3)),
+                    child: Tooltip(
+                      message: widget.sale.status == 'VOIDED' ? 'Venta anulada, no se puede emitir factura' : '',
+                      child: ElevatedButton.icon(
+                        // UX #2 FIX: disable button for voided sales
+                        onPressed: widget.sale.status == 'VOIDED'
+                            ? null
+                            : _handleGeneratePdf,
+                        icon: Icon(Icons.receipt_long_rounded,
+                            color: isDark ? Colors.white : Colors.black87,
+                            size: 20),
+                        label: Text('Emitir Factura',
+                            style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDark
+                              ? const Color(0xFF2E323F)
+                              : Colors
+                                  .grey[200], // Dark Gray Button vs Light Gray
+                          foregroundColor: isDark ? Colors.white : Colors.black,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.grey.withValues(alpha: 0.3)),
+                          ),
                         ),
                       ),
                     ),
@@ -523,24 +650,29 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 Expanded(
                   child: SizedBox(
                     height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSendingReceipt ? null : _handleSendReceipt,
-                      icon: _isSendingReceipt
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.share_rounded,
-                              color: Colors.white, size: 20),
-                      label: Text(
-                          _isSendingReceipt ? 'Enviando...' : 'Enviar Recibo'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: greenColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Tooltip(
+                      message: widget.sale.status == 'VOIDED' ? 'Venta anulada, no se puede enviar recibo' : '',
+                      child: ElevatedButton.icon(
+                        onPressed: (widget.sale.status == 'VOIDED' || _isSendingReceipt)
+                            ? null
+                            : _handleSendReceipt,
+                        icon: _isSendingReceipt
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.share_rounded,
+                                color: Colors.white, size: 20),
+                        label: Text(
+                            _isSendingReceipt ? 'Enviando...' : 'Enviar Recibo'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: greenColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -571,6 +703,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         color = Colors.orange;
         text = 'Parcial';
         icon = Icons.timelapse;
+        break;
+      case 'VOIDED':
+        color = Colors.grey;
+        text = 'Anulado';
+        icon = Icons.cancel_outlined;
         break;
       case 'COMPLETED':
       default:
@@ -624,8 +761,24 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final df = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
 
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseService().getTransactionPayments(widget.sale.id!),
+      future: _paymentsFuture,
       builder: (context, snapshot) {
+        // N3 FIX: Distinguish loading, error and empty states
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Error cargando pagos: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          );
+        }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -741,8 +894,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       final profile = context.read<SettingsProvider>().profile;
       final fileData = await PdfGeneratorService().generateInvoice(widget.sale, profile);
       final xFile = XFile.fromData(fileData, mimeType: 'application/pdf', name: 'Recibo_${widget.sale.id}.pdf');
-      // ignore: deprecated_member_use
-      await Share.shareXFiles([xFile], text: 'Recibo de Venta - ${widget.sale.id}');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xFile],
+          text: 'Recibo de Venta - ${widget.sale.id}',
+        ),
+      );
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(

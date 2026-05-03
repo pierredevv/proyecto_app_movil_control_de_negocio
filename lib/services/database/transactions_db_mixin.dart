@@ -133,7 +133,7 @@ mixin TransactionsDb on CoreDb {
       }
 
       // 6. If a down payment is recorded, create entry in payments and allocation
-      if (sale.amountPaid > 0 && sale.customerId != null) {
+      if (sale.amountPaid > 0) {
         final paymentId = await txn.insert('payments', {
           'entity_id': sale.customerId,
           'entity_type': 'CUSTOMER',
@@ -328,14 +328,13 @@ mixin TransactionsDb on CoreDb {
             'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
       }
 
-      // 2. Extract Customer and Insert Treasury Payment Record
+      // 2. Extract Customer — may be null for occasional-customer sales
       final customerId = transaction.first['entity_id'];
-      if (customerId == null) {
-        throw Exception('La venta no tiene un cliente asignado');
-      }
 
+      // N1 FIX: Payment + allocation are always registered even without a customer.
+      // Ledger and debt updates are guarded by customerId below.
       final paymentId = await txn.insert('payments', {
-        'entity_id': customerId,
+        'entity_id': customerId,   // may be null — OK for occasional sales
         'entity_type': 'CUSTOMER',
         'amount': amount,
         'date': DateTime.now().millisecondsSinceEpoch,
@@ -362,7 +361,7 @@ mixin TransactionsDb on CoreDb {
         whereArgs: [saleId],
       );
 
-      // 4. Update Ledger and Decrease legacy Customer Debt
+      // 4. Update Ledger and Decrease legacy Customer Debt (only if customer exists)
       if (customerId != null) {
         final ledgerQuery = await txn.query('entity_ledgers',
             where: 'entity_type = ? AND entity_id = ?',
