@@ -238,11 +238,15 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                         Icon(Icons.calendar_today_outlined,
                                             size: 16, color: textColor),
                                         const SizedBox(width: 8),
-                                        Text(
-                                          dateFormat.format(widget.sale.date),
-                                          style: TextStyle(
-                                              color: textColor,
-                                              fontWeight: FontWeight.w500),
+                                        Flexible(
+                                          child: Text(
+                                            dateFormat.format(widget.sale.date),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                                color: textColor,
+                                                fontWeight: FontWeight.w500),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -504,22 +508,27 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   const SizedBox(height: 8),
                   // C1 FIX: Show amountPaid (not totalAmount)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total Pagado',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Text(
+                          'Total Pagado',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                      Text(
-                        currencyFormat.format(widget.sale.amountPaid),
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          currencyFormat.format(widget.sale.amountPaid),
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

@@ -388,17 +388,22 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('TOTAL COMPRA',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text(
-                          'Bs. ${_purchase.totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                        const Flexible(
+                          child: Text('TOTAL COMPRA',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, color: Colors.white)),
+                        ),
+                        const SizedBox(width: 8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Bs. ${_purchase.totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
                         ),
                       ],
                     ),

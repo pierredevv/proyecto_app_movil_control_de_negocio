@@ -790,12 +790,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                         children: [
                           Icon(Icons.save, color: Colors.white, size: 24),
                           SizedBox(width: 12),
-                          Text(
-                            'GUARDAR COMPRA',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Flexible(
+                            child: Text(
+                              'GUARDAR COMPRA',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],

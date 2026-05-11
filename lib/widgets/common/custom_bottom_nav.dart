@@ -36,32 +36,39 @@ class CustomBottomNav extends StatelessWidget {
         right: 16,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _NavItem(
-            icon: Icons.home,
-            label: 'Inicio',
-            isSelected: currentIndex == 0,
-            onTap: () => onTap(0),
+          Expanded(
+            child: _NavItem(
+              icon: Icons.home,
+              label: 'Inicio',
+              isSelected: currentIndex == 0,
+              onTap: () => onTap(0),
+            ),
           ),
-          _NavItem(
-            icon: Icons.history_edu,
-            label: 'Compras',
-            isSelected: currentIndex == 1,
-            onTap: () => onTap(1),
+          Expanded(
+            child: _NavItem(
+              icon: Icons.history_edu,
+              label: 'Compras',
+              isSelected: currentIndex == 1,
+              onTap: () => onTap(1),
+            ),
           ),
-          const SizedBox(width: 48), // Space for FAB
-          _NavItem(
-            icon: Icons.inventory_2,
-            label: 'Items',
-            isSelected: currentIndex == 2,
-            onTap: () => onTap(2),
+          const Expanded(child: SizedBox()), // Space for FAB
+          Expanded(
+            child: _NavItem(
+              icon: Icons.inventory_2,
+              label: 'Items',
+              isSelected: currentIndex == 2,
+              onTap: () => onTap(2),
+            ),
           ),
-          _NavItem(
-            icon: Icons.menu,
-            label: 'Menú',
-            isSelected: currentIndex == 3,
-            onTap: () => onTap(3),
+          Expanded(
+            child: _NavItem(
+              icon: Icons.menu,
+              label: 'Menú',
+              isSelected: currentIndex == 3,
+              onTap: () => onTap(3),
+            ),
           ),
         ],
       ),
@@ -93,19 +100,23 @@ class _NavItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 26),
+            Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
           ],

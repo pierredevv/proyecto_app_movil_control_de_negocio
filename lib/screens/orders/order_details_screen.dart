@@ -406,17 +406,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('TOTAL ESTIMADO',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white)),
-                Text(
-                  'Bs. ${_order.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue),
+                const Flexible(
+                  child: Text('TOTAL ESTIMADO',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+                const SizedBox(width: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Bs. ${_order.totalAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue),
+                  ),
                 ),
               ],
             ),
@@ -490,18 +495,26 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         title: const Text('Recibir Pedido'),
         content: const Text(
             '¿Marcar este pedido como RECIBIDO?\nEsto actualizará el inventario con los productos del pedido.'),
+        actionsAlignment: MainAxisAlignment.end,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _updateStatus('RECEIVED');
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirmar Recepción'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _updateStatus('RECEIVED');
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text('Confirmar Recepción'),
+              ),
+            ],
           ),
         ],
       ),

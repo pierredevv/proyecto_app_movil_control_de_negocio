@@ -32,95 +32,102 @@ class TransactionOptionsBottomSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle Bar
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 24),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle Bar
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 20),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            // Title
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Text(
-                'Opciones de Transacción',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+                // Title
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Opciones de Transacción',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            // Options
-            if (!isVoided) ...[
-              _buildOption(
-                context,
-                icon: Icons.edit,
-                label: 'Editar Transacción',
-                color: Colors.blue.shade100,
-                iconColor: Colors.blue,
-                onTap: onEdit,
-                delay: 0,
-              ),
-              _buildOption(
-                context,
-                icon: Icons.cancel_outlined,
-                label: 'Anular/Cancelar',
-                color: Colors.red.shade100,
-                iconColor: Colors.red,
-                onTap: onCancel,
-                delay: 50,
-              ),
-            ],
+                // Options
+                if (!isVoided) ...[
+                  _buildOption(
+                    context,
+                    icon: Icons.edit,
+                    label: 'Editar Transacción',
+                    color: Colors.blue.shade100,
+                    iconColor: Colors.blue,
+                    onTap: onEdit,
+                    delay: 0,
+                  ),
+                  _buildOption(
+                    context,
+                    icon: Icons.cancel_outlined,
+                    label: 'Anular/Cancelar',
+                    color: Colors.red.shade100,
+                    iconColor: Colors.red,
+                    onTap: onCancel,
+                    delay: 50,
+                  ),
+                ],
 
-            if (showSharePdf)
-              _buildOption(
-                context,
-                icon: Icons.picture_as_pdf_outlined,
-                label: 'Compartir como PDF',
-                color: Colors.purple.shade100,
-                iconColor: Colors.purple,
-                onTap: onSharePdf,
-                delay: 100,
-              ),
+                if (showSharePdf)
+                  _buildOption(
+                    context,
+                    icon: Icons.picture_as_pdf_outlined,
+                    label: 'Compartir como PDF',
+                    color: Colors.purple.shade100,
+                    iconColor: Colors.purple,
+                    onTap: onSharePdf,
+                    delay: 100,
+                  ),
 
-            if (showDuplicate)
-              _buildOption(
-                context,
-                icon: Icons.copy_rounded,
-                label: 'Duplicar Transacción',
-                color: Colors.green.shade100,
-                iconColor: Colors.green,
-                onTap: onDuplicate,
-                delay: 150,
-              ),
+                if (showDuplicate)
+                  _buildOption(
+                    context,
+                    icon: Icons.copy_rounded,
+                    label: 'Duplicar Transacción',
+                    color: Colors.green.shade100,
+                    iconColor: Colors.green,
+                    onTap: onDuplicate,
+                    delay: 150,
+                  ),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-            // Close Button
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cerrar',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                // Close Button
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cerrar',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
     );

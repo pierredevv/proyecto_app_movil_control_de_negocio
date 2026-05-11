@@ -126,16 +126,23 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: const TextStyle(color: Color(0xFFA0A8C1), fontSize: 14)),
-          Text(
-            value,
-            style: TextStyle(
-              color: highlight ? moduleColor : Colors.white,
-              fontSize: highlight ? 20 : 16,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: highlight ? moduleColor : Colors.white,
+                fontSize: highlight ? 20 : 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

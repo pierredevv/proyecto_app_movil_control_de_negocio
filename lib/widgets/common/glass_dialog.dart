@@ -55,8 +55,10 @@ class GlassDialog extends StatelessWidget {
                 content,
                 if (actions.isNotEmpty) ...[
                   const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: actions,
                   ),
                 ]

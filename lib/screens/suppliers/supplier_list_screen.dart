@@ -505,46 +505,49 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Actions
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.end,
-                    children: [
-                      if (hasPhone)
+                  // Actions — constrained so they don't push Expanded info
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 168),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        if (hasPhone)
+                          _CardActionButton(
+                            icon: Icons.phone,
+                            color: const Color(0xFF4A90E2), // Blue
+                            onTap: () {
+                              context
+                                  .read<SupplierProvider>()
+                                  .makePhoneCall(widget.supplier.phone!);
+                            },
+                          ),
+                        if (hasPhone)
+                          _CardActionButton(
+                            icon:
+                                Icons.message, // Use message as WhatsApp fallback
+                            color: const Color(0xFF51CF66), // Green
+                            onTap: () {
+                              WhatsAppHelper.launchWhatsApp(
+                                  widget.supplier.phone!,
+                                  "Hola ${widget.supplier.name}, quisiera hacer un pedido.");
+                            },
+                          ),
                         _CardActionButton(
-                          icon: Icons.phone,
-                          color: const Color(0xFF4A90E2), // Blue
-                          onTap: () {
-                            context
-                                .read<SupplierProvider>()
-                                .makePhoneCall(widget.supplier.phone!);
-                          },
+                          icon: Icons.receipt_long,
+                          color: const Color(0xFFF5A623), // Orange
+                          onTap: widget.onLedgerTap,
                         ),
-                      if (hasPhone)
-                        _CardActionButton(
-                          icon:
-                              Icons.message, // Use message as WhatsApp fallback
-                          color: const Color(0xFF51CF66), // Green
-                          onTap: () {
-                            WhatsAppHelper.launchWhatsApp(
-                                widget.supplier.phone!,
-                                "Hola ${widget.supplier.name}, quisiera hacer un pedido.");
-                          },
+                        // Custom Popup Menu action button
+                        _CardPopupActions(
+                          supplier: widget.supplier,
+                          onEdit: widget.onTap,
+                          onDelete: widget.onDeleteTap,
+                          onLedger: widget.onLedgerTap,
                         ),
-                      _CardActionButton(
-                        icon: Icons.receipt_long,
-                        color: const Color(0xFFF5A623), // Orange
-                        onTap: widget.onLedgerTap,
-                      ),
-                      // Custom Popup Menu action button
-                      _CardPopupActions(
-                        supplier: widget.supplier,
-                        onEdit: widget.onTap,
-                        onDelete: widget.onDeleteTap,
-                        onLedger: widget.onLedgerTap,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

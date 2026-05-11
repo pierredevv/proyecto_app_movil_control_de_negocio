@@ -253,15 +253,20 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
               border: Border.all(color: AppTheme.redAccent.withAlpha(50)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Deuda Total:',
-                    style: TextStyle(color: Colors.white, fontSize: 18)),
-                Text('Bs. ${totalDebt.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                        color: AppTheme.redAccent,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold)),
+                const Flexible(
+                  child: Text('Deuda Total:',
+                      style: TextStyle(color: Colors.white, fontSize: 18)),
+                ),
+                const SizedBox(width: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Bs. ${totalDebt.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          color: AppTheme.redAccent,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
           ),

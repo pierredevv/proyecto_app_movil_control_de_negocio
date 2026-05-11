@@ -98,7 +98,7 @@ class _MyAppState extends State<MyApp> {
             builder: (context, child) {
               final mediaQueryData = MediaQuery.of(context);
               final double baseSystemScale = mediaQueryData.textScaler.scale(16) / 16;
-              final double combinedFactor = (baseSystemScale * settingsProvider.textScale).clamp(0.8, 1.35);
+              final double combinedFactor = (baseSystemScale * settingsProvider.textScale).clamp(0.8, 1.2);
               final finalScaler = TextScaler.linear(combinedFactor);
 
               return MediaQuery(

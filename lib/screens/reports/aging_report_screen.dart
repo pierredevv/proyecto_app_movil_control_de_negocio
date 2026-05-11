@@ -137,12 +137,36 @@ class _AgingReportScreenState extends State<AgingReportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text((entityData['entity_name'] as String?) ?? 'Desconocido',
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO').format((entityData['total'] as num).toDouble()),
-                            style: TextStyle(color: isCustomer ? AppTheme.redAccent : AppTheme.primary, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Flexible(
+                          child: Text(
+                            (entityData['entity_name'] as String?) ?? 'Desconocido',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            NumberFormat.currency(
+                                    symbol: 'Bs. ',
+                                    decimalDigits: 2,
+                                    locale: 'es_BO')
+                                .format(
+                                    (entityData['total'] as num).toDouble()),
+                            style: TextStyle(
+                                color: isCustomer
+                                    ? AppTheme.redAccent
+                                    : AppTheme.primary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),

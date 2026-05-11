@@ -25,14 +25,19 @@ class RecentActivityList extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Actividad Reciente',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+              Flexible(
+                child: Text(
+                  'Actividad Reciente',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: () {
                   Navigator.push(
@@ -321,49 +326,68 @@ class RecentActivityList extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // Row 3: Total
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if ((isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT')) || 
-                              (!isSale && transaction is Purchase && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT')))
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Pagado: Bs. ${(transaction is Sale ? transaction.amountPaid : (transaction as Purchase).amountPaid).toStringAsFixed(2)}', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11)),
-                                Text('Pendiente: Bs. ${(transaction is Sale ? transaction.pendingAmount : (transaction as Purchase).pendingAmount).toStringAsFixed(2)}', style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                              ]
-                            ))
-                          else
-                            Expanded(child: Container()), // Spacer
-                            
-                          Text(
-                            'Total - ',
-                            style: TextStyle(
-                              color: isDark
-                                  ? Colors.white70
-                                  : theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
-                              fontSize: 12,
+                      // Row 3: Paid/Pending breakdown + Total
+                      if ((isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT')) ||
+                          (!isSale && transaction is Purchase && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT'))) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Pagado: Bs. ${(transaction is Sale ? transaction.amountPaid : (transaction as Purchase).amountPaid).toStringAsFixed(2)}',
+                                    style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11),
+                                  ),
+                                  Text(
+                                    'Pendiente: Bs. ${(transaction is Sale ? transaction.pendingAmount : (transaction as Purchase).pendingAmount).toStringAsFixed(2)}',
+                                    style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Hero(
-                            tag:
-                                'transaction-${number.replaceAll("#", "")}-total',
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Text(
-                                total,
-                                style: TextStyle(
-                                  color: accentColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                            Hero(
+                              tag: 'transaction-${number.replaceAll("#", "")}-total',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Total - $total',
+                                    style: TextStyle(
+                                      color: accentColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Hero(
+                              tag: 'transaction-${number.replaceAll("#", "")}-total',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Total - $total',
+                                    style: TextStyle(
+                                      color: accentColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       
                       // Row 4: Collect Installment Button / Pay Fee Button
                       if (isSale && transaction is Sale && (transaction.status == 'PARTIAL' || transaction.status == 'CREDIT') && transaction.customerId != null)

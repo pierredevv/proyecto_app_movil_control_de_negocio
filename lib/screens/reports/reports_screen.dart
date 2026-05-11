@@ -354,11 +354,13 @@ class _AnimatedSummaryCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // UX #3 FIX: Show accrual sales with a sub-label clarifying it includes A/R
-                    _buildMetricCol(
-                      label: 'Ventas',
-                      sublabel: '(incl. crédito)',
-                      value: provider.totalSalesToday,
-                      color: const Color(0xFF51CF66),
+                    Expanded(
+                      child: _buildMetricCol(
+                        label: 'Ventas',
+                        sublabel: '(incl. crédito)',
+                        value: provider.totalSalesToday,
+                        color: const Color(0xFF51CF66),
+                      ),
                     ),
                     Container(
                       height: 40,
@@ -366,22 +368,26 @@ class _AnimatedSummaryCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.05),
                     ),
                     // UX #3 FIX: Show cash received separately from accrual sales
-                    _buildMetricCol(
-                      label: 'Cobrado',
-                      sublabel: '(efectivo hoy)',
-                      value: provider.cashInToday,
-                      color: const Color(0xFF4ECDC4),
+                    Expanded(
+                      child: _buildMetricCol(
+                        label: 'Cobrado',
+                        sublabel: '(efectivo hoy)',
+                        value: provider.cashInToday,
+                        color: const Color(0xFF4ECDC4),
+                      ),
                     ),
                     Container(
                       height: 40,
                       width: 1,
                       color: Colors.white.withValues(alpha: 0.05),
                     ),
-                    _buildMetricCol(
-                      label: 'Compras',
-                      sublabel: '',
-                      value: provider.totalPurchasesToday,
-                      color: const Color(0xFFFF6B6B),
+                    Expanded(
+                      child: _buildMetricCol(
+                        label: 'Compras',
+                        sublabel: '',
+                        value: provider.totalPurchasesToday,
+                        color: const Color(0xFFFF6B6B),
+                      ),
                     ),
                   ],
                 ),
@@ -402,17 +408,21 @@ class _AnimatedSummaryCard extends StatelessWidget {
           style: const TextStyle(color: Color(0xFFA0A8C1), fontSize: 13),
         ),
         const SizedBox(height: 4),
-        Text(
-          'Bs. ${value.toStringAsFixed(2)}',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Bs. ${value.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ),
         if (sublabel.isNotEmpty)
           Text(
             sublabel,
+            textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFF6B7494), fontSize: 10),
           ),
       ],

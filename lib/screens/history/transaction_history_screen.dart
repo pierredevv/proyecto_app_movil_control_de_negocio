@@ -500,56 +500,65 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.15)
-                        : Colors.black.withValues(alpha: 0.05),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                      child: Center(
-                        child:
-                            Icon(Icons.arrow_back, color: textColor, size: 24),
+          Flexible(
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(22),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.15)
+                          : Colors.black.withValues(alpha: 0.05),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Center(
+                          child:
+                              Icon(Icons.arrow_back, color: textColor, size: 24),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Historial Transacciones',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Historial Transacciones',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$count cargados • $dateStr',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: subColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$count cargados • $dateStr',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: subColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _pickDateRange,
             child: Container(
@@ -1087,26 +1096,32 @@ class _GlassTransactionCard extends StatelessWidget {
                       children: [
                         // Row 1: type badge + actions
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Hero(
-                                  tag: heroTag,
-                                  child: Icon(_iconFor(transaction.type),
-                                      size: 18, color: secondaryGray),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${_typeLabel()} • #${transaction.id}',
-                                  style: const TextStyle(
-                                      color: secondaryGray,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              ],
+                            Flexible(
+                              child: Row(
+                                children: [
+                                  Hero(
+                                    tag: heroTag,
+                                    child: Icon(_iconFor(transaction.type),
+                                        size: 18, color: secondaryGray),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      '${_typeLabel()} • #${transaction.id}',
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                          color: secondaryGray,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (transaction.type == TransactionType.sale)
                                   IconButton(
@@ -1131,12 +1146,16 @@ class _GlassTransactionCard extends StatelessWidget {
                         const SizedBox(height: 8),
 
                         // Row 2: customer/supplier name
-                        Text(name,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: titleColor,
-                            )),
+                        Text(
+                          name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: titleColor,
+                          ),
+                        ),
 
                         const SizedBox(height: 4),
 
@@ -1170,8 +1189,8 @@ class _GlassTransactionCard extends StatelessWidget {
                         ],
 
                         // Row 4: total amount
-                        Align(
-                          alignment: Alignment.centerRight,
+                        SizedBox(
+                          width: double.infinity,
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerRight,
@@ -1346,22 +1365,29 @@ class _GlassTransactionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: typeColor.withValues(alpha: 0.35)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.payment_rounded, color: typeColor, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Cobrar cuota de este cliente',
-              style: TextStyle(
-                color: typeColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.payment_rounded, color: typeColor, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Cobrar cuota de este cliente',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: typeColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.arrow_forward_ios, color: typeColor, size: 12),
-          ],
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_ios, color: typeColor, size: 12),
+            ],
+          ),
         ),
       ),
     );

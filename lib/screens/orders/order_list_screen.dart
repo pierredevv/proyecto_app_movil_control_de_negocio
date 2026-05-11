@@ -461,18 +461,22 @@ class _OrderListScreenState extends State<OrderListScreen> {
                     }
                   },
                   child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.add_shopping_cart, color: Colors.white),
                         SizedBox(width: 8),
-                        Text(
-                          'Crear Primer Pedido',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            'Crear Primer Pedido',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],

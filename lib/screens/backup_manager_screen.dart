@@ -200,8 +200,11 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Gestión de Respaldos',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Gestión de Respaldos',
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -228,35 +231,45 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                     dividerColor: Colors.transparent,
                     labelColor: Colors.white,
                     labelStyle: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
+                        fontWeight: FontWeight.w600, fontSize: 13),
                     unselectedLabelColor: const Color(0xFFA0A8C1),
                     unselectedLabelStyle: const TextStyle(
-                        fontWeight: FontWeight.normal, fontSize: 14),
+                        fontWeight: FontWeight.normal, fontSize: 13),
                     tabs: [
                       Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.restore,
-                                color: _tabController.index == 0
-                                    ? AppTheme.primary
-                                    : const Color(0xFF6B7494)),
-                            const SizedBox(width: 8),
-                            const Text('Restaurar'),
-                          ],
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.restore,
+                                  size: 20,
+                                  color: _tabController.index == 0
+                                      ? AppTheme.primary
+                                      : const Color(0xFF6B7494)),
+                              const SizedBox(width: 6),
+                              const Text('Restaurar'),
+                            ],
+                          ),
                         ),
                       ),
                       Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.download,
-                                color: _tabController.index == 1
-                                    ? AppTheme.primary
-                                    : const Color(0xFF6B7494)),
-                            const SizedBox(width: 8),
-                            const Text('Exportar'),
-                          ],
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.download,
+                                  size: 20,
+                                  color: _tabController.index == 1
+                                      ? AppTheme.primary
+                                      : const Color(0xFF6B7494)),
+                              const SizedBox(width: 6),
+                              const Text('Exportar'),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -561,19 +574,26 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
               border: Border.all(
                   color: Colors.white.withValues(alpha: 0.20), width: 1.5),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: const Color(0xFFA0A8C1), size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: const Color(0xFFA0A8C1), size: 18),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -604,19 +624,26 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
