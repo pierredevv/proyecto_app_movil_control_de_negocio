@@ -3,7 +3,7 @@ import '../services/import_service.dart';
 import '../services/database_service.dart';
 import '../models/import_result.dart';
 
-enum ImportStep { pending, parsing, preview, inserting, done, error }
+enum ImportStep { pending, parsing, mapping, preview, inserting, done, error }
 
 class ImportProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -24,12 +24,21 @@ class ImportProvider extends ChangeNotifier {
   Map<String, int>? _insertResult;
   Map<String, int>? get insertResult => _insertResult;
 
+  bool? _useCommaAsDecimal; // null means auto-detect
+  bool? get useCommaAsDecimal => _useCommaAsDecimal;
+
+  void setUseCommaAsDecimal(bool? value) {
+    _useCommaAsDecimal = value;
+    notifyListeners();
+  }
+
   void reset() {
     _step = ImportStep.pending;
     _errorMessage = null;
     _parseResult = null;
     _deselectedRows.clear();
     _insertResult = null;
+    _useCommaAsDecimal = null;
     notifyListeners();
   }
 
@@ -61,6 +70,30 @@ class ImportProvider extends ChangeNotifier {
       }
 
       _parseResult = result;
+      // Ir a la pantalla de mapeo manual antes del preview
+      _step = ImportStep.mapping;
+      notifyListeners();
+    } catch (e) {
+      _step = ImportStep.error;
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> applyMappingAndPreview(Map<String, int> explicitMapping) async {
+    if (_parseResult == null) return;
+    try {
+      _step = ImportStep.parsing;
+      notifyListeners();
+
+      final newResult = await ImportService.parseWithOverrides(
+        _parseResult!.rawHeaders,
+        _parseResult!.rawStringRows,
+        explicitMapping,
+        useCommaAsDecimal: _useCommaAsDecimal,
+      );
+
+      _parseResult = newResult;
       _step = ImportStep.preview;
       notifyListeners();
     } catch (e) {

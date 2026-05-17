@@ -1,62 +1,155 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
-import 'package:csv/csv.dart';
 import '../models/import_result.dart';
 import 'packaging_parser.dart';
 
+/// Handles picking and parsing product inventory files.
+///
+/// IMPORTANT: Only .xlsx / .xls files are accepted.
+/// CSV support has been intentionally removed because embedded line-breaks in
+/// product descriptions break sequential CSV parsing, causing column shifting
+/// and corrupted numeric values. Native Excel cells are immune to this issue.
 class ImportService {
-  // Alias detection dictionary
+  // ---------------------------------------------------------------------------
+  // Column alias dictionary
+  // ---------------------------------------------------------------------------
+  // Each key maps to an ordered list of header aliases (compared in
+  // UPPER-CASE, with partial match support). The FIRST matching column wins.
   static final Map<String, List<String>> _columnAliases = {
-    'name': ['NOMBRE', 'PRODUCTO', 'DESCRIPCION', 'ARTICULO', 'ITEM'],
-    'barcode': ['CODIGO', 'BARCODE', 'CÓDIGO', 'EAN', 'UPC', 'SKU'],
-    'cost': ['COSTO', 'PRECIO COSTO', 'PC', 'COST'],
-    'price': ['PRECIO', 'PRECIO VENTA', 'PV', 'PRICE'],
-    'stock': ['STOCK', 'CANTIDAD', 'INVENTARIO', 'QTY', 'SALDO'],
-    'category': ['CATEGORIA', 'CATEGORÍA', 'FAMILIA', 'GRUPO', 'LINEA'],
-    'measure': ['MEDIDA', 'UNIDAD', 'PRESENTACION', 'EMPAQUE', 'FORMATO'],
+    'name': [
+      'NOMBRE',
+      'PRODUCTO',
+      'DESCRIPCION',
+      'DESCRIPCIÓN',
+      'ARTICULO',
+      'ARTÍCULO',
+      'ITEM',
+    ],
+    'barcode': [
+      'CODIGO',
+      'CÓDIGO',
+      'BARCODE',
+      'EAN',
+      'UPC',
+      'SKU',
+    ],
+    'cost': [
+      'COSTO',
+      'PRECIO COSTO',
+      'PC',
+      'COST',
+    ],
+    'price': [
+      'PRECIO',
+      'PRECIO VENTA',
+      'PV',
+      'PRICE',
+    ],
+    'stock': [
+      'STOCK',
+      'CANTIDAD',
+      'INVENTARIO',
+      'QTY',
+      'SALDO',
+    ],
+    'category': [
+      'CATEGORIA',
+      'CATEGORÍA',
+      'FAMILIA',
+      'GRUPO',
+      'LINEA',
+      'LÍNEA',
+    ],
+    // -------------------------------------------------------------------------
+    // Packaging columns — explicit, no regex guessing
+    // -------------------------------------------------------------------------
+    // Maps to the "Tipo de Unidad" column.
+    // Expected values: "Caja", "Unidad", "Tira", "Blíster", etc.
+    'saleUnit': [
+      'TIPO DE UNIDAD',
+      'TIPO UNIDAD',
+      'UNIDAD',
+      'UNIT',
+      'TIPO',
+      'PACKAGING',
+      'UNIDAD DE VENTA',
+      'SALE UNIT',
+      'PRESENTACION',
+      'PRESENTACIÓN',
+      'EMPAQUE',
+    ],
+    // Maps to the "Cantidad por Paquete" column.
+    // Expected values: numeric (1, 12, 24, …)
+    'unitsPerPkg': [
+      'CANTIDAD POR PAQUETE',
+      'CANT POR PAQUETE',
+      'CANTIDAD PAQUETE',
+      'CANTIDAD POR PKG',
+      'MULTIPLICADOR',
+      'MULTIPLIER',
+      'UNIDADES POR PAQUETE',
+      'UNITS PER PACKAGE',
+      'UNIDADES PAQUETE',
+    ],
   };
 
-  /// Main entry point for file picking and parsing
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
+
+  /// Opens the OS file picker restricted to Excel files and parses the result.
+  ///
+  /// Returns `null` when the user cancels.
+  /// Throws an [Exception] for unsupported formats or parse failures.
   static Future<ImportParseResult?> pickAndParse() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['xlsx', 'xls', 'csv'],
+        // CSV explicitly excluded — see class doc-comment for rationale.
+        allowedExtensions: ['xlsx', 'xls'],
         withData: true,
       );
 
       if (result == null || result.files.isEmpty) {
-        return null; // User canceled
+        return null; // User cancelled.
       }
 
       final file = result.files.first;
       final extension = file.extension?.toLowerCase() ?? '';
 
       if (extension == 'xlsx' || extension == 'xls') {
-        return await _parseExcel(file.bytes!);
-      } else if (extension == 'csv') {
-        // file.bytes might be null on some platforms (like large files on mobile)
-        // In reality, FilePicker withData:true loads bytes. If not, fallback to File path.
+        List<int> bytes;
         if (file.bytes != null) {
-          return await _parseCsvFromBytes(file.bytes!);
+          bytes = file.bytes!;
         } else if (file.path != null) {
-          return await _parseCsvFromFile(file.path!);
+          bytes = File(file.path!).readAsBytesSync();
+        } else {
+          throw Exception('No se pudo obtener el contenido del archivo.');
         }
+        return await _parseExcel(bytes);
       }
-      throw Exception('Formato de archivo no soportado: $extension');
+
+      // Should never reach here given the allowedExtensions filter, but kept
+      // as a safety net.
+      throw Exception(
+        'Formato de archivo no compatible: .$extension\n'
+        'Por favor, usa un archivo Excel (.xlsx o .xls).',
+      );
     } catch (e) {
       debugPrint('Error en pickAndParse: $e');
-      throw Exception('Error al abrir archivo: $e');
+      throw Exception('Error al abrir el archivo: $e');
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Excel parsing
+  // ---------------------------------------------------------------------------
 
   static Future<ImportParseResult> _parseExcel(List<int> bytes) async {
     final excel = Excel.decodeBytes(bytes);
 
-    // Take the first sheet by default, or the active one
     final sheetName = excel.tables.keys.first;
     final table = excel.tables[sheetName];
 
@@ -66,36 +159,27 @@ class ImportService {
     }
 
     final headersRow = table.rows.first;
-    final headers =
-        headersRow.map((cell) => cell?.value?.toString().trim() ?? '').toList();
+    final headers = headersRow
+        .map((cell) => cell?.value?.toString().trim() ?? '')
+        .toList();
 
-    return _parseRows(headers, table.rows.skip(1).toList());
-  }
-
-  static Future<ImportParseResult> _parseCsvFromBytes(List<int> bytes) async {
-    final content = utf8.decode(bytes); // Warning: assumes UTF-8
-    return _parseCsvContent(content);
-  }
-
-  static Future<ImportParseResult> _parseCsvFromFile(String path) async {
-    final file = File(path);
-    final content = await file.readAsString();
-    return _parseCsvContent(content);
-  }
-
-  static Future<ImportParseResult> _parseCsvContent(String content) async {
-    final csvTable = const CsvToListConverter().convert(content);
-    if (csvTable.isEmpty) throw Exception('El archivo CSV está vacío.');
-
-    final headers = csvTable.first.map((e) => e.toString().trim()).toList();
-    final rowsData = csvTable.skip(1).map((row) {
-      return row.map((e) => e.toString().trim()).toList();
+    // Convert Data? cells to plain strings, preserving embedded line-breaks as
+    // spaces (they are part of the cell value in xlsx, not structural).
+    final stringRows = table.rows.skip(1).map((row) {
+      return row
+          .map((cell) =>
+              cell?.value?.toString().replaceAll('\n', ' ').trim() ?? '')
+          .toList();
     }).toList();
 
-    return _parseRowsStringOnly(headers, rowsData);
+    return _parseRowsStringOnly(headers, stringRows);
   }
 
-  /// Evaluates headers against aliases
+  // ---------------------------------------------------------------------------
+  // Column detection
+  // ---------------------------------------------------------------------------
+
+  /// Matches each header to its canonical key via the alias dictionary.
   static Map<String, int> _detectColumns(List<String> headers) {
     final mapping = <String, int>{};
 
@@ -105,7 +189,6 @@ class ImportService {
 
       _columnAliases.forEach((key, aliases) {
         if (!mapping.containsKey(key)) {
-          // Take first match
           if (aliases.any((alias) => h == alias || h.contains(alias))) {
             mapping[key] = i;
           }
@@ -115,57 +198,58 @@ class ImportService {
     return mapping;
   }
 
-  /// Core logic turning raw row generic cells into ProductImportRow
-  static Future<ImportParseResult> _parseRows(
-      List<String> headers, List<List<Data?>> rawRows) async {
-    // Convert Data? to String for uniformity
-    final stringRows = rawRows.map((row) {
-      return row.map((cell) => cell?.value?.toString().trim() ?? '').toList();
-    }).toList();
-
-    return _parseRowsStringOnly(headers, stringRows);
-  }
+  // ---------------------------------------------------------------------------
+  // Row parsing
+  // ---------------------------------------------------------------------------
 
   static Future<ImportParseResult> _parseRowsStringOnly(
-      List<String> headers, List<List<String>> stringRows,
-      {Map<String, int>? explicitMapping}) async {
+    List<String> headers,
+    List<List<String>> stringRows, {
+    Map<String, int>? explicitMapping,
+    bool? useCommaAsDecimal,
+  }) async {
     final colMap = _detectColumns(headers);
     if (explicitMapping != null) {
       colMap.addAll(explicitMapping);
     }
+
+    if (!colMap.containsKey('name')) {
+      throw Exception(
+          'No se detectó la columna obligatoria: Nombre / Producto.');
+    }
+
+    final reverseMap = {
+      for (final entry in colMap.entries) entry.key: headers[entry.value]
+    };
+
+    final int idxName = colMap['name']!;
+    final int? idxBarcode = colMap['barcode'];
+    final int? idxCost = colMap['cost'];
+    final int? idxPrice = colMap['price'];
+    final int? idxStock = colMap['stock'];
+    final int? idxCategory = colMap['category'];
+    final int? idxSaleUnit = colMap['saleUnit'];
+    final int? idxUnitsPerPkg = colMap['unitsPerPkg'];
+
     final List<ProductImportRow> validRows = [];
     final List<ImportRowError> errors = [];
 
-    // Reverse map for debugging/UI
-    final reverseMap = {
-      for (var entry in colMap.entries) entry.key: headers[entry.value]
-    };
-
-    if (!colMap.containsKey('name')) {
-      throw Exception('No se detectó la columna obligatoria: Nombre/Producto.');
-    }
-
-    int idxName = colMap['name']!;
-    int? idxBarcode = colMap['barcode'];
-    int? idxCost = colMap['cost'];
-    int? idxPrice = colMap['price'];
-    int? idxStock = colMap['stock'];
-    int? idxCategory = colMap['category'];
-    int? idxMeasure = colMap['measure'];
-
     for (int i = 0; i < stringRows.length; i++) {
       final row = stringRows[i];
-      // Skip empty rows
-      if (row.isEmpty || (row.length > idxName && row[idxName].isEmpty)) {
+
+      // Skip blank rows.
+      if (row.isEmpty ||
+          (row.length > idxName && row[idxName].isEmpty) ||
+          row.length <= idxName) {
         continue;
       }
 
       try {
         final name = row[idxName];
+
         final barcode = idxBarcode != null && row.length > idxBarcode
             ? row[idxBarcode]
             : '';
-
         final costStr =
             idxCost != null && row.length > idxCost ? row[idxCost] : '0';
         final priceStr =
@@ -175,21 +259,31 @@ class ImportService {
         final categoryStr = idxCategory != null && row.length > idxCategory
             ? row[idxCategory]
             : '';
-        final measureStr = idxMeasure != null && row.length > idxMeasure
-            ? row[idxMeasure]
-            : '';
 
-        // Parsing Numerics intelligently (handle commas, letters, etc)
-        final cost = _parseDoubleSafe(costStr);
-        final price = _parseDoubleSafe(priceStr);
-        final stockRaw = _parseDoubleSafe(
-            stockStr); // This is stock in "saleUnit" (e.g. 5 boxes)
+        // Packaging — read from explicit columns; fall back to defaults.
+        final rawUnitType =
+            idxSaleUnit != null && row.length > idxSaleUnit
+                ? row[idxSaleUnit]
+                : '';
+        final rawQtyPerPkg =
+            idxUnitsPerPkg != null && row.length > idxUnitsPerPkg
+                ? row[idxUnitsPerPkg]
+                : '';
 
-        // Parsing Packaging
-        final parsedPkg = PackagingParser.parse(measureStr);
+        final ParsedPackaging parsedPkg =
+            (rawUnitType.isEmpty && rawQtyPerPkg.isEmpty)
+                ? PackagingParser.defaults()
+                : PackagingParser.fromExplicitColumns(
+                    rawUnitType: rawUnitType,
+                    rawQuantityPerPkg: rawQtyPerPkg,
+                  );
 
-        // Convert raw stock to Base Unit Stock
-        final stockBase = stockRaw * parsedPkg.unitsPerSaleUnit;
+        final cost = _parseDoubleSafe(costStr, useCommaAsDecimal: useCommaAsDecimal);
+        final price = _parseDoubleSafe(priceStr, useCommaAsDecimal: useCommaAsDecimal);
+        // Stock in the spreadsheet is expressed in sale-units (e.g. 5 boxes).
+        // Convert to base units for the internal inventory model.
+        final stockBase =
+            _parseDoubleSafe(stockStr, useCommaAsDecimal: useCommaAsDecimal) * parsedPkg.unitsPerSaleUnit;
 
         validRows.add(ProductImportRow(
           name: name,
@@ -203,8 +297,10 @@ class ImportService {
           packagingInfo: parsedPkg.packagingInfo,
         ));
       } catch (e) {
-        errors.add(ImportRowError(i + 2,
-            'Error parseando fila: $e')); // i+2 accounting for 0-index and header
+        errors.add(ImportRowError(
+          i + 2, // +1 for 0-index, +1 for header row.
+          'Error al parsear fila: $e',
+        ));
       }
     }
 
@@ -217,22 +313,79 @@ class ImportService {
     );
   }
 
-  static Future<ImportParseResult> parseWithOverrides(List<String> headers,
-      List<List<String>> stringRows, Map<String, int> explicitMapping) {
-    return _parseRowsStringOnly(headers, stringRows,
-        explicitMapping: explicitMapping);
+  // ---------------------------------------------------------------------------
+  // Public override entry point (for the column-mapping UI)
+  // ---------------------------------------------------------------------------
+
+  static Future<ImportParseResult> parseWithOverrides(
+    List<String> headers,
+    List<List<String>> stringRows,
+    Map<String, int> explicitMapping, {
+    bool? useCommaAsDecimal,
+  }) {
+    return _parseRowsStringOnly(
+      headers,
+      stringRows,
+      explicitMapping: explicitMapping,
+      useCommaAsDecimal: useCommaAsDecimal,
+    );
   }
 
-  static double _parseDoubleSafe(String val) {
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  /// Parses a numeric string that may contain thousands separators, currency
+  /// symbols, or use commas as decimal separators.
+  static double _parseDoubleSafe(String val, {bool? useCommaAsDecimal}) {
     if (val.isEmpty) return 0.0;
-    // Remove currency symbols, fix commas to dots
+    
+    // Strip everything except digits, comma, dot, and minus
     String clean = val.replaceAll(RegExp(r'[^\d.,-]'), '');
-    clean = clean.replaceAll(',', '.');
-    // If multiple dots exist, remove all but last (e.g., 1.000.50 -> 1000.50)
-    final parts = clean.split('.');
-    if (parts.length > 2) {
-      clean = '${parts.sublist(0, parts.length - 1).join()}.${parts.last}';
+    if (clean.isEmpty) return 0.0;
+
+    if (useCommaAsDecimal != null) {
+      if (useCommaAsDecimal) {
+        // Force comma as decimal: remove all dots, replace comma with dot
+        clean = clean.replaceAll('.', '');
+        clean = clean.replaceAll(',', '.');
+      } else {
+        // Force dot as decimal: remove all commas
+        clean = clean.replaceAll(',', '');
+      }
+      return double.tryParse(clean) ?? 0.0;
     }
+
+    int lastComma = clean.lastIndexOf(',');
+    int lastDot = clean.lastIndexOf('.');
+
+    // If both exist
+    if (lastComma != -1 && lastDot != -1) {
+      if (lastDot > lastComma) {
+        // American format: 1,234.56 -> dot is decimal
+        clean = clean.replaceAll(',', '');
+      } else {
+        // European format: 1.234,56 -> comma is decimal
+        clean = clean.replaceAll('.', '');
+        clean = clean.replaceAll(',', '.');
+      }
+    } else if (lastComma != -1) {
+      // Only comma exists (e.g., "15,50" or "1,550")
+      final parts = clean.split(',');
+      // If the last part has exactly 3 digits, it's highly likely a thousand separator
+      if (parts.last.length == 3 && parts.length > 1) {
+        clean = clean.replaceAll(',', '');
+      } else {
+        clean = clean.replaceAll(',', '.');
+      }
+    } else if (lastDot != -1) {
+      // Only dot exists (e.g., "15.50" or "1.550")
+      final parts = clean.split('.');
+      if (parts.last.length == 3 && parts.length > 1) {
+        clean = clean.replaceAll('.', '');
+      }
+    }
+
     return double.tryParse(clean) ?? 0.0;
   }
 }

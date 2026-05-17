@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import '../../services/pdf_generator_service.dart';
 import '../../services/printer/thermal_printer_service.dart';
+import '../../services/printer/thermal_printer_connection.dart';
 import 'package:printing/printing.dart';
 import '../../models/transaction_model.dart';
 import 'package:provider/provider.dart';
@@ -20,8 +21,13 @@ class PrintPreviewScreen extends StatefulWidget {
 }
 
 class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
-  final Color primaryGreen = const Color(0xFF00BFA5); // Matching EPSON mock
+  final Color primaryGreen = const Color(0xFF00BFA5);
   bool _isPrinting = false;
+
+  /// Width selected by the user for the connected thermal printer.
+  /// Most portable Bluetooth printers are 58 mm; 80 mm is common for desktop
+  /// thermal printers. Defaulting to 58 mm avoids buffer overflows on mobile.
+  double _selectedWidthMm = 58.0;
 
   @override
   void initState() {
@@ -37,28 +43,50 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
     );
   }
 
+  Future<void> _printTestPage() async {
+    final success = await ThermalPrinterService.instance
+        .printTestPage(widthMm: _selectedWidthMm);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(success
+            ? 'Prueba enviada — revisa la impresora'
+            : 'Error al enviar la prueba de impresión'),
+        backgroundColor: success ? primaryGreen : Colors.red,
+      ));
+    }
+  }
+
   void _printReceipt() async {
     if (_isPrinting) return;
     setState(() => _isPrinting = true);
 
     try {
-      final pdfBytes = await _generatePdfReceipt();
       final thermalService = ThermalPrinterService.instance;
 
       if (thermalService.isConnected) {
-        // Print directly to connected bluetooth thermal printer
-        final success = await thermalService.printPdf(pdfBytes);
+        // Native ESC/POS path — no PDF, no rasterization, ~5 KB RAM.
+        final profile = context.read<SettingsProvider>().profile;
+        final success = await thermalService.printReceipt(
+          widget.transaction,
+          profile,
+          widthMm: _selectedWidthMm,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(success ? 'Impresión enviada correctamente' : 'Error al imprimir'),
+            content: Text(
+              success ? 'Impresión enviada correctamente' : 'Error al imprimir',
+            ),
             backgroundColor: success ? primaryGreen : Colors.red,
           ));
         }
       } else {
-        // Fallback to Android System Print (AirPrint / System Spooler)
+        // Fallback: Android system print spooler / AirPrint.
+        // PDF is only generated here, where it is actually needed.
+        final pdfBytes = await _generatePdfReceipt();
         await Printing.layoutPdf(
-            onLayout: (PdfPageFormat format) async => pdfBytes,
-            name: 'Recibo_${widget.transaction.id}');
+          onLayout: (PdfPageFormat format) async => pdfBytes,
+          name: 'Recibo_${widget.transaction.id}',
+        );
       }
     } finally {
       if (mounted) setState(() => _isPrinting = false);
@@ -66,72 +94,19 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
   }
 
   Future<void> _showPrinterPairingDialog() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const AlertDialog(
-        backgroundColor: Color(0xFF1E2333),
-        title: Text('Buscando impresoras...', style: TextStyle(color: Colors.white)),
-        content: SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),
-      )
-    );
-
-    final printers = await ThermalPrinterService.instance.scan();
-    if (mounted) Navigator.pop(context); // Close loading dialog
-
-    if (!mounted) return;
-
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2333),
-        title: const Text('Vincular Impresora Térmica', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (printers.isEmpty)
-              const Text(
-                'No se detectaron impresoras. Asegúrate de que estén encendidas, en modo de emparejamiento, y que Bluetooth esté activado.',
-                style: TextStyle(color: Colors.white70),
-              )
-            else
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: printers.length,
-                  itemBuilder: (ctx, i) => ListTile(
-                    title: Text(printers[i].name, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text('MAC: ${printers[i].address}', style: const TextStyle(color: Colors.white54)),
-                    trailing: const Icon(Icons.bluetooth_connected, color: Colors.white70),
-                    onTap: () async {
-                      Navigator.pop(ctx);
-                      _connectToPrinter(printers[i].address);
-                    },
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: () async {
-                await Permission.bluetooth.request();
-                const intent = AndroidIntent(action: 'android.settings.BLUETOOTH_SETTINGS');
-                await intent.launch();
-              },
-              icon: const Icon(Icons.settings_bluetooth, color: Color(0xFF00BFA5)),
-              label: const Text('Abrir Ajustes de Bluetooth', style: TextStyle(color: Color(0xFF00BFA5))),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
+      builder: (ctx) => _PrinterScanDialog(
+        primaryGreen: primaryGreen,
+        onDeviceSelected: (address) {
+          Navigator.pop(ctx);
+          _connectToPrinter(address);
+        },
       ),
     );
   }
+
+
 
   Future<void> _connectToPrinter(String address) async {
     showDialog(
@@ -213,6 +188,67 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
             ),
           ),
           const Divider(color: Colors.white12, height: 1),
+          // Paper-size selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ANCHO DE PAPEL',
+                  style: TextStyle(
+                    color: Color(0xFFA0A8C1),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<double>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 58.0,
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('58 mm'),
+                      ),
+                      icon: Icon(Icons.phone_android, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 80.0,
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('80 mm'),
+                      ),
+                      icon: Icon(Icons.desktop_windows, size: 16),
+                    ),
+                  ],
+                  selected: {_selectedWidthMm},
+                  onSelectionChanged: (Set<double> selection) {
+                    setState(() => _selectedWidthMm = selection.first);
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                      (states) => states.contains(WidgetState.selected)
+                          ? primaryGreen.withValues(alpha: 0.25)
+                          : Colors.transparent,
+                    ),
+                    foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                      (states) => states.contains(WidgetState.selected)
+                          ? primaryGreen
+                          : Colors.white70,
+                    ),
+                    side: WidgetStateProperty.all(
+                      BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white12, height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -221,7 +257,8 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                 TextButton.icon(
                   onPressed: _showPrinterPairingDialog,
                   icon: const Icon(Icons.bluetooth_searching, color: Colors.white),
-                  label: const Text('Vincular Impresora', style: TextStyle(color: Colors.white)),
+                  label: const Text('Vincular Impresora',
+                      style: TextStyle(color: Colors.white)),
                 ),
                 if (isConnected)
                   TextButton(
@@ -229,11 +266,38 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                       await ThermalPrinterService.instance.disconnect();
                       setState(() {});
                     },
-                    child: const Text('Desconectar', style: TextStyle(color: Colors.redAccent)),
-                  )
+                    child: const Text('Desconectar',
+                        style: TextStyle(color: Colors.redAccent)),
+                  ),
               ],
             ),
           ),
+          // Test-print row — only shown when a printer is connected.
+          // Sends plain ESC/POS text with NO image rasterization, allowing
+          // you to validate BT connection, paper width, and ESC/POS encoding
+          // without wasting a full roll.
+          if (isConnected) ...
+          [
+            const Divider(color: Colors.white12, height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _printTestPage,
+                  icon: Icon(Icons.receipt_long,
+                      color: primaryGreen, size: 18),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Imprimir página de prueba (sin imagen)',
+                      style: TextStyle(color: primaryGreen),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -241,7 +305,13 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
 
   Widget _buildTicketPreview() {
     final profile = context.read<SettingsProvider>().profile;
-    
+    // Resolve the correct PDF roll format from the user's selection.
+    // NOTE: PdfPageFormat.roll58 does not exist in pdf ^3.11.3 — only roll80
+    // is a named constant. The 58 mm roll is constructed manually.
+    final pageFormat = _selectedWidthMm == 58.0
+        ? const PdfPageFormat(58.0 * PdfPageFormat.mm, double.infinity)
+        : PdfPageFormat.roll80;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -249,12 +319,15 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 5)),
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
+      // key forces PdfPreview to rebuild when the format changes.
+      key: ValueKey(_selectedWidthMm),
       child: PdfPreview(
         build: (format) => PdfGeneratorService().generateInvoice(
           widget.transaction,
@@ -265,11 +338,11 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
         canChangeOrientation: false,
         canChangePageFormat: false,
         canDebug: false,
-        useActions: false, // Hides the built-in toolbar
-        maxPageWidth: 400, // Keeps it narrow like a ticket
-        initialPageFormat: PdfPageFormat.roll80, // 80mm format
-        scrollViewDecoration: const BoxDecoration(color: Colors.white), // Match background
-        pdfPreviewPageDecoration: const BoxDecoration(), // Remove default page styling
+        useActions: false,
+        maxPageWidth: _selectedWidthMm == 58.0 ? 320 : 420,
+        initialPageFormat: pageFormat,
+        scrollViewDecoration: const BoxDecoration(color: Colors.white),
+        pdfPreviewPageDecoration: const BoxDecoration(),
       ),
     );
   }
@@ -368,6 +441,216 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
             ),
           )
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Self-contained Bluetooth printer scanner dialog
+// ---------------------------------------------------------------------------
+// Uses a StatefulWidget so it can:
+//   • auto-scan on first build (initState)
+//   • update its own list without rebuilding the parent screen
+//   • support pull-to-refresh (RefreshIndicator) to re-scan
+//
+// Uses a plain Dialog — NOT AlertDialog — because AlertDialog wraps its content
+// in IntrinsicWidth, which asks ListView for intrinsic dimensions it cannot
+// provide, causing "RenderShrinkWrappingViewport does not support returning
+// intrinsic dimensions" and a cascading render crash.
+class _PrinterScanDialog extends StatefulWidget {
+  final Color primaryGreen;
+  final void Function(String address) onDeviceSelected;
+
+  const _PrinterScanDialog({
+    required this.primaryGreen,
+    required this.onDeviceSelected,
+  });
+
+  @override
+  State<_PrinterScanDialog> createState() => _PrinterScanDialogState();
+}
+
+class _PrinterScanDialogState extends State<_PrinterScanDialog> {
+  List<PrinterDevice> _printers = [];
+  bool _isScanning = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scan();
+  }
+
+  Future<void> _scan() async {
+    setState(() => _isScanning = true);
+    final found = await ThermalPrinterService.instance.scan();
+    if (mounted) {
+      setState(() {
+        _printers = found;
+        _isScanning = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 42 % of screen height — adapts to every screen size and orientation.
+    final maxListHeight = MediaQuery.sizeOf(context).height * 0.42;
+
+    return Dialog(
+      backgroundColor: const Color(0xFF1E2333),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──────────────────────────────────────────────────
+            Row(
+              children: [
+                Icon(Icons.bluetooth_searching,
+                    color: widget.primaryGreen, size: 22),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Vincular Impresora Térmica',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Desliza la lista hacia abajo para actualizar',
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Device list ─────────────────────────────────────────────
+            // ConstrainedBox gives the inner ListView a bounded height so
+            // it can measure and scroll correctly inside a Column.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: maxListHeight,
+                minHeight: 56,
+              ),
+              child: _isScanning
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _scan,
+                      color: widget.primaryGreen,
+                      backgroundColor: const Color(0xFF1E2333),
+                      child: _printers.isEmpty
+                          ? ListView(
+                              // Needs AlwaysScrollableScrollPhysics so
+                              // RefreshIndicator activates on an empty list.
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Text(
+                                    'No se detectaron impresoras.\nAsegúrate de que estén encendidas y en modo de emparejamiento.\n\nDesliza hacia abajo para volver a buscar.',
+                                    style: TextStyle(
+                                        color: Colors.white60, height: 1.5),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              physics: const ClampingScrollPhysics(),
+                              itemCount: _printers.length,
+                              separatorBuilder: (_, __) => const Divider(
+                                  color: Colors.white10, height: 1),
+                              itemBuilder: (_, i) {
+                                final device = _printers[i];
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: widget.primaryGreen
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(Icons.print,
+                                        color: widget.primaryGreen, size: 20),
+                                  ),
+                                  title: Text(
+                                    device.name.isNotEmpty
+                                        ? device.name
+                                        : 'Dispositivo desconocido',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  subtitle: Text(
+                                    device.address,
+                                    style: const TextStyle(
+                                        color: Colors.white38, fontSize: 11),
+                                  ),
+                                  trailing: Icon(Icons.arrow_forward_ios,
+                                      color: widget.primaryGreen, size: 14),
+                                  onTap: () =>
+                                      widget.onDeviceSelected(device.address),
+                                );
+                              },
+                            ),
+                    ),
+            ),
+
+            const Divider(color: Colors.white12, height: 24),
+
+            // ── Footer actions ───────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      await Permission.bluetooth.request();
+                      const intent = AndroidIntent(
+                          action: 'android.settings.BLUETOOTH_SETTINGS');
+                      await intent.launch();
+                    },
+                    icon: Icon(Icons.settings_bluetooth,
+                        color: widget.primaryGreen, size: 18),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Ajustes BT',
+                          style: TextStyle(color: widget.primaryGreen)),
+                    ),
+                  ),
+                ),
+                // Manual re-scan button
+                IconButton(
+                  tooltip: 'Volver a buscar',
+                  onPressed: _isScanning ? null : _scan,
+                  icon: _isScanning
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: widget.primaryGreen))
+                      : Icon(Icons.refresh, color: widget.primaryGreen),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar',
+                      style: TextStyle(color: Colors.white54)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -37,10 +37,12 @@ class BluetoothPrinterConnection implements ThermalPrinterConnection {
       bool isConnected = await PrintBluetoothThermal.connectionStatus;
       if (!isConnected) return false;
 
-      // The print_bluetooth_thermal package expects raw ESC/POS bytes.
-      // Since we are generating a rasterized ESC/POS image payload beforehand (including init/cut commands),
-      // we can just send those raw bytes directly.
-      bool success = await PrintBluetoothThermal.writeBytes(imageBytes);
+      // The print_bluetooth_thermal plugin expects List<int> on the platform
+      // channel — NOT Uint8List. On Android, the native Kotlin code performs
+      // a hard cast to java.util.List which throws ClassCastException for
+      // byte[] (Uint8List). Calling .toList() produces a standard Dart
+      // List<int> that marshals correctly through the MethodChannel.
+      bool success = await PrintBluetoothThermal.writeBytes(imageBytes.toList());
       return success;
     } catch (e) {
       return false;

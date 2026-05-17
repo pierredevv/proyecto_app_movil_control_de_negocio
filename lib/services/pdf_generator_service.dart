@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -13,6 +14,17 @@ class PdfGeneratorService {
     
     final font = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
+
+    // Load logo if the profile has one and the toggle is on.
+    pw.MemoryImage? logoImage;
+    if (profile.showLogoOnInvoice &&
+        profile.logoPath != null &&
+        profile.logoPath!.isNotEmpty) {
+      final logoFile = File(profile.logoPath!);
+      if (await logoFile.exists()) {
+        logoImage = pw.MemoryImage(await logoFile.readAsBytes());
+      }
+    }
     
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
@@ -37,11 +49,17 @@ class PdfGeneratorService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.all(10), // Small margin for thermal paper
+        margin: const pw.EdgeInsets.all(10),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              // Logo (only when enabled and file exists)
+              if (logoImage != null) ...[
+                pw.Image(logoImage, width: 80, height: 80, fit: pw.BoxFit.contain),
+                pw.SizedBox(height: profile.logoSpacing),
+              ],
+
               // Header
               pw.Text('FACTURA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
               pw.Text('CON DERECHO A CRÉDITO FISCAL', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),

@@ -1,3 +1,4 @@
+/// Represents the resolved packaging information for an imported product.
 class ParsedPackaging {
   final String saleUnit;
   final double unitsPerSaleUnit;
@@ -10,83 +11,101 @@ class ParsedPackaging {
   });
 
   @override
-  String toString() {
-    return 'saleUnit: $saleUnit, multiplier: $unitsPerSaleUnit, info: $packagingInfo';
-  }
+  String toString() =>
+      'saleUnit: $saleUnit, multiplier: $unitsPerSaleUnit, info: $packagingInfo';
 }
 
+/// Resolves explicit packaging columns from the Excel file.
+///
+/// No regex guessing — values come directly from two dedicated columns:
+///   • "TIPO DE UNIDAD"  (e.g. "Caja", "Unidad", "Tira", "Blíster")
+///   • "CANTIDAD POR PAQUETE" (e.g. 1, 12, 24)
+///
+/// If either column is absent the safe defaults are returned:
+///   saleUnit = 'UNI', unitsPerSaleUnit = 1.0
 class PackagingParser {
-  /// Interpreta la columna "Medida" (o similar) del Excel
-  /// y deduce cómo se vende el producto y su multiplicador.
+  /// Maps human-friendly values written in the spreadsheet to canonical codes.
+  static const Map<String, String> _unitAliases = {
+    // Box variants
+    'CAJA': 'CAJ',
+    'CAJ': 'CAJ',
+    'BOX': 'CAJ',
+    // Unit variants
+    'UNIDAD': 'UNI',
+    'UNI': 'UNI',
+    'UNIT': 'UNI',
+    'PZA': 'UNI',
+    'PIEZA': 'UNI',
+    // Strip variants
+    'TIRA': 'TIR',
+    'TIR': 'TIR',
+    'STRIP': 'TIR',
+    // Blister variants
+    'BLISTER': 'BLI',
+    'BLÍSTER': 'BLI',
+    'BLI': 'BLI',
+    // Pack variants
+    'PAQUETE': 'PAQ',
+    'PAQ': 'PAQ',
+    'PACK': 'PAQ',
+    // Bag variants
+    'BOLSA': 'BOL',
+    'BOL': 'BOL',
+    'BAG': 'BOL',
+    // Bottle / flask variants
+    'BOTELLA': 'BOT',
+    'BOT': 'BOT',
+    'FRASCO': 'FRA',
+    'FRA': 'FRA',
+    // Sachet
+    'SOBRE': 'SOB',
+    'SOB': 'SOB',
+    'SACHET': 'SOB',
+    // Weight / Volume
+    'KG': 'KIL',
+    'KILO': 'KIL',
+    'KILOGRAMO': 'KIL',
+    'KILOGRAMS': 'KIL',
+    'G': 'GRA',
+    'GR': 'GRA',
+    'GRAMO': 'GRA',
+    'GRAMS': 'GRA',
+    'L': 'LIT',
+    'LT': 'LIT',
+    'LITRO': 'LIT',
+    'LITER': 'LIT',
+    'ML': 'MIL',
+    'MILILITRO': 'MIL',
+  };
+
+  /// Resolves explicit values from the spreadsheet columns.
   ///
-  /// Ejemplos:
-  /// "24X300" -> Caja de 24. saleUnit='CAJ', multiplier=24, info='24x300'
-  /// "X 18" -> Caja de 18. saleUnit='CAJ', multiplier=18, info='18'
-  /// "3 L" -> Unidad. saleUnit='UNI', multiplier=1, info='3L'
-  /// "S/M" -> Unidad. saleUnit='UNI', multiplier=1, info=''
-  static ParsedPackaging parse(String rawMeasure) {
-    if (rawMeasure.isEmpty) {
-      return ParsedPackaging(
+  /// [rawUnitType]        — raw value from the "TIPO DE UNIDAD" column.
+  /// [rawQuantityPerPkg]  — raw value from the "CANTIDAD POR PAQUETE" column.
+  static ParsedPackaging fromExplicitColumns({
+    required String rawUnitType,
+    required String rawQuantityPerPkg,
+  }) {
+    final unitKey = rawUnitType.trim().toUpperCase();
+    final saleUnit = _unitAliases[unitKey] ?? (unitKey.isNotEmpty ? unitKey : 'UNI');
+
+    final qty = double.tryParse(
+          rawQuantityPerPkg.trim().replaceAll(',', '.'),
+        ) ??
+        1.0;
+    final unitsPerSaleUnit = qty > 0 ? qty : 1.0;
+
+    return ParsedPackaging(
+      saleUnit: saleUnit,
+      unitsPerSaleUnit: unitsPerSaleUnit,
+      packagingInfo: rawUnitType.trim(),
+    );
+  }
+
+  /// Returns safe defaults when both packaging columns are absent.
+  static ParsedPackaging defaults() => ParsedPackaging(
         saleUnit: 'UNI',
         unitsPerSaleUnit: 1.0,
         packagingInfo: '',
       );
-    }
-
-    final measure = rawMeasure.trim().toUpperCase();
-
-    // 1. Caso explícito de Cajas o "X" multiplicador (Ej: "24X300" o "X 18")
-    // Busca un número seguido (o precedido) por una X
-    final boxRegex = RegExp(r'^(\d+)\s*X');
-    final boxMatch = boxRegex.firstMatch(measure);
-
-    if (boxMatch != null) {
-      final multiplierStr = boxMatch.group(1);
-      final multiplier = double.tryParse(multiplierStr ?? '1') ?? 1.0;
-
-      return ParsedPackaging(
-        saleUnit: 'CAJ',
-        unitsPerSaleUnit: multiplier,
-        packagingInfo: measure, // Guardamos la info original como empaque
-      );
-    }
-
-    // Variante: "X 12" o "X12"
-    final xFirstRegex = RegExp(r'^X\s*(\d+)');
-    final xFirstMatch = xFirstRegex.firstMatch(measure);
-    if (xFirstMatch != null) {
-      final multiplierStr = xFirstMatch.group(1);
-      final multiplier = double.tryParse(multiplierStr ?? '1') ?? 1.0;
-
-      return ParsedPackaging(
-        saleUnit: 'CAJ',
-        unitsPerSaleUnit: multiplier,
-        packagingInfo: measure,
-      );
-    }
-
-    // 2. Tiras o Paquetes explícitos (Si existen en su data)
-    // Ejemplo: "TIRA 12" -> saleUnit: 'TIR', multiplier: 12
-    if (measure.contains('TIRA')) {
-      final numRegex = RegExp(r'\d+');
-      final match = numRegex.firstMatch(measure);
-      double multiplier = 1.0;
-      if (match != null) {
-        multiplier = double.tryParse(match.group(0) ?? '1') ?? 1.0;
-      }
-      return ParsedPackaging(
-        saleUnit: 'TIR',
-        unitsPerSaleUnit: multiplier,
-        packagingInfo: measure,
-      );
-    }
-
-    // 3. Fallback: Suponer que es una presentación individual (Botella, Bolsa, etc.)
-    // Ej: "3 L", "500 ML", "S/M"
-    return ParsedPackaging(
-      saleUnit: 'UNI',
-      unitsPerSaleUnit: 1.0,
-      packagingInfo: measure == 'S/M' ? '' : measure,
-    );
-  }
 }

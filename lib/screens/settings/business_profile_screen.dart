@@ -36,6 +36,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
   bool _showNitOnInvoice = true;
   bool _showLogoOnInvoice = true;
+  bool _printLogoOnThermal = false;
+  double _logoSpacing = 6.0;
   bool _allowNegativeStock = false;
   bool _allowInvoiceAdjustments = false;
   String? _logoPath;
@@ -69,6 +71,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
     _showNitOnInvoice = profile.showNitOnInvoice;
     _showLogoOnInvoice = profile.showLogoOnInvoice;
+    _printLogoOnThermal = profile.printLogoOnThermal;
+    _logoSpacing = profile.logoSpacing;
     _allowNegativeStock = profile.allowNegativeStock;
     _allowInvoiceAdjustments = profile.allowInvoiceAdjustments;
     _logoPath = profile.logoPath;
@@ -136,6 +140,8 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       lowStockThreshold: int.tryParse(_lowStockThresholdCtrl.text) ?? 3,
       showNitOnInvoice: _showNitOnInvoice,
       showLogoOnInvoice: _showLogoOnInvoice,
+      printLogoOnThermal: _printLogoOnThermal,
+      logoSpacing: _logoSpacing,
       allowNegativeStock: _allowNegativeStock,
       allowInvoiceAdjustments: _allowInvoiceAdjustments,
     );
@@ -324,6 +330,31 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
               value: _showLogoOnInvoice,
               onChanged: (v) => setState(() => _showLogoOnInvoice = v),
             ),
+            SwitchListTile(
+              title: const Text('Imprimir Logo en Impresora Térmica'),
+              subtitle: const Text('Si está activo, imprime el logo al inicio del ticket'),
+              value: _printLogoOnThermal,
+              onChanged: (v) => setState(() => _printLogoOnThermal = v),
+            ),
+            if (_showLogoOnInvoice || _printLogoOnThermal)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Espaciado debajo del Logo: ${_logoSpacing.toStringAsFixed(1)}',
+                        style: const TextStyle(fontSize: 14)),
+                    Slider(
+                      value: _logoSpacing,
+                      min: 0.0,
+                      max: 40.0,
+                      divisions: 40,
+                      label: _logoSpacing.toStringAsFixed(1),
+                      onChanged: (val) => setState(() => _logoSpacing = val),
+                    ),
+                  ],
+                ),
+              ),
 
             const _SectionTitle('Reglas de Negocio / ERP'),
             SwitchListTile(

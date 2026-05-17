@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/import_provider.dart';
 import '../../theme/app_theme.dart';
-import 'import_preview_screen.dart';
+import 'import_mapping_screen.dart';
 
 class ImportScreen extends StatelessWidget {
   const ImportScreen({super.key});
@@ -72,7 +72,7 @@ class ImportScreen extends StatelessWidget {
 
                   // Subtítulo explicativo
                   const Text(
-                    'Selecciona un archivo Excel (.xlsx, .xls) o CSV con tu lista de productos. El sistema detectará automáticamente las columnas comunes (Nombre, Código, Precio, Stock, Medida).',
+                    'Selecciona un archivo Excel (.xlsx o .xls) con tu lista de productos. El sistema detectará automáticamente las columnas comunes (Nombre, Código, Precio, Stock).',
                     style: TextStyle(
                       fontSize: 15,
                       color: Color(0xFFA0A8C1), // Slate 400
@@ -162,12 +162,13 @@ class ImportScreen extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
+// Added import for mapping screen at the top. Note: ensure you place it with other imports.
           onTap: () async {
             await provider.pickAndParseFile();
-            if (provider.step == ImportStep.preview && context.mounted) {
+            if (provider.step == ImportStep.mapping && context.mounted) {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ImportPreviewScreen()),
+                MaterialPageRoute(builder: (_) => const ImportMappingScreen()),
               );
             }
           },
@@ -219,7 +220,9 @@ class ImportScreen extends StatelessWidget {
               'La primera fila debe contener los nombres de las columnas.'),
           _buildTipRow('Solo la columna "Nombre" es obligatoria.'),
           _buildTipRow(
-              'Multiplicadores como "24x300" en "Medida" se detectan solos.'),
+              'Para empaques, agrega las columnas "Tipo de Unidad" (ej. Caja, Unidad) y "Cantidad por Paquete" (ej. 12, 24).'),
+          _buildTipRow(
+              'Usa formato .xlsx — las celdas con saltos de línea internos se leen correctamente.'),
         ],
       ),
     );

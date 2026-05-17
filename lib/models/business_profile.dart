@@ -23,6 +23,8 @@ class BusinessProfile {
   final String invoiceFooter;
   final bool showNitOnInvoice;
   final bool showLogoOnInvoice;
+  final bool printLogoOnThermal;
+  final double logoSpacing;
 
   // POS & Inventory settings
   final int defaultMinStock;
@@ -55,6 +57,8 @@ class BusinessProfile {
     this.invoiceFooter = '¡Gracias por su compra!',
     this.showNitOnInvoice = true,
     this.showLogoOnInvoice = true,
+    this.printLogoOnThermal = false,
+    this.logoSpacing = 6.0,
     this.defaultMinStock = 0,
     this.lowStockThreshold = 3,
     this.confirmClearCart = true,
@@ -86,6 +90,8 @@ class BusinessProfile {
     String? invoiceFooter,
     bool? showNitOnInvoice,
     bool? showLogoOnInvoice,
+    bool? printLogoOnThermal,
+    double? logoSpacing,
     int? defaultMinStock,
     int? lowStockThreshold,
     bool? confirmClearCart,
@@ -116,6 +122,8 @@ class BusinessProfile {
       invoiceFooter: invoiceFooter ?? this.invoiceFooter,
       showNitOnInvoice: showNitOnInvoice ?? this.showNitOnInvoice,
       showLogoOnInvoice: showLogoOnInvoice ?? this.showLogoOnInvoice,
+      printLogoOnThermal: printLogoOnThermal ?? this.printLogoOnThermal,
+      logoSpacing: logoSpacing ?? this.logoSpacing,
       defaultMinStock: defaultMinStock ?? this.defaultMinStock,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       confirmClearCart: confirmClearCart ?? this.confirmClearCart,
@@ -152,6 +160,8 @@ class BusinessProfile {
       'invoiceFooter': invoiceFooter,
       'showNitOnInvoice': showNitOnInvoice,
       'showLogoOnInvoice': showLogoOnInvoice,
+      'printLogoOnThermal': printLogoOnThermal,
+      'logoSpacing': logoSpacing,
       'defaultMinStock': defaultMinStock,
       'lowStockThreshold': lowStockThreshold,
       'confirmClearCart': confirmClearCart,
@@ -185,6 +195,8 @@ class BusinessProfile {
       invoiceFooter: map['invoiceFooter'] ?? '¡Gracias por su compra!',
       showNitOnInvoice: map['showNitOnInvoice'] ?? true,
       showLogoOnInvoice: map['showLogoOnInvoice'] ?? true,
+      printLogoOnThermal: map['printLogoOnThermal'] ?? false,
+      logoSpacing: (map['logoSpacing'] as num?)?.toDouble() ?? 6.0,
       defaultMinStock: map['defaultMinStock']?.toInt() ?? 0,
       lowStockThreshold: map['lowStockThreshold']?.toInt() ?? 3,
       confirmClearCart: map['confirmClearCart'] ?? true,
@@ -218,6 +230,8 @@ class BusinessProfile {
       invoiceFooter: invoiceFooter,
       showNitOnInvoice: showNitOnInvoice,
       showLogoOnInvoice: showLogoOnInvoice,
+      printLogoOnThermal: printLogoOnThermal,
+      logoSpacing: logoSpacing,
       defaultMinStock: defaultMinStock,
       lowStockThreshold: lowStockThreshold,
       confirmClearCart: confirmClearCart,
