@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -29,11 +32,18 @@ class _ProductListScreenState extends State<ProductListScreen>
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
+  // Tutorial Keys
+  final GlobalKey _gridToggleKey = GlobalKey();
+  final GlobalKey _fabKey = GlobalKey();
+
   bool _isSearching = false;
+  bool _isGridView = false;
 
   @override
   void initState() {
     super.initState();
+    _loadViewPreference();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().loadProducts();
       // Ensure specific categories are loaded if not already
@@ -41,6 +51,8 @@ class _ProductListScreenState extends State<ProductListScreen>
       // Update notifications for the badge
       context.read<NotificationProvider>().checkLowStock();
       context.read<NotificationProvider>().checkOverdueSales();
+      
+      _checkAndShowTutorial();
     });
 
     _searchController.addListener(() {
@@ -51,6 +63,86 @@ class _ProductListScreenState extends State<ProductListScreen>
     });
 
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadViewPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isGridView = prefs.getBool('inventory_grid_view') ?? false;
+    });
+  }
+
+  Future<void> _toggleViewMode() async {
+    setState(() {
+      _isGridView = !_isGridView;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('inventory_grid_view', _isGridView);
+  }
+
+  Future<void> _checkAndShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_inventory_tutorial') ?? false;
+    
+    if (!hasSeenTutorial && mounted) {
+      _showTutorial();
+      await prefs.setBool('has_seen_inventory_tutorial', true);
+    }
+  }
+
+  void _showTutorial() {
+    final targets = [
+      TargetFocus(
+        identify: "fabKey",
+        keyTarget: _fabKey,
+        alignSkip: Alignment.topRight,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            builder: (context, controller) {
+              return const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("¡Agrega tus Productos!", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  Text("Toca aquí para crear un producto manualmente o importar tu lista desde Excel.", style: TextStyle(color: Colors.white, fontSize: 16)),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      TargetFocus(
+        identify: "gridToggleKey",
+        keyTarget: _gridToggleKey,
+        alignSkip: Alignment.bottomLeft,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            builder: (context, controller) {
+              return const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Vista Dinámica", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  Text("Cambia entre vista de lista compacta y vista de cuadrícula con imágenes en cualquier momento.", style: TextStyle(color: Colors.white, fontSize: 16)),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    ];
+
+    TutorialCoachMark(
+      targets: targets,
+      colorShadow: Colors.black,
+      textSkip: "Omitir",
+      paddingFocus: 10,
+      opacityShadow: 0.8,
+    ).show(context: context);
   }
 
   @override
@@ -172,47 +264,9 @@ class _ProductListScreenState extends State<ProductListScreen>
                     : provider.filteredProducts.isEmpty
                         ? _buildEmptyState(context)
                         : BoundedDesktopWrapper(
-                            child: ListView.separated(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.only(
-                                  top: 8, bottom: 80, left: 16, right: 16),
-                              itemCount: provider.filteredProducts.length +
-                                  (provider.hasMore ? 1 : 0),
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 16),
-                              itemBuilder: (context, index) {
-                                if (index == provider.filteredProducts.length) {
-                                  return provider.hasMore
-                                      ? const Center(
-                                          child: Padding(
-                                          padding: EdgeInsets.all(16.0),
-                                          child: CircularProgressIndicator(),
-                                        ))
-                                      : const SizedBox(height: 80);
-                                }
-                                final product = provider.filteredProducts[index];
-                                return ProductListItem(
-                                  product: product,
-                                  categoryName: _getCategoryName(
-                                      provider.categories, product.categoryId),
-                                  onEdit: () => _navigateToForm(context, product),
-                                  onDelete: () =>
-                                      _confirmDelete(context, product),
-                                  onAdjustStock: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
-                                  ).then((_) {
-                                    if (context.mounted) {
-                                      context.read<InventoryProvider>().loadProducts(reset: true);
-                                    }
-                                  }),
-                                ).animate().fadeIn(duration: 400.ms).slideY(
-                                      begin: 0.1,
-                                      end: 0,
-                                      delay: (50 * (index % 10)).ms,
-                                    );
-                              },
-                            ),
+                            child: _isGridView
+                                ? _buildGridView(context, provider)
+                                : _buildListView(context, provider),
                           ),
               ),
             ],
@@ -241,6 +295,12 @@ class _ProductListScreenState extends State<ProductListScreen>
       ),
       centerTitle: false,
       actions: [
+        IconButton(
+          key: _gridToggleKey,
+          icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view,
+              color: Colors.white, size: 24),
+          onPressed: _toggleViewMode,
+        ),
         Stack(
           children: [
             IconButton(
@@ -673,6 +733,7 @@ class _ProductListScreenState extends State<ProductListScreen>
 
   Widget _buildFAB(BuildContext context) {
     return SpeedDial(
+      key: _fabKey,
       icon: Icons.add,
       activeIcon: Icons.close,
       backgroundColor: const Color(0xFFFF6B6B),
@@ -713,6 +774,241 @@ class _ProductListScreenState extends State<ProductListScreen>
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildListView(BuildContext context, InventoryProvider provider) {
+    return ListView.separated(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(top: 8, bottom: 80, left: 16, right: 16),
+      itemCount: provider.filteredProducts.length + (provider.hasMore ? 1 : 0),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        if (index == provider.filteredProducts.length) {
+          return provider.hasMore
+              ? const Center(
+                  child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ))
+              : const SizedBox(height: 80);
+        }
+        final product = provider.filteredProducts[index];
+        return ProductListItem(
+          product: product,
+          categoryName: _getCategoryName(provider.categories, product.categoryId),
+          onEdit: () => _navigateToForm(context, product),
+          onDelete: () => _confirmDelete(context, product),
+          onAdjustStock: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
+          ).then((_) {
+            if (context.mounted) {
+              context.read<InventoryProvider>().loadProducts(reset: true);
+            }
+          }),
+        ).animate().fadeIn(duration: 400.ms).slideY(
+              begin: 0.1,
+              end: 0,
+              delay: (50 * (index % 10)).ms,
+            );
+      },
+    );
+  }
+
+  Widget _buildGridView(BuildContext context, InventoryProvider provider) {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(top: 8, bottom: 80, left: 16, right: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75, // Adjust based on content
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: provider.filteredProducts.length + (provider.hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == provider.filteredProducts.length) {
+          return provider.hasMore
+              ? const Center(
+                  child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ))
+              : const SizedBox(height: 80);
+        }
+        final product = provider.filteredProducts[index];
+        // Note: For a true Grid View we should create a ProductGridItem.
+        // For now, we will reuse ProductListItem but it might overflow if it's strictly a row.
+        // To do this perfectly, I will create a Grid Item layout within ProductListItem or use a specialized widget.
+        return _buildGridCard(context, product, _getCategoryName(provider.categories, product.categoryId))
+            .animate().fadeIn(duration: 400.ms).scale(
+              begin: const Offset(0.9, 0.9),
+              end: const Offset(1.0, 1.0),
+              delay: (50 * (index % 10)).ms,
+            );
+      },
+    );
+  }
+
+  Widget _buildGridCard(BuildContext context, Product product, String categoryName) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final stockColor = product.stock <= product.minStock ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _navigateToForm(context, product),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image or Placeholder
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: product.imagePath != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(product.imagePath!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholderIcon(),
+                            ),
+                          )
+                        : _buildPlaceholderIcon(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${product.price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF4A90E2),
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: stockColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${product.stockInSaleUnits.toStringAsFixed(1)} ${product.saleUnit}',
+                        style: TextStyle(color: stockColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        // Options menu via BottomSheet
+                        _showProductOptions(context, product);
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(Icons.more_horiz, size: 20, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderIcon() {
+    return const Center(child: Icon(Icons.inventory_2, size: 40, color: Colors.grey));
+  }
+
+  void _showProductOptions(BuildContext context, Product product) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(product.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.edit, color: Color(0xFF4A90E2)),
+              title: const Text('Editar Producto'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _navigateToForm(context, product);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.compare_arrows, color: Color(0xFFF59E0B)),
+              title: const Text('Ajuste de Inventario'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => StockAdjustmentScreen(product: product)),
+                ).then((_) {
+                  if (context.mounted) {
+                    context.read<InventoryProvider>().loadProducts(reset: true);
+                  }
+                });
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+              title: const Text('Eliminar', style: TextStyle(color: Color(0xFFEF4444))),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, product);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
