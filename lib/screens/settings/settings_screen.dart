@@ -1,11 +1,64 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/logger_service.dart';
 import 'business_profile_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isDebugMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDebugSetting();
+  }
+
+  Future<void> _loadDebugSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDebugMode = prefs.getBool('enable_debug_logging') ?? false;
+    });
+  }
+
+  Future<void> _toggleDebugMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_debug_logging', value);
+    LoggerService().setDebugMode(value);
+    setState(() {
+      _isDebugMode = value;
+    });
+  }
+
+  Future<void> _exportLogs() async {
+    final file = await LoggerService().getLogFile();
+    if (file != null && await file.exists()) {
+      if (mounted) {
+        final box = context.findRenderObject() as RenderBox?;
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Registro de Diagnóstico - App Control de Negocio',
+          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hay registros de error disponibles.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +220,35 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
           ),
+          
+          const SizedBox(height: 24),
+          
+          // DIAGNOSTICS & SUPPORT SECTION
+          _SectionTitle('Diagnóstico y Soporte', theme: theme),
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.bug_report, color: Colors.orange),
+                  title: const Text('Exportar Registro de Errores'),
+                  subtitle: const Text('Comparte el archivo .log con soporte técnico'),
+                  trailing: const Icon(Icons.share),
+                  onTap: _exportLogs,
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Modo Depuración (Avanzado)'),
+                  subtitle: const Text('Registra eventos detallados de la aplicación'),
+                  secondary: const Icon(Icons.developer_mode),
+                  value: _isDebugMode,
+                  onChanged: _toggleDebugMode,
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
         ],
       ),
     );

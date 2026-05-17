@@ -20,11 +20,17 @@ import 'providers/settings_provider.dart';
 
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
+import 'services/logger_service.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Global Logger early
+  await LoggerService().initialize();
+  LoggerService().i('main', 'App starting up...');
+  
   await initializeDateFormatting('es_BO', null);
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {

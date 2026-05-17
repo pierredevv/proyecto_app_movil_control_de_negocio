@@ -11,6 +11,7 @@ import '../purchases/purchase_details_screen.dart';
 import 'aging_report_screen.dart';
 import 'sales_period_report_screen.dart';
 import 'valued_inventory_report_screen.dart';
+import 'advanced_analytics_screen.dart';
 import '../../theme/app_theme.dart';
 import '../orders/order_details_screen.dart';
 
@@ -146,6 +147,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                   ).animate().fade(duration: 400.ms).slideY(begin: 0.1, end: 0, delay: 100.ms),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AdvancedAnalyticsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.analytics),
+                    label: const Text('Analítica Avanzada y Data Mining'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E2432),
+                      foregroundColor: Colors.amber,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                            color: Colors.amber.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  ).animate().fade(duration: 400.ms).slideY(begin: 0.1, end: 0, delay: 110.ms),
                   const SizedBox(height: 24),
                   const AnimatedOpacity(
                     opacity: 1.0,

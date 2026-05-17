@@ -42,6 +42,14 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   bool _allowInvoiceAdjustments = false;
   String? _logoPath;
 
+  // Advanced Printer Config
+  String _printerProfile = 'default';
+  String _codePage = 'CP858';
+  int _printDensity = 0;
+  bool _enableExpertMode = false;
+  bool _disableAutoCut = false;
+  late TextEditingController _leftMarginCtrl;
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +84,13 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _allowNegativeStock = profile.allowNegativeStock;
     _allowInvoiceAdjustments = profile.allowInvoiceAdjustments;
     _logoPath = profile.logoPath;
+
+    _printerProfile = profile.printerProfile;
+    _codePage = profile.codePage;
+    _printDensity = profile.printDensity;
+    _enableExpertMode = profile.enableExpertMode;
+    _disableAutoCut = profile.disableAutoCut;
+    _leftMarginCtrl = TextEditingController(text: profile.leftMargin.toString());
   }
 
   @override
@@ -99,6 +114,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _invoiceFooterCtrl.dispose();
     _defaultMinStockCtrl.dispose();
     _lowStockThresholdCtrl.dispose();
+    _leftMarginCtrl.dispose();
     super.dispose();
   }
 
@@ -144,6 +160,12 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       logoSpacing: _logoSpacing,
       allowNegativeStock: _allowNegativeStock,
       allowInvoiceAdjustments: _allowInvoiceAdjustments,
+      printerProfile: _printerProfile,
+      codePage: _codePage,
+      printDensity: _printDensity,
+      enableExpertMode: _enableExpertMode,
+      disableAutoCut: _disableAutoCut,
+      leftMargin: int.tryParse(_leftMarginCtrl.text) ?? 0,
     );
 
     await context.read<SettingsProvider>().updateProfile(updatedProfile);
@@ -355,6 +377,78 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
                   ],
                 ),
               ),
+
+            const SizedBox(height: 24),
+            
+            const _SectionTitle('Hardware y Dispositivos'),
+            SwitchListTile(
+              title: const Text('Modo Técnico / Experto'),
+              subtitle: const Text('Habilitar comandos crudos ESC/POS'),
+              value: _enableExpertMode,
+              onChanged: (v) => setState(() => _enableExpertMode = v),
+            ),
+            if (_enableExpertMode)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Página de Códigos (Encoding)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                      DropdownButton<String>(
+                        dropdownColor: const Color(0xFF1E2432),
+                        value: _codePage,
+                        isExpanded: true,
+                        style: const TextStyle(color: Colors.white),
+                        items: ['CP437', 'CP850', 'CP858', 'CP860']
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white))))
+                            .toList(),
+                        onChanged: (v) => setState(() => _codePage = v!),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                        ctrl: _leftMarginCtrl,
+                        label: 'Margen Izquierdo (puntos)',
+                        icon: Icons.space_bar,
+                        inputType: TextInputType.number,
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Desactivar Auto-Corte', style: TextStyle(color: Colors.white)),
+                        value: _disableAutoCut,
+                        onChanged: (v) => setState(() => _disableAutoCut = v),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.restore, color: Colors.amber),
+                        label: const Text('Restaurar Predeterminado', style: TextStyle(color: Colors.amber)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.amber),
+                          foregroundColor: Colors.amber,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _codePage = 'CP858';
+                            _leftMarginCtrl.text = '0';
+                            _disableAutoCut = false;
+                            _printDensity = 0;
+                            _enableExpertMode = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Configuración segura restaurada.')));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 24),
 
             const _SectionTitle('Reglas de Negocio / ERP'),
             SwitchListTile(

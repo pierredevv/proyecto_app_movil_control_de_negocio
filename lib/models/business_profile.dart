@@ -36,6 +36,14 @@ class BusinessProfile {
   final bool allowNegativeStock;
   final bool allowInvoiceAdjustments;
 
+  // Advanced Printer Settings
+  final String printerProfile; // 'default', 'epson', 'xprinter'
+  final String codePage; 
+  final int printDensity; 
+  final bool enableExpertMode;
+  final bool disableAutoCut;
+  final int leftMargin;
+
   const BusinessProfile({
     this.businessName = 'Mi Negocio',
     this.ownerName = '',
@@ -67,6 +75,12 @@ class BusinessProfile {
     this.lowStockAlertsEnabled = true,
     this.allowNegativeStock = false,
     this.allowInvoiceAdjustments = false,
+    this.printerProfile = 'default',
+    this.codePage = 'CP858',
+    this.printDensity = 0,
+    this.enableExpertMode = false,
+    this.disableAutoCut = false,
+    this.leftMargin = 0,
   });
 
   BusinessProfile copyWith({
@@ -100,6 +114,12 @@ class BusinessProfile {
     bool? lowStockAlertsEnabled,
     bool? allowNegativeStock,
     bool? allowInvoiceAdjustments,
+    String? printerProfile,
+    String? codePage,
+    int? printDensity,
+    bool? enableExpertMode,
+    bool? disableAutoCut,
+    int? leftMargin,
   }) {
     return BusinessProfile(
       businessName: businessName ?? this.businessName,
@@ -135,6 +155,12 @@ class BusinessProfile {
       allowNegativeStock: allowNegativeStock ?? this.allowNegativeStock,
       allowInvoiceAdjustments:
           allowInvoiceAdjustments ?? this.allowInvoiceAdjustments,
+      printerProfile: printerProfile ?? this.printerProfile,
+      codePage: codePage ?? this.codePage,
+      printDensity: printDensity ?? this.printDensity,
+      enableExpertMode: enableExpertMode ?? this.enableExpertMode,
+      disableAutoCut: disableAutoCut ?? this.disableAutoCut,
+      leftMargin: leftMargin ?? this.leftMargin,
     );
   }
 
@@ -170,6 +196,12 @@ class BusinessProfile {
       'lowStockAlertsEnabled': lowStockAlertsEnabled,
       'allowNegativeStock': allowNegativeStock,
       'allowInvoiceAdjustments': allowInvoiceAdjustments,
+      'printerProfile': printerProfile,
+      'codePage': codePage,
+      'printDensity': printDensity,
+      'enableExpertMode': enableExpertMode,
+      'disableAutoCut': disableAutoCut,
+      'leftMargin': leftMargin,
     };
   }
 
@@ -205,6 +237,12 @@ class BusinessProfile {
       lowStockAlertsEnabled: map['lowStockAlertsEnabled'] ?? true,
       allowNegativeStock: map['allowNegativeStock'] ?? false,
       allowInvoiceAdjustments: map['allowInvoiceAdjustments'] ?? false,
+      printerProfile: map['printerProfile'] ?? 'default',
+      codePage: map['codePage'] ?? 'CP858',
+      printDensity: map['printDensity']?.toInt() ?? 0,
+      enableExpertMode: map['enableExpertMode'] ?? false,
+      disableAutoCut: map['disableAutoCut'] ?? false,
+      leftMargin: map['leftMargin']?.toInt() ?? 0,
     );
   }
 
@@ -240,6 +278,12 @@ class BusinessProfile {
       lowStockAlertsEnabled: lowStockAlertsEnabled,
       allowNegativeStock: allowNegativeStock,
       allowInvoiceAdjustments: allowInvoiceAdjustments,
+      printerProfile: printerProfile,
+      codePage: codePage,
+      printDensity: printDensity,
+      enableExpertMode: enableExpertMode,
+      disableAutoCut: disableAutoCut,
+      leftMargin: leftMargin,
     );
   }
 }

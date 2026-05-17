@@ -80,6 +80,40 @@ class EscPosReceiptService {
     List<int> bytes = [];
     bytes += generator.reset();
 
+    // ── ADVANCED HARDWARE CONFIGURATION (EXPERT MODE) ─────────────────────
+    if (profile.enableExpertMode) {
+      try {
+        // 1. Code Page Selection (ESC t n)
+        // Values are generic mappings but heavily dependent on printer brand.
+        if (profile.codePage == 'CP858') {
+          bytes += [0x1B, 0x74, 19]; // Page 19 is often CP858
+        } else if (profile.codePage == 'CP850') {
+          bytes += [0x1B, 0x74, 2];
+        } else if (profile.codePage == 'CP860') {
+          bytes += [0x1B, 0x74, 3];
+        } else if (profile.codePage == 'CP437') {
+          bytes += [0x1B, 0x74, 0];
+        }
+
+        // 2. Left Margin (GS L nL nH)
+        if (profile.leftMargin > 0) {
+           int nl = profile.leftMargin % 256;
+           int nh = profile.leftMargin ~/ 256;
+           bytes += [0x1D, 0x4C, nl, nh]; 
+        }
+
+        // 3. Density (ESC 7) - For some generic printers
+        if (profile.printDensity > 0) {
+           // Example format: ESC 7 n1 n2 n3
+           // bytes += [0x1B, 0x37, ...]; 
+           // (Commented out full implementation as density commands vary wildly by brand.
+           // Usually it requires sending GS ( E length commands.)
+        }
+      } catch (e) {
+        // Ignore hardware command failures so print job doesn't completely die
+      }
+    }
+
     // ── 1. Logo ───────────────────────────────────────────────────────────
     if (profile.printLogoOnThermal &&
         profile.logoPath != null &&
@@ -388,9 +422,11 @@ class EscPosReceiptService {
     // Many portable 58mm printers don't have an auto-cutter.
     // We feed just enough to pass the tear bar to avoid wasting paper.
     bytes += generator.feed(2);
-    // Cut command can cause extra feeds on some cheap printers if not supported,
-    // but usually it's ignored if hardware doesn't support it.
-    bytes += generator.cut();
+    
+    // Auto-Cutter logic
+    if (!profile.enableExpertMode || !profile.disableAutoCut) {
+      bytes += generator.cut();
+    }
 
     return Uint8List.fromList(bytes);
   }
