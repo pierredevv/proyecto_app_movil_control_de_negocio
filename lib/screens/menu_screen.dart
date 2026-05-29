@@ -23,6 +23,7 @@ import 'settings/settings_screen.dart';
 import 'backup_manager_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'marketing/marketing_hub_screen.dart';
+import 'cash_register/cash_register_screen.dart'; // Added CashRegisterScreen
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -212,6 +213,15 @@ class _MenuScreenState extends State<MenuScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const ExpenseFormScreen())),
+                      ),
+                      _MenuItemData(
+                        icon: Icons.point_of_sale,
+                        title: 'Caja Registradora',
+                        color: const Color(0xFF51CF66), // Green
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const CashRegisterScreen())),
                       ),
                     ],
                   ).animate().fade(duration: 300.ms, delay: 50.ms).slideY(

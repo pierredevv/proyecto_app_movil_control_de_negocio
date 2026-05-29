@@ -4,21 +4,39 @@ import 'package:provider/provider.dart';
 import '../../providers/notification_provider.dart';
 import 'package:intl/intl.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().loadNotifications();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final provider = context.watch<NotificationProvider>();
     final notifications = provider.notifications;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Notificaciones', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'Notificaciones',
+          style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: theme.cardColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
         actions: [
           if (notifications.isNotEmpty)
             IconButton(
@@ -34,21 +52,9 @@ class NotificationsScreen extends StatelessWidget {
             ),
         ],
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Background Gradient & Blobs
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
-                ),
-              ),
-            ),
-          ),
+          // Background Blobs (Soft ambient lighting)
           Positioned(
             top: -100,
             right: -100,
@@ -56,10 +62,14 @@ class NotificationsScreen extends StatelessWidget {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                color: const Color(0xFF4A90E2).withValues(alpha: isDark ? 0.08 : 0.03),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withValues(alpha: isDark ? 0.15 : 0.05),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
                 ],
               ),
             ),
@@ -70,11 +80,19 @@ class NotificationsScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_off_outlined,
-                            size: 64, color: Colors.white.withValues(alpha: 0.2)),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 64,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                        ),
                         const SizedBox(height: 16),
-                        Text('No tienes notificaciones',
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16)),
+                        Text(
+                          'No tienes notificaciones',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -85,17 +103,17 @@ class NotificationsScreen extends StatelessWidget {
                       final notification = notifications[index];
                       final isLowStock = notification.type == 'low_stock';
                       final colorAccent = isLowStock ? const Color(0xFFF59F00) : const Color(0xFF4A90E2);
-                      
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: notification.isRead 
-                              ? Colors.white.withValues(alpha: 0.05) 
-                              : colorAccent.withValues(alpha: 0.1),
+                          color: notification.isRead
+                              ? theme.cardColor.withValues(alpha: 0.5)
+                              : colorAccent.withValues(alpha: isDark ? 0.12 : 0.08),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: notification.isRead 
-                                ? Colors.white.withValues(alpha: 0.08)
+                            color: notification.isRead
+                                ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
                                 : colorAccent.withValues(alpha: 0.3),
                           ),
                         ),
@@ -130,7 +148,7 @@ class NotificationsScreen extends StatelessWidget {
                                 title: Text(
                                   notification.title,
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: theme.colorScheme.onSurface,
                                     fontSize: 16,
                                     fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
                                   ),
@@ -142,7 +160,7 @@ class NotificationsScreen extends StatelessWidget {
                                     Text(
                                       notification.body,
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.7),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                         fontSize: 14,
                                       ),
                                     ),
@@ -150,7 +168,7 @@ class NotificationsScreen extends StatelessWidget {
                                     Text(
                                       DateFormat('dd/MM/yyyy HH:mm').format(notification.date),
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.4),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                         fontSize: 12,
                                       ),
                                     ),

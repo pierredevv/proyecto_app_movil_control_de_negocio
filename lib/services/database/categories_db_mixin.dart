@@ -33,4 +33,27 @@ mixin CategoriesDb on CoreDb {
       whereArgs: [id],
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // EXPENSE CATEGORY OPERATIONS (V20+)
+  // ---------------------------------------------------------------------------
+  Future<List<ExpenseCategory>> getExpenseCategories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('expense_categories');
+    return maps.map((map) => ExpenseCategory.fromMap(map)).toList();
+  }
+
+  Future<int> insertExpenseCategory(ExpenseCategory category) async {
+    final db = await database;
+    return await db.insert('expense_categories', category.toMap());
+  }
+
+  Future<int> deleteExpenseCategory(int id) async {
+    final db = await database;
+    return await db.delete(
+      'expense_categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

@@ -17,6 +17,7 @@ import 'providers/note_provider.dart';
 import 'providers/import_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/cash_register_provider.dart'; // Added CashRegisterProvider
 
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
@@ -90,6 +91,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(
             create: (_) => SettingsProvider()..loadProfile()),
+        ChangeNotifierProvider(
+            create: (_) => CashRegisterProvider()..checkActiveSession()),
       ],
       child: Consumer2<ThemeProvider, SettingsProvider>(
         builder: (context, themeProvider, settingsProvider, _) {

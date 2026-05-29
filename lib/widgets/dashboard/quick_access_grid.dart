@@ -7,6 +7,7 @@ import '../../screens/sales/sales_screen.dart';
 import '../../screens/customers/customer_list_screen.dart';
 import '../../screens/suppliers/supplier_list_screen.dart';
 import '../../screens/treasury/global_payment_screen.dart';
+import '../../screens/cash_register/cash_register_screen.dart'; // Added CashRegisterScreen
 
 class QuickAccessGrid extends StatelessWidget {
   const QuickAccessGrid({super.key});
@@ -59,6 +60,21 @@ class QuickAccessGrid extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (context) => const GlobalPaymentScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                _buildQuickAccessItem(
+                  context,
+                  icon: Icons.point_of_sale,
+                  label: 'Arqueo Caja',
+                  color: AppTheme.primary,
+                  delay: 75,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CashRegisterScreen()),
                     );
                   },
                 ),

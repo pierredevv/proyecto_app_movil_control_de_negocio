@@ -433,6 +433,74 @@ mixin SchemaDb on CoreDb {
         debugPrint('V19 migration error: $e');
       }
     }
+
+    // V20: Cash Registers and Expense Categories
+    if (oldVersion < 20) {
+      try {
+        await db.execute('''
+          CREATE TABLE cash_registers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT NULL,
+            open_date INTEGER NOT NULL,
+            close_date INTEGER,
+            opening_balance REAL NOT NULL DEFAULT 0,
+            closing_balance REAL,
+            expected_balance REAL,
+            difference REAL,
+            status TEXT NOT NULL DEFAULT 'OPEN',
+            notes TEXT
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V20 cash_registers table error: $e');
+      }
+
+      try {
+        await db.execute('''
+          CREATE TABLE expense_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            icon TEXT DEFAULT 'category',
+            color TEXT DEFAULT '0xFF6B7494'
+          )
+        ''');
+        
+        // Seed default expense categories
+        await db.insert('expense_categories', {'name': 'Alquiler', 'icon': 'home', 'color': '0xFF4A90E2'});
+        await db.insert('expense_categories', {'name': 'Servicios', 'icon': 'bolt', 'color': '0xFFF5A623'});
+        await db.insert('expense_categories', {'name': 'Sueldos', 'icon': 'people', 'color': '0xFF9B51E0'});
+        await db.insert('expense_categories', {'name': 'Mantenimiento', 'icon': 'build', 'color': '0xFF4ECDC4'});
+        await db.insert('expense_categories', {'name': 'Impuestos', 'icon': 'receipt', 'color': '0xFFFF6B6B'});
+        await db.insert('expense_categories', {'name': 'Transporte', 'icon': 'local_shipping', 'color': '0xFF51CF66'});
+        await db.insert('expense_categories', {'name': 'Otros', 'icon': 'category', 'color': '0xFF6B7494'});
+      } catch (e) {
+        debugPrint('V20 expense_categories seeding error: $e');
+      }
+
+      try {
+        await db.execute('ALTER TABLE transactions ADD COLUMN expense_category_id INTEGER');
+      } catch (e) {
+        debugPrint('V20 alter transactions table error: $e');
+      }
+    }
+
+    // V21: Persistent Notifications
+    if (oldVersion < 21) {
+      try {
+        await db.execute('''
+          CREATE TABLE notifications (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            body TEXT,
+            type TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at INTEGER NOT NULL
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V21 notifications table error: $e');
+      }
+    }
   }
 
   @override
@@ -609,6 +677,53 @@ mixin SchemaDb on CoreDb {
         'CREATE INDEX idx_payments_entity_date ON payments(entity_id, entity_type, date DESC)');
     await db.execute(
         'CREATE INDEX idx_allocations_transaction ON payment_allocations(transaction_id)');
+
+    // V20: cash_registers
+    await db.execute('''
+      CREATE TABLE cash_registers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER DEFAULT NULL,
+        open_date INTEGER NOT NULL,
+        close_date INTEGER,
+        opening_balance REAL NOT NULL DEFAULT 0,
+        closing_balance REAL,
+        expected_balance REAL,
+        difference REAL,
+        status TEXT NOT NULL DEFAULT 'OPEN',
+        notes TEXT
+      )
+    ''');
+
+    // V20: expense_categories
+    await db.execute('''
+      CREATE TABLE expense_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        icon TEXT DEFAULT 'category',
+        color TEXT DEFAULT '0xFF6B7494'
+      )
+    ''');
+
+    // Seed default expense categories
+    await db.insert('expense_categories', {'name': 'Alquiler', 'icon': 'home', 'color': '0xFF4A90E2'});
+    await db.insert('expense_categories', {'name': 'Servicios', 'icon': 'bolt', 'color': '0xFFF5A623'});
+    await db.insert('expense_categories', {'name': 'Sueldos', 'icon': 'people', 'color': '0xFF9B51E0'});
+    await db.insert('expense_categories', {'name': 'Mantenimiento', 'icon': 'build', 'color': '0xFF4ECDC4'});
+    await db.insert('expense_categories', {'name': 'Impuestos', 'icon': 'receipt', 'color': '0xFFFF6B6B'});
+    await db.insert('expense_categories', {'name': 'Transporte', 'icon': 'local_shipping', 'color': '0xFF51CF66'});
+    await db.insert('expense_categories', {'name': 'Otros', 'icon': 'category', 'color': '0xFF6B7494'});
+
+    // V21: notifications
+    await db.execute('''
+      CREATE TABLE notifications (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        body TEXT,
+        type TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      )
+    ''');
   }
 
   @override

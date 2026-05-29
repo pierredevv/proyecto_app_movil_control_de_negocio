@@ -26,7 +26,7 @@ mixin CoreDb {
 
   Future<Database> _initDatabase() async {
     if (_testDbPath != null) {
-      return await openDatabase(_testDbPath!, version: 19,
+      return await openDatabase(_testDbPath!, version: 21,
           onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -45,7 +45,7 @@ mixin CoreDb {
     return await openDatabase(
       path,
       version:
-          19, // Updated to version 19 for ci_nit fields
+          21, // Updated to version 21 for cash register + persistent notifications
       onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode=WAL;');
         await db.execute('PRAGMA foreign_keys = ON');
@@ -79,6 +79,16 @@ mixin CoreDb {
     final paymentAllocations = await db.query('payment_allocations');
     final salePayments = await db.query('sale_payments');
 
+    // V20 and V21 tables
+    List<Map<String, dynamic>> cashRegisters = [];
+    List<Map<String, dynamic>> expenseCategories = [];
+    List<Map<String, dynamic>> notifications = [];
+    try {
+      cashRegisters = await db.query('cash_registers');
+      expenseCategories = await db.query('expense_categories');
+      notifications = await db.query('notifications');
+    } catch (_) {}
+
     final version = await db.getVersion();
 
     return {
@@ -97,6 +107,9 @@ mixin CoreDb {
         'payments': payments,
         'payment_allocations': paymentAllocations,
         'sale_payments': salePayments,
+        'cash_registers': cashRegisters,
+        'expense_categories': expenseCategories,
+        'notifications': notifications,
       }
     };
   }

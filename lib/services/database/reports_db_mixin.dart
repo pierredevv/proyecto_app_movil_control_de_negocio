@@ -92,31 +92,294 @@ mixin ReportsDb on CoreDb {
   Future<List<Map<String, dynamic>>> getWeeklySales() async {
     final db = await database;
     final now = DateTime.now();
+    final sevenDaysAgo = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 6))
+        .millisecondsSinceEpoch;
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59)
+        .millisecondsSinceEpoch;
 
-    List<Map<String, dynamic>> result = [];
+    // Optimized: 1 query with GROUP BY instead of 7 individual queries
+    final queryResult = await db.rawQuery('''
+      SELECT strftime('%Y-%m-%d', date/1000, 'unixepoch', 'localtime') as day_key,
+             SUM(total_amount) as total
+      FROM transactions
+      WHERE type = 'sale' AND status != 'VOIDED'
+        AND date BETWEEN ? AND ?
+      GROUP BY day_key
+      ORDER BY day_key ASC
+    ''', [sevenDaysAgo, endOfToday]);
 
-    for (int i = 6; i >= 0; i--) {
-      final day = now.subtract(Duration(days: i));
-      final start =
-          DateTime(day.year, day.month, day.day).millisecondsSinceEpoch;
-      final end = DateTime(day.year, day.month, day.day, 23, 59, 59)
-          .millisecondsSinceEpoch;
-
-      final query = await db.rawQuery('''
-        SELECT SUM(total_amount) as total 
-        FROM transactions 
-        WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
-      ''', [start, end]);
-
-      final total = (query.first['total'] as num?)?.toDouble() ?? 0.0;
-
-      result.add({
-        'date': start,
-        'amount': total,
-      });
+    // Index results by day key for O(1) lookup
+    final Map<String, double> salesByDay = {};
+    for (var row in queryResult) {
+      salesByDay[row['day_key'] as String] =
+          (row['total'] as num?)?.toDouble() ?? 0.0;
     }
 
+    // Fill all 7 days (including days with 0 sales)
+    List<Map<String, dynamic>> result = [];
+    for (int i = 6; i >= 0; i--) {
+      final day = now.subtract(Duration(days: i));
+      final key =
+          '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      result.add({
+        'date': DateTime(day.year, day.month, day.day).millisecondsSinceEpoch,
+        'amount': salesByDay[key] ?? 0.0,
+      });
+    }
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // DETAILED SALES REPORT BY DATE RANGE
+  // ---------------------------------------------------------------------------
+  /// Returns comprehensive sales metrics for a given date range.
+  /// Used by SalesPeriodReportScreen for export and display.
+  Future<Map<String, dynamic>> getSalesReportByDateRange(
+      DateTime start, DateTime end) async {
+    final db = await database;
+    final startMs = start.millisecondsSinceEpoch;
+    final endMs = end.millisecondsSinceEpoch;
+
+    // 1. Aggregate sales metrics
+    final salesAgg = await db.rawQuery('''
+      SELECT COUNT(*) as tx_count, 
+             COALESCE(SUM(total_amount), 0) as total_sales,
+             COALESCE(AVG(total_amount), 0) as avg_ticket
+      FROM transactions
+      WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
+    ''', [startMs, endMs]);
+
+    final txCount = (salesAgg.first['tx_count'] as int?) ?? 0;
+    final totalSales =
+        (salesAgg.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+    final avgTicket =
+        (salesAgg.first['avg_ticket'] as num?)?.toDouble() ?? 0.0;
+
+    // 2. Product-level metrics: quantity sold, units by type, COGS
+    final productMetrics = await db.rawQuery('''
+      SELECT COALESCE(SUM(ti.quantity * ti.units_per_sale_unit), 0) as total_base_units,
+             COALESCE(SUM(ti.quantity), 0) as total_sale_units,
+             COALESCE(SUM(ti.unit_cost_at_sale_time * ti.quantity * ti.units_per_sale_unit), 0) as total_cogs
+      FROM transaction_items ti
+      JOIN transactions t ON ti.transaction_id = t.id
+      WHERE t.type = 'sale' AND t.status != 'VOIDED' AND t.date BETWEEN ? AND ?
+    ''', [startMs, endMs]);
+
+    final totalBaseUnits =
+        (productMetrics.first['total_base_units'] as num?)?.toDouble() ?? 0.0;
+    final totalSaleUnits =
+        (productMetrics.first['total_sale_units'] as num?)?.toDouble() ?? 0.0;
+    final totalCogs =
+        (productMetrics.first['total_cogs'] as num?)?.toDouble() ?? 0.0;
+
+    // 3. Unit breakdown by sale_unit type (CAJ, UNI, BOL, etc.)
+    final unitBreakdown = await db.rawQuery('''
+      SELECT ti.sale_unit, 
+             COALESCE(SUM(ti.quantity), 0) as qty
+      FROM transaction_items ti
+      JOIN transactions t ON ti.transaction_id = t.id
+      WHERE t.type = 'sale' AND t.status != 'VOIDED' AND t.date BETWEEN ? AND ?
+      GROUP BY ti.sale_unit
+      ORDER BY qty DESC
+    ''', [startMs, endMs]);
+
+    // 4. Top 5 products by revenue
+    final topProducts = await db.rawQuery('''
+      SELECT ti.product_id, ti.product_name, 
+             SUM(ti.quantity) as total_qty,
+             SUM(ti.subtotal) as total_revenue,
+             ti.sale_unit
+      FROM transaction_items ti
+      JOIN transactions t ON ti.transaction_id = t.id
+      WHERE t.type = 'sale' AND t.status != 'VOIDED' AND t.date BETWEEN ? AND ?
+      GROUP BY ti.product_id
+      ORDER BY total_revenue DESC
+      LIMIT 5
+    ''', [startMs, endMs]);
+
+    return {
+      'total_sales': totalSales,
+      'transaction_count': txCount,
+      'avg_ticket': avgTicket,
+      'total_base_units_sold': totalBaseUnits,
+      'total_sale_units_sold': totalSaleUnits,
+      'total_cogs': totalCogs,
+      'gross_profit': totalSales - totalCogs,
+      'gross_margin_pct':
+          totalSales > 0 ? ((totalSales - totalCogs) / totalSales) * 100 : 0.0,
+      'unit_breakdown': unitBreakdown
+          .map((r) => {
+                'sale_unit': r['sale_unit'],
+                'quantity': (r['qty'] as num?)?.toDouble() ?? 0.0,
+              })
+          .toList(),
+      'top_products': topProducts
+          .map((r) => {
+                'product_id': r['product_id'],
+                'product_name': r['product_name'],
+                'total_qty': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
+                'total_revenue':
+                    (r['total_revenue'] as num?)?.toDouble() ?? 0.0,
+                'sale_unit': r['sale_unit'],
+              })
+          .toList(),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // EXPENSE SUMMARY BY DATE RANGE
+  // ---------------------------------------------------------------------------
+  /// Returns expense totals grouped by category for a given date range.
+  /// Works with both categorized (V20+) and uncategorized expenses.
+  Future<Map<String, dynamic>> getExpenseSummaryByDateRange(
+      DateTime start, DateTime end) async {
+    final db = await database;
+    final startMs = start.millisecondsSinceEpoch;
+    final endMs = end.millisecondsSinceEpoch;
+
+    // Total expenses
+    final totalResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(total_amount), 0) as total,
+             COUNT(*) as count
+      FROM transactions
+      WHERE type = 'expense' AND status != 'VOIDED' AND date BETWEEN ? AND ?
+    ''', [startMs, endMs]);
+
+    final totalExpenses =
+        (totalResult.first['total'] as num?)?.toDouble() ?? 0.0;
+    final totalCount = (totalResult.first['count'] as int?) ?? 0;
+
+    // By category (if expense_categories table exists / V20+)
+    List<Map<String, dynamic>> byCategory = [];
+    try {
+      byCategory = await db.rawQuery('''
+        SELECT ec.id as cat_id, ec.name as cat_name, ec.icon, ec.color,
+               COALESCE(SUM(t.total_amount), 0) as cat_total,
+               COUNT(t.id) as cat_count
+        FROM expense_categories ec
+        LEFT JOIN transactions t ON t.expense_category_id = ec.id 
+             AND t.type = 'expense' AND t.status != 'VOIDED' 
+             AND t.date BETWEEN ? AND ?
+        GROUP BY ec.id
+        ORDER BY cat_total DESC
+      ''', [startMs, endMs]);
+    } catch (_) {
+      // expense_categories table may not exist yet (pre-V20)
+    }
+
+    // Uncategorized expenses
+    final uncatResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(total_amount), 0) as total,
+             COUNT(*) as count
+      FROM transactions
+      WHERE type = 'expense' AND status != 'VOIDED' 
+            AND expense_category_id IS NULL
+            AND date BETWEEN ? AND ?
+    ''', [startMs, endMs]);
+
+    return {
+      'total_expenses': totalExpenses,
+      'total_count': totalCount,
+      'by_category': byCategory
+          .map((r) => {
+                'id': r['cat_id'],
+                'name': r['cat_name'],
+                'icon': r['icon'],
+                'color': r['color'],
+                'total': (r['cat_total'] as num?)?.toDouble() ?? 0.0,
+                'count': (r['cat_count'] as int?) ?? 0,
+              })
+          .toList(),
+      'uncategorized_total':
+          (uncatResult.first['total'] as num?)?.toDouble() ?? 0.0,
+      'uncategorized_count': (uncatResult.first['count'] as int?) ?? 0,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // CASH SUMMARY FOR REGISTER SESSION
+  // ---------------------------------------------------------------------------
+  /// Returns cash-only summary from a register open timestamp to now.
+  /// Critical distinction: credit sales do NOT count as cash inflow.
+  /// Only anonymous sales (cash at counter) + customer payments count as inflow.
+  /// Expenses + supplier payments count as outflow.
+  Future<Map<String, dynamic>> getCashSummaryByDateRange(
+      int fromDateMs, int toDateMs) async {
+    final db = await database;
+
+    // Cash IN: Anonymous sales (entity_id IS NULL = cash at counter)
+    final anonymousSales = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount_paid), 0) as total
+      FROM transactions
+      WHERE type = 'sale' AND entity_id IS NULL AND status != 'VOIDED'
+        AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    // Cash IN: Customer payments (cobros)
+    final customerPayments = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM payments
+      WHERE entity_type = 'CUSTOMER' AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    // Cash OUT: Expenses
+    final expenses = await db.rawQuery('''
+      SELECT COALESCE(SUM(total_amount), 0) as total
+      FROM transactions
+      WHERE type = 'expense' AND status != 'VOIDED'
+        AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    // Cash OUT: Supplier payments
+    final supplierPayments = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM payments
+      WHERE entity_type = 'SUPPLIER' AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    // Cash OUT: Anonymous purchases (cash purchases without supplier)
+    final anonymousPurchases = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount_paid), 0) as total
+      FROM transactions
+      WHERE type = 'purchase' AND entity_id IS NULL AND status != 'VOIDED'
+        AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    // Accrual context (informational, not cash)
+    final accrualSales = await db.rawQuery('''
+      SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as count
+      FROM transactions
+      WHERE type = 'sale' AND status != 'VOIDED' AND date BETWEEN ? AND ?
+    ''', [fromDateMs, toDateMs]);
+
+    final cashInAnon =
+        (anonymousSales.first['total'] as num?)?.toDouble() ?? 0.0;
+    final cashInPayments =
+        (customerPayments.first['total'] as num?)?.toDouble() ?? 0.0;
+    final cashOutExpenses =
+        (expenses.first['total'] as num?)?.toDouble() ?? 0.0;
+    final cashOutSupplier =
+        (supplierPayments.first['total'] as num?)?.toDouble() ?? 0.0;
+    final cashOutPurchases =
+        (anonymousPurchases.first['total'] as num?)?.toDouble() ?? 0.0;
+
+    final totalCashIn = cashInAnon + cashInPayments;
+    final totalCashOut = cashOutExpenses + cashOutSupplier + cashOutPurchases;
+
+    return {
+      'cash_in_sales': cashInAnon,
+      'cash_in_payments': cashInPayments,
+      'total_cash_in': totalCashIn,
+      'cash_out_expenses': cashOutExpenses,
+      'cash_out_supplier_payments': cashOutSupplier,
+      'cash_out_purchases': cashOutPurchases,
+      'total_cash_out': totalCashOut,
+      'net_cash': totalCashIn - totalCashOut,
+      'accrual_sales_total':
+          (accrualSales.first['total'] as num?)?.toDouble() ?? 0.0,
+      'accrual_sales_count': (accrualSales.first['count'] as int?) ?? 0,
+    };
   }
 
   Future<List<int>> getFrequentProductIds({int limit = 5}) async {

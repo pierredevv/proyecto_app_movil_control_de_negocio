@@ -237,6 +237,8 @@ class Payment extends Transaction {
 
 class Expense extends Transaction {
   final String description;
+  final int? expenseCategoryId;
+  final String? categoryName;
 
   Expense({
     super.id,
@@ -245,6 +247,8 @@ class Expense extends Transaction {
     super.adjustmentAmount,
     super.status,
     required this.description,
+    this.expenseCategoryId,
+    this.categoryName,
   }) : super(type: TransactionType.expense);
 
   @override
@@ -253,6 +257,7 @@ class Expense extends Transaction {
       'id': id,
       'type': type.name, // 'expense'
       'entity_name': description,
+      'expense_category_id': expenseCategoryId,
       'date': date.millisecondsSinceEpoch,
       'total_amount': totalAmount,
       'adjustment_amount': adjustmentAmount,
@@ -268,6 +273,8 @@ class Expense extends Transaction {
       adjustmentAmount: map['adjustment_amount'] != null ? (map['adjustment_amount'] as num).toDouble() : 0.0,
       status: map['status'] ?? 'COMPLETED',
       description: map['entity_name'] ?? 'Gasto sin descripción',
+      expenseCategoryId: map['expense_category_id'],
+      categoryName: map['category_name'], // will be filled via JOINs if query uses it
     );
   }
 }

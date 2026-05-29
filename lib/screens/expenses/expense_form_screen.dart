@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../services/database_service.dart';
+import '../../models/expense_category.dart';
 import '../../widgets/common/glass_text_field_group.dart';
 
 class ExpenseFormScreen extends StatefulWidget {
@@ -16,8 +18,31 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   final _descController = TextEditingController();
   final _amountController = TextEditingController();
 
+  List<ExpenseCategory> _categories = [];
+  int? _selectedCategoryId;
+  bool _loadingCategories = true;
+
   String? _descError;
   String? _amountError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await DatabaseService().getExpenseCategories();
+      setState(() {
+        _categories = cats;
+        _loadingCategories = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading expense categories: $e');
+      setState(() => _loadingCategories = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -51,7 +76,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     final amount = double.tryParse(_amountController.text) ?? 0;
 
     try {
-      await context.read<DashboardProvider>().addExpense(desc, amount);
+      await context
+          .read<DashboardProvider>()
+          .addExpense(desc, amount, categoryId: _selectedCategoryId);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,8 +92,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: const Color(0xFFFF6B6B)),
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFFF6B6B),
+          ),
         );
       }
     }
@@ -79,21 +107,42 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         _amountError == null;
   }
 
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'home':
+        return Icons.home;
+      case 'bolt':
+        return Icons.bolt;
+      case 'people':
+        return Icons.people;
+      case 'build':
+        return Icons.build;
+      case 'receipt':
+        return Icons.receipt;
+      case 'local_shipping':
+        return Icons.local_shipping;
+      case 'category':
+      default:
+        return Icons.category;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF151924),
+        backgroundColor: theme.cardColor,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white, size: 24),
-        title: const Text(
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface, size: 24),
+        title: Text(
           'Registrar Gasto',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       ),
@@ -121,7 +170,59 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                   .animate()
                   .fade(duration: 300.ms)
                   .slideY(begin: 0.1, end: 0, delay: 0.ms),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              
+              // ── Category Selector ──────────────────────────────────
+              Text(
+                'Categoría del Gasto',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ).animate().fade(duration: 300.ms, delay: 25.ms),
+              const SizedBox(height: 8),
+              _loadingCategories
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _categories.map((cat) {
+                        final isSelected = _selectedCategoryId == cat.id;
+                        final colorVal = int.tryParse(cat.color) ?? 0xFF6B7494;
+                        final catColor = Color(colorVal);
+
+                        return ChoiceChip(
+                          avatar: Icon(
+                            _getIconData(cat.icon),
+                            size: 16,
+                            color: isSelected ? Colors.white : catColor,
+                          ),
+                          label: Text(cat.name),
+                          selected: isSelected,
+                          selectedColor: catColor,
+                          backgroundColor: theme.cardColor,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedCategoryId = selected ? cat.id : null;
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ).animate().fade(duration: 300.ms, delay: 25.ms),
+              const SizedBox(height: 20),
+
               GlassTextFieldGroup(
                 label: 'Monto (Bs.) *',
                 controller: _amountController,
@@ -161,8 +262,6 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     );
   }
 }
-
-
 
 class _AnimatedSaveButton extends StatefulWidget {
   final VoidCallback onTap;

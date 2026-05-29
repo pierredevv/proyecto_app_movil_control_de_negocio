@@ -66,9 +66,9 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addExpense(String description, double amount) async {
+  Future<void> addExpense(String description, double amount, {int? categoryId}) async {
     try {
-      await _db.insertExpense(description, amount);
+      await _db.insertExpense(description, amount, categoryId: categoryId);
       await loadDashboardData(); // Refresh summary
     } catch (e) {
       debugPrint('Error adding expense: $e');

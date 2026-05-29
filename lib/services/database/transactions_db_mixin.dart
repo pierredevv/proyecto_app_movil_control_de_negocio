@@ -1596,11 +1596,12 @@ mixin TransactionsDb on CoreDb {
   // DASHBOARD ANALYTICS
   // ---------------------------------------------------------------------------
 
-  Future<int> insertExpense(String description, double amount) async {
+  Future<int> insertExpense(String description, double amount, {int? categoryId}) async {
     final db = await database;
     return await db.insert('transactions', {
       'type': 'expense',
       'entity_name': description,
+      'expense_category_id': categoryId,
       'date': DateTime.now().millisecondsSinceEpoch,
       'total_amount': amount,
       'status': 'COMPLETED',

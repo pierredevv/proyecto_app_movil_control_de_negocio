@@ -9,6 +9,9 @@ import '../models/category.dart';
 import '../models/supplier.dart';
 import '../models/note.dart';
 import '../models/import_result.dart'; // Added for ImportResult
+import '../models/cash_register.dart'; // Added for CashRegister
+import '../models/expense_category.dart'; // Added for ExpenseCategory
+import '../models/app_notification.dart'; // Added for AppNotification
 
 part 'database/core_db_mixin.dart';
 part 'database/schema_db_mixin.dart';
@@ -19,6 +22,8 @@ part 'database/suppliers_db_mixin.dart';
 part 'database/notes_db_mixin.dart';
 part 'database/transactions_db_mixin.dart';
 part 'database/reports_db_mixin.dart';
+part 'database/cash_register_db_mixin.dart'; // Added cash_register mixin
+part 'database/notifications_db_mixin.dart'; // Added notifications mixin
 
 class DatabaseService
     with
@@ -30,7 +35,9 @@ class DatabaseService
         SuppliersDb,
         NotesDb,
         TransactionsDb,
-        ReportsDb {
+        ReportsDb,
+        CashRegisterDb,
+        NotificationsDb {
   static final DatabaseService _instance = DatabaseService._internal();
 
   factory DatabaseService() => _instance;
