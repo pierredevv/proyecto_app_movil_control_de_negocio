@@ -5,7 +5,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/logger_service.dart';
+import '../../theme/app_theme.dart';
 import 'business_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -60,6 +62,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cerrar Sesión'),
+        content: const Text('¿Estás seguro que deseas cerrar tu sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cerrar Sesión'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    await auth.logout();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,6 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     final profile = settingsProvider.profile;
+    final auth = context.watch<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -222,7 +248,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           
           const SizedBox(height: 24),
-          
+
+          // SESSION SECTION
+          _SectionTitle('Sesión', theme: theme),
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppTheme.primary,
+                    child: Text(
+                      auth.currentUser?.displayName.isNotEmpty == true
+                          ? auth.currentUser!.displayName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  title: Text(auth.currentUser?.displayName ?? 'Sin sesión'),
+                  subtitle: Text(
+                    '@${auth.currentUser?.username ?? ''} · '
+                    '${auth.currentRoles.map((r) => r.displayName).join(", ")}',
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.redAccent),
+                  title: const Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                  onTap: _confirmLogout,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // DIAGNOSTICS & SUPPORT SECTION
           _SectionTitle('Diagnóstico y Soporte', theme: theme),
           Card(

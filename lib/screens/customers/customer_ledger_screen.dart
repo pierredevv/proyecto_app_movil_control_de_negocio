@@ -11,6 +11,7 @@ import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
 import '../../widgets/common/glass_dialog.dart';
 import '../sales/sale_detail_screen.dart';
+import '../../utils/currency_helper.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   final int customerId;
@@ -104,7 +105,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-                'Venta #${sale.id} - Saldo a favor: Bs. ${sale.pendingAmount.toStringAsFixed(2)}',
+                'Venta #${sale.id} - Saldo a favor: ${CurrencyHelper.simple(sale.pendingAmount)}',
                 style: const TextStyle(color: Colors.white70, fontSize: 16)),
             const SizedBox(height: 16),
             TextField(
@@ -112,12 +113,12 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Monto a cobrar (Bs.)',
+                labelText: 'Monto a cobrar (${CurrencyHelper.symbol})',
                 labelStyle: const TextStyle(color: Colors.white70),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.blueIcon)),
               ),
             ),
             const SizedBox(height: 16),
@@ -131,7 +132,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.blueIcon)),
               ),
               items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
                 return DropdownMenuItem(value: m, child: Text(m));
@@ -146,13 +147,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+            gradient: const LinearGradient(colors: [AppTheme.blueIcon, Color(0xFF50A7EA)]),
           ),
           child: ElevatedButton(
             onPressed: () {
@@ -163,7 +164,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'ℹ️ Se generará un crédito de Bs. ${(val - sale.pendingAmount).toStringAsFixed(2)} a favor del cliente.'),
+                          'ℹ️ Se generará un crédito de ${CurrencyHelper.simple((val - sale.pendingAmount))} a favor del cliente.'),
                       backgroundColor: Colors.blue[700],
                       duration: const Duration(seconds: 3),
                     ),
@@ -231,7 +232,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
     final totalDebt = idx >= 0 ? customers[idx].totalDebt : 0.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.payment),
         label: const Text('Cobro Global'),
@@ -250,7 +251,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
       ),
       appBar: AppBar(
         title: Text('Estado de Cuenta: ${widget.customerName}'),
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: AppTheme.cardDark,
       ),
       body: Column(
         children: [
@@ -272,7 +273,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
                 const SizedBox(width: 8),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Bs. ${totalDebt.toStringAsFixed(2)}',
+                  child: Text(CurrencyHelper.simple(totalDebt),
                       style: const TextStyle(
                           color: AppTheme.redAccent,
                           fontSize: 24,
@@ -330,7 +331,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> with Widget
                           return GlassTransactionCard(
                             title: 'Venta #${sale.id}',
                             subtitle:
-                                'Cobrado: Bs. ${sale.amountPaid.toStringAsFixed(2)} | $dueDateText',
+                                'Cobrado: ${CurrencyHelper.simple(sale.amountPaid)} | $dueDateText',
                             amount: sale.pendingAmount,
                             status: sale.status,
                             color: AppTheme.primary,

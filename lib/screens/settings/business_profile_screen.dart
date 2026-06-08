@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../theme/app_theme.dart';
+import '../../services/database_service.dart';
 
 class BusinessProfileScreen extends StatefulWidget {
   const BusinessProfileScreen({super.key});
@@ -50,6 +52,14 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   bool _disableAutoCut = false;
   late TextEditingController _leftMarginCtrl;
 
+  // Currency, Locale & DB Config
+  late TextEditingController _currencySymbolCtrl;
+  late TextEditingController _currencyCodeCtrl;
+  late TextEditingController _currencyNameCtrl;
+  late TextEditingController _localeCtrl;
+  late TextEditingController _dbNameCtrl;
+  String _currentDbName = 'dulces_pierre.db';
+
   @override
   void initState() {
     super.initState();
@@ -91,6 +101,22 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _enableExpertMode = profile.enableExpertMode;
     _disableAutoCut = profile.disableAutoCut;
     _leftMarginCtrl = TextEditingController(text: profile.leftMargin.toString());
+
+    _currencySymbolCtrl = TextEditingController(text: profile.currencySymbol);
+    _currencyCodeCtrl = TextEditingController(text: profile.currencyCode);
+    _currencyNameCtrl = TextEditingController(text: profile.currencyName);
+    _localeCtrl = TextEditingController(text: profile.locale);
+    _dbNameCtrl = TextEditingController();
+
+    // Async load database name
+    DatabaseService().getCurrentDbName().then((name) {
+      if (mounted) {
+        setState(() {
+          _currentDbName = name;
+          _dbNameCtrl.text = name.replaceAll('.db', '');
+        });
+      }
+    });
   }
 
   @override
@@ -115,6 +141,11 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _defaultMinStockCtrl.dispose();
     _lowStockThresholdCtrl.dispose();
     _leftMarginCtrl.dispose();
+    _currencySymbolCtrl.dispose();
+    _currencyCodeCtrl.dispose();
+    _currencyNameCtrl.dispose();
+    _localeCtrl.dispose();
+    _dbNameCtrl.dispose();
     super.dispose();
   }
 
@@ -132,7 +163,43 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final currentProfile = context.read<SettingsProvider>().profile;
+    final settingsProvider = context.read<SettingsProvider>();
+    final currentProfile = settingsProvider.profile;
+    
+    // Check if database name changed
+    String newDbName = _dbNameCtrl.text.trim();
+    if (newDbName.isNotEmpty && !newDbName.endsWith('.db')) {
+      newDbName = '$newDbName.db';
+    }
+    
+    bool dbRenameSuccess = true;
+    if (newDbName.isNotEmpty && newDbName != _currentDbName) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      dbRenameSuccess = await DatabaseService().renameDatabase(newDbName);
+      
+      if (mounted) {
+        Navigator.pop(context); // Close progress dialog
+      }
+      
+      if (!dbRenameSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al cambiar el nombre de la base de datos. Se revirtió el cambio.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return; // Abort saving profile to keep consistent state
+      }
+    }
     final updatedProfile = currentProfile.copyWith(
       businessName: _businessNameCtrl.text.trim(),
       ownerName: _ownerNameCtrl.text.trim(),
@@ -166,9 +233,13 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       enableExpertMode: _enableExpertMode,
       disableAutoCut: _disableAutoCut,
       leftMargin: int.tryParse(_leftMarginCtrl.text) ?? 0,
+      currencySymbol: _currencySymbolCtrl.text.trim(),
+      currencyCode: _currencyCodeCtrl.text.trim(),
+      currencyName: _currencyNameCtrl.text.trim(),
+      locale: _localeCtrl.text.trim(),
     );
 
-    await context.read<SettingsProvider>().updateProfile(updatedProfile);
+    await settingsProvider.updateProfile(updatedProfile);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -402,7 +473,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
                     children: [
                       const Text('Página de Códigos (Encoding)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
                       DropdownButton<String>(
-                        dropdownColor: const Color(0xFF1E2432),
+                        dropdownColor: AppTheme.cardDark,
                         value: _codePage,
                         isExpanded: true,
                         style: const TextStyle(color: Colors.white),
@@ -464,6 +535,54 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
               onChanged: (v) => setState(() => _allowInvoiceAdjustments = v),
             ),
 
+            const SizedBox(height: 24),
+
+            const _SectionTitle('Configuración Regional & DB'),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _currencySymbolCtrl,
+                      label: 'Símbolo Moneda',
+                      icon: Icons.attach_money),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _currencyCodeCtrl,
+                      label: 'Código (ej: BOB)',
+                      icon: Icons.code),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _currencyNameCtrl,
+                      label: 'Nombre (ej: Bolivianos)',
+                      icon: Icons.text_fields),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                      ctrl: _localeCtrl,
+                      label: 'Locale (ej: es_BO)',
+                      icon: Icons.language),
+                ),
+              ],
+            ),
+            _buildTextField(
+                ctrl: _dbNameCtrl,
+                label: 'Nombre Base de Datos (ej: dulces_pierre)',
+                icon: Icons.storage),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 12),
+              child: Text(
+                'Advertencia: Renombrar la BD moverá sus datos. (No incluya .db)',
+                style: TextStyle(fontSize: 12, color: Colors.orange),
+              ),
+            ),
             const SizedBox(height: 24),
 
             const _SectionTitle('Valores por Defecto'),

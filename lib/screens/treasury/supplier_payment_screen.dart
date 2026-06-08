@@ -4,6 +4,7 @@ import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../providers/supplier_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class SupplierPaymentScreen extends StatefulWidget {
   final int? initialSupplierId;
@@ -141,7 +142,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
     // Add small tolerance for floating point comparisons
     if ((totalAllocated - totalDeposit).abs() > 0.01 && totalAllocated > totalDeposit) {
        ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('El monto distribuido (Bs. ${totalAllocated.toStringAsFixed(2)}) supera al desembolso total.'))
+         SnackBar(content: Text('El monto distribuido (${CurrencyHelper.simple(totalAllocated)}) supera al desembolso total.'))
        );
        return;
     }
@@ -183,10 +184,10 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
     final double unallocated = totalDeposit - totalAllocated;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Registrar Pago a Proveedor'),
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: AppTheme.cardDark,
         elevation: 0,
       ),
       body: _isLoading 
@@ -197,7 +198,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF1E2432),
+                  color: AppTheme.cardDark,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
@@ -213,7 +214,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                         labelText: 'Proveedor',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                       items: suppliers.map((s) {
@@ -231,14 +232,14 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                     TextField(
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Color(0xFF4A90E2), fontSize: 24, fontWeight: FontWeight.bold),
-                      decoration: const InputDecoration(
-                        labelText: 'Monto Total de Pago (Bs)',
-                        labelStyle: TextStyle(color: Colors.white70),
+                      style: const TextStyle(color: AppTheme.blueIcon, fontSize: 24, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        labelText: 'Monto Total de Pago (${CurrencyHelper.symbol})',
+                        labelStyle: const TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        prefixIcon: Icon(Icons.payments, color: Color(0xFF4A90E2)), // Light Blue
+                        fillColor: AppTheme.backgroundBlack,
+                        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        prefixIcon: const Icon(Icons.payments, color: AppTheme.blueIcon), // Light Blue
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -250,7 +251,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                         labelText: 'Método de Pago',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                       items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
@@ -271,7 +272,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                         labelText: 'Nota (Opcional)',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                     ),
@@ -298,7 +299,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Hay Bs. ${unallocated.toStringAsFixed(2)} sin asignar a ninguna deuda. Se registrará como anticipo/saldo a favor en el estado de cuenta del proveedor.',
+                            'Hay ${CurrencyHelper.simple(unallocated)} sin asignar a ninguna deuda. Se registrará como anticipo/saldo a favor en el estado de cuenta del proveedor.',
                             style: const TextStyle(color: Colors.orange, fontSize: 13),
                           ),
                         ),
@@ -323,7 +324,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                           final controller = _allocationControllers[purchase.id!];
                           
                           return Card(
-                            color: const Color(0xFF1E2432),
+                            color: AppTheme.cardDark,
                             margin: const EdgeInsets.only(bottom: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             child: Padding(
@@ -336,8 +337,8 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                                       children: [
                                         Text('Compra #${purchase.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                                         const SizedBox(height: 4),
-                                        Text('Deuda Factura: Bs. ${purchase.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                                        Text('Saldo Pendiente: Bs. ${purchase.pendingAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                                        Text('Deuda Factura: ${CurrencyHelper.simple(purchase.totalAmount)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                                        Text('Saldo Pendiente: ${CurrencyHelper.simple(purchase.pendingAmount)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
                                       ],
                                     ),
                                   ),
@@ -347,13 +348,13 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                                     child: TextField(
                                       controller: controller,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(color: Color(0xFF4A90E2), fontWeight: FontWeight.bold),
+                                      style: const TextStyle(color: AppTheme.blueIcon, fontWeight: FontWeight.bold),
                                       textAlign: TextAlign.right,
                                       decoration: const InputDecoration(
                                         labelText: 'Desembolso',
                                         labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
                                         filled: true,
-                                        fillColor: Color(0xFF151924),
+                                        fillColor: AppTheme.backgroundBlack,
                                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                       ),
@@ -371,7 +372,7 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2432),
+                  color: AppTheme.cardDark,
                   boxShadow: [
                     BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 10, offset: const Offset(0, -4))
                   ],
@@ -380,12 +381,12 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                   child: ElevatedButton(
                     onPressed: _selectedSupplierId == null ? null : _submitPayment,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2), // Corporate Blue
+                      backgroundColor: AppTheme.blueIcon, // Corporate Blue
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text('Confirmar Pago (Bs. ${totalDeposit.toStringAsFixed(2)})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: Text('Confirmar Pago (${CurrencyHelper.simple(totalDeposit)})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ),

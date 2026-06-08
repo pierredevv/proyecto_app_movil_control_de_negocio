@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../services/database_service.dart';
 import '../models/app_notification.dart';
 import '../services/settings_service.dart';
+import '../utils/currency_helper.dart';
 
 class NotificationProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -96,7 +97,7 @@ class NotificationProvider extends ChangeNotifier {
           await _addNotification(
             id: notifId,
             title: 'Cobro Vencido',
-            body: 'La venta #$saleId de $customerName tiene un saldo pendiente de Bs. ${pending.toStringAsFixed(2)} que ya venció.',
+            body: 'La venta #$saleId de $customerName tiene un saldo pendiente de ${CurrencyHelper.simple(pending)} que ya venció.',
             type: 'overdue_payment',
           );
         }

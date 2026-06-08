@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 class GlassTextFieldGroup extends StatefulWidget {
   final String label;
@@ -53,10 +54,10 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
     Color bgColor = Colors.white.withValues(alpha: 0.10);
 
     if (hasError) {
-      borderColor = const Color(0xFFFF6B6B);
+      borderColor = AppTheme.redAccent;
       bgColor = Colors.white.withValues(alpha: 0.10);
     } else if (_isFocused) {
-      borderColor = const Color(0xFF4ECDC4);
+      borderColor = AppTheme.greenIcon;
       bgColor = Colors.white.withValues(alpha: 0.15);
     }
 
@@ -66,7 +67,7 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
         Text(
           widget.label,
           style: const TextStyle(
-            color: Color(0xFFA0A8C1),
+            color: AppTheme.textSecondary,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -74,7 +75,7 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
         const SizedBox(height: 8),
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          height: 56,
+          constraints: const BoxConstraints(minHeight: 56),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
@@ -92,7 +93,7 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Icon(widget.icon,
-                        color: const Color(0xFFA0A8C1), size: 24),
+                        color: AppTheme.textSecondary, size: 24),
                   ),
                   Expanded(
                     child: TextField(
@@ -104,11 +105,11 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
                       decoration: InputDecoration(
                         hintText: widget.placeholder,
                         hintStyle: const TextStyle(
-                            color: Color(0xFF6B7494), fontSize: 16),
+                            color: AppTheme.textTertiary, fontSize: 16),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding:
-                            const EdgeInsets.symmetric(vertical: 18),
+                            const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
@@ -122,11 +123,11 @@ class _GlassTextFieldGroupState extends State<GlassTextFieldGroup> {
           Row(
             children: [
               const Icon(Icons.error_outline,
-                  color: Color(0xFFFF6B6B), size: 14),
+                  color: AppTheme.redAccent, size: 14),
               const SizedBox(width: 4),
               Text(
                 widget.errorText!,
-                style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12),
+                style: const TextStyle(color: AppTheme.redAccent, fontSize: 12),
               ),
             ],
           ),

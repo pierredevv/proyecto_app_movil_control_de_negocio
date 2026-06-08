@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
+import '../../utils/currency_helper.dart';
 
 class FrequentProductsList extends StatelessWidget {
   final List<Product> frequentProducts;
@@ -144,7 +145,7 @@ class _FrequentProductChipState extends State<_FrequentProductChip> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Bs. ${widget.product.price.toStringAsFixed(2)}',
+                CurrencyHelper.simple(widget.product.price),
                 style: TextStyle(
                     color: textColor.withValues(alpha: 0.7), fontSize: 12),
               ),

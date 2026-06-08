@@ -3,6 +3,7 @@ import '../../models/product.dart';
 import '../../models/sale_unit_option.dart';
 import '../../utils/sale_unit_helper.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class SaleUnitPickerSheet extends StatefulWidget {
   final Product product;
@@ -57,7 +58,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppTheme.surfaceSlate : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
@@ -147,34 +148,39 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                option.label,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : (isDark
-                                          ? Colors.white
-                                          : Colors.black87),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.label,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected
+                                        ? AppTheme.primary
+                                        : (isDark
+                                            ? Colors.white
+                                            : Colors.black87),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${option.unitsPerSaleUnit}x base',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color:
-                                      isDark ? Colors.white54 : Colors.black54,
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${option.unitsPerSaleUnit}x base',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        isDark ? Colors.white54 : Colors.black54,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 12),
                           Text(
-                            'Bs. ${option.price.toStringAsFixed(2)}',
+                            CurrencyHelper.simple(option.price),
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -197,8 +203,8 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                       'Cantidad:',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(
-                      width: 120,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
                       child: TextField(
                         controller: _qtyController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -235,7 +241,7 @@ class _SaleUnitPickerSheetState extends State<SaleUnitPickerSheet> {
                     ),
                   ),
                   child: Text(
-                    'Agregar por Bs. ${(_selectedOption.price * _quantity).toStringAsFixed(2)}',
+                    'Agregar por ${CurrencyHelper.simple(_selectedOption.price * _quantity)}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

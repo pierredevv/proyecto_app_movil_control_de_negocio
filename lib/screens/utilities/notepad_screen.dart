@@ -5,6 +5,8 @@ import '../../providers/note_provider.dart';
 import '../../models/note.dart';
 import 'note_editor_screen.dart';
 import 'package:intl/intl.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
 
 class NotepadScreen extends StatefulWidget {
   const NotepadScreen({super.key});
@@ -14,7 +16,7 @@ class NotepadScreen extends StatefulWidget {
 }
 
 class _NotepadScreenState extends State<NotepadScreen> {
-  final Color moduleColor = const Color(0xFF9B51E0);
+  final Color moduleColor = AppTheme.purpleIcon;
 
   @override
   void initState() {
@@ -27,7 +29,7 @@ class _NotepadScreenState extends State<NotepadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Notas Rápidas',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -35,11 +37,11 @@ class _NotepadScreenState extends State<NotepadScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Consumer<NoteProvider>(
+      body: BoundedDesktopWrapper(child: Consumer<NoteProvider>(
         builder: (context, noteProvider, child) {
           if (noteProvider.isLoading) {
             return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF9B51E0)));
+                child: CircularProgressIndicator(color: AppTheme.purpleIcon));
           }
 
           if (noteProvider.notes.isEmpty) {
@@ -57,7 +59,7 @@ class _NotepadScreenState extends State<NotepadScreen> {
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   const Text('Toca + para crear una nueva nota',
-                      style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 16)),
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
                 ],
               ),
             );
@@ -72,7 +74,7 @@ class _NotepadScreenState extends State<NotepadScreen> {
             },
           );
         },
-      ),
+      ),),
       floatingActionButton: FloatingActionButton(
         backgroundColor: moduleColor,
         onPressed: () {
@@ -146,7 +148,7 @@ class _NotepadScreenState extends State<NotepadScreen> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: note.title.isNotEmpty
-                                        ? const Color(0xFFA0A8C1)
+                                        ? AppTheme.textSecondary
                                         : Colors.white,
                                     fontSize: note.title.isNotEmpty ? 13 : 15,
                                     height: 1.3,
@@ -156,14 +158,14 @@ class _NotepadScreenState extends State<NotepadScreen> {
                                 Text(
                                   dateFormat.format(note.updatedAt),
                                   style: const TextStyle(
-                                      color: Color(0xFF6B7494), fontSize: 11),
+                                      color: AppTheme.textTertiary, fontSize: 11),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
                           const Icon(Icons.arrow_forward_ios,
-                              color: Color(0xFF6B7494), size: 14),
+                              color: AppTheme.textTertiary, size: 14),
                         ],
                       ),
                     ),

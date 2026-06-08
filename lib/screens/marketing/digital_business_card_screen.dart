@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../providers/settings_provider.dart';
 import 'dart:ui' as ui;
+import '../../theme/app_theme.dart';
 
 class DigitalBusinessCardScreen extends StatelessWidget {
   const DigitalBusinessCardScreen({super.key});
@@ -12,7 +13,7 @@ class DigitalBusinessCardScreen extends StatelessWidget {
     final profile = context.watch<SettingsProvider>().profile;
     
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Tarjeta de Presentación', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -28,7 +29,7 @@ class DigitalBusinessCardScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [AppTheme.surfaceDeep, AppTheme.surfaceSlate, AppTheme.surfaceDeep],
                 ),
               ),
             ),
@@ -40,10 +41,10 @@ class DigitalBusinessCardScreen extends StatelessWidget {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.15),
+                color: AppTheme.blueIcon.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  BoxShadow(color: AppTheme.blueIcon.withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
                 ],
               ),
             ),
@@ -75,7 +76,7 @@ class DigitalBusinessCardScreen extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor: const Color(0xFF4A90E2),
+                                backgroundColor: AppTheme.blueIcon,
                                 child: Text(
                                   profile.businessName.isNotEmpty ? profile.businessName[0].toUpperCase() : 'N',
                                   style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
@@ -132,7 +133,7 @@ class DigitalBusinessCardScreen extends StatelessWidget {
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+                        gradient: const LinearGradient(colors: [AppTheme.blueIcon, Color(0xFF50A7EA)]),
                       ),
                       child: ElevatedButton.icon(
                         onPressed: () {

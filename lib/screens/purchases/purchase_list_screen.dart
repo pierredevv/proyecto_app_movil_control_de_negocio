@@ -8,6 +8,7 @@ import '../../widgets/common/glass_transaction_card.dart';
 import '../../widgets/common/skeleton_list.dart';
 import 'purchase_form_screen.dart';
 import 'purchase_details_screen.dart';
+import '../../widgets/responsive_layout.dart';
 
 class PurchaseListScreen extends StatefulWidget {
   const PurchaseListScreen({super.key});
@@ -60,16 +61,16 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: Container(
+      body: BoundedDesktopWrapper(child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF1E293B),
-                    const Color(0xFF0F172A),
+                    AppTheme.surfaceDeep,
+                    AppTheme.surfaceSlate,
+                    AppTheme.surfaceDeep,
                   ]
                 : [
                     const Color(0xFFF8FAFC),
@@ -129,7 +130,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                   pinned: true,
                   elevation: 0,
                   backgroundColor: isDark
-                      ? const Color(0xFF0F172A).withValues(alpha: 0.7)
+                      ? AppTheme.surfaceDeep.withValues(alpha: 0.7)
                       : Colors.white.withValues(alpha: 0.7),
                   iconTheme: IconThemeData(
                     color: isDark ? Colors.white : Colors.black87,
@@ -229,7 +230,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
             ),
           ],
         ),
-      ),
+      ),),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(

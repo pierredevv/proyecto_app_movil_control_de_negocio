@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../models/category.dart';
 import '../../widgets/common/glass_dialog.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
 
 class CategoryManagerScreen extends StatefulWidget {
   const CategoryManagerScreen({super.key});
@@ -52,7 +54,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
               'Nombre de la Categoría',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFFA0A8C1),
+                color: AppTheme.textSecondary,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -77,7 +79,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
-                        const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                        const BorderSide(color: AppTheme.blueIcon, width: 1.5),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -90,14 +92,14 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+              colors: [AppTheme.blueIcon, Color(0xFF50A7EA)],
             ),
           ),
           child: ElevatedButton(
@@ -128,7 +130,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFFF6B6B)),
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent),
           );
         }
       }
@@ -146,14 +148,14 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
-            border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: 0.5)),
+            color: AppTheme.redAccent.withValues(alpha: 0.2),
+            border: Border.all(color: AppTheme.redAccent.withValues(alpha: 0.5)),
           ),
           child: TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -161,7 +163,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Eliminar', style: TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold)),
+            child: const Text('Eliminar', style: TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -177,7 +179,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Gestión de Categorías', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -185,7 +187,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       extendBodyBehindAppBar: true,
-      body: Stack(
+      body: BoundedDesktopWrapper(child: Stack(
         children: [
           // Background Gradient & Blobs
           Positioned.fill(
@@ -194,7 +196,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [AppTheme.surfaceDeep, AppTheme.surfaceSlate, AppTheme.surfaceDeep],
                 ),
               ),
             ),
@@ -206,10 +208,10 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                color: AppTheme.blueIcon.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  BoxShadow(color: AppTheme.blueIcon.withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
                 ],
               ),
             ),
@@ -247,10 +249,10 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                                          color: AppTheme.blueIcon.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
-                                        child: const Icon(Icons.category_outlined, color: Color(0xFF4A90E2)),
+                                        child: const Icon(Icons.category_outlined, color: AppTheme.blueIcon),
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
@@ -267,11 +269,11 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit_outlined, color: Color(0xFFA0A8C1)),
+                                            icon: const Icon(Icons.edit_outlined, color: AppTheme.textSecondary),
                                             onPressed: () => _showCategoryDialog(category: category),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline, color: Color(0xFFFF6B6B)),
+                                            icon: const Icon(Icons.delete_outline, color: AppTheme.redAccent),
                                             onPressed: () => _deleteCategory(category.id!),
                                           ),
                                         ],
@@ -294,11 +296,11 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+                  colors: [AppTheme.blueIcon, Color(0xFF50A7EA)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
+                    color: AppTheme.blueIcon.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -314,7 +316,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
             ),
           )
         ],
-      ),
+      ),),
     );
   }
 }

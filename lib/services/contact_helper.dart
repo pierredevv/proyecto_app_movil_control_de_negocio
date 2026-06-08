@@ -2,7 +2,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:permission_handler/permission_handler.dart'; // Add to pubspec.yaml
+import 'package:permission_handler/permission_handler.dart';
+import '../theme/app_theme.dart'; // Add to pubspec.yaml
 
 class ContactHelper {
   // ✅ Request permissions with complete case handling
@@ -268,9 +269,9 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                         decoration: const InputDecoration(
                           hintText: 'Buscar nombre...',
                           hintStyle:
-                              TextStyle(color: Color(0xFF6B7494), fontSize: 15),
+                              TextStyle(color: AppTheme.textTertiary, fontSize: 15),
                           prefixIcon: Icon(Icons.search,
-                              color: Color(0xFFA0A8C1), size: 20),
+                              color: AppTheme.textSecondary, size: 20),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
@@ -385,7 +386,7 @@ class _AnimatedContactItemState extends State<_AnimatedContactItem> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B6B).withValues(alpha: 0.80),
+                color: AppTheme.redAccent.withValues(alpha: 0.80),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -410,14 +411,14 @@ class _AnimatedContactItemState extends State<_AnimatedContactItem> {
                   Text(
                     widget.phone,
                     style:
-                        const TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+                        const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                   ),
                   if (widget.email != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       widget.email!,
                       style: const TextStyle(
-                          color: Color(0xFFA0A8C1), fontSize: 12),
+                          color: AppTheme.textSecondary, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

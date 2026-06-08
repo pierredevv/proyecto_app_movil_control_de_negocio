@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 
 import '../models/product.dart';
+import '../utils/currency_helper.dart';
 
 // ---------------------------------------------------------------------------
 // DATA TRANSFER OBJECTS (passed to isolates — no DB handles)
@@ -118,14 +119,19 @@ class ReportExportService {
   Future<Uint8List> exportInventoryReportPdf(
       List<Product> products, double totalValue, String businessName) async {
     final items = products
-        .map((p) => InventoryItem(
-              name: p.name,
-              category: '', // Category name to be resolved by caller if needed
-              stock: p.stock,
-              saleUnit: p.saleUnit,
-              wac: p.weightedAverageCost,
-              value: p.stock * p.weightedAverageCost,
-            ))
+        .map((p) {
+          final effectiveWac = p.weightedAverageCost > 0
+              ? p.weightedAverageCost
+              : p.cost / (p.unitsPerSaleUnit > 0 ? p.unitsPerSaleUnit : 1);
+          return InventoryItem(
+            name: p.name,
+            category: '', // Category name to be resolved by caller if needed
+            stock: p.stock,
+            saleUnit: p.saleUnit,
+            wac: effectiveWac,
+            value: p.stock * effectiveWac,
+          );
+        })
         .toList();
     final data = InventoryReportData(
         businessName: businessName, items: items, totalValue: totalValue);
@@ -135,14 +141,19 @@ class ReportExportService {
   Future<Uint8List> exportInventoryReportExcel(
       List<Product> products, double totalValue, String businessName) async {
     final items = products
-        .map((p) => InventoryItem(
-              name: p.name,
-              category: '',
-              stock: p.stock,
-              saleUnit: p.saleUnit,
-              wac: p.weightedAverageCost,
-              value: p.stock * p.weightedAverageCost,
-            ))
+        .map((p) {
+          final effectiveWac = p.weightedAverageCost > 0
+              ? p.weightedAverageCost
+              : p.cost / (p.unitsPerSaleUnit > 0 ? p.unitsPerSaleUnit : 1);
+          return InventoryItem(
+            name: p.name,
+            category: '',
+            stock: p.stock,
+            saleUnit: p.saleUnit,
+            wac: effectiveWac,
+            value: p.stock * effectiveWac,
+          );
+        })
         .toList();
     final data = InventoryReportData(
         businessName: businessName, items: items, totalValue: totalValue);
@@ -171,9 +182,9 @@ class ReportExportService {
 // ISOLATE FUNCTIONS (top-level — cannot access class state)
 // ===========================================================================
 
-final _fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
-final _dateFmt = DateFormat('dd/MM/yyyy', 'es_BO');
-final _dateTimeFmt = DateFormat('dd/MM/yyyy HH:mm', 'es_BO');
+final _fmt = CurrencyHelper.formatter;
+final _dateFmt = DateFormat('dd/MM/yyyy');
+final _dateTimeFmt = DateFormat('dd/MM/yyyy HH:mm');
 
 // ── SALES PDF ───────────────────────────────────────────────────────────────
 

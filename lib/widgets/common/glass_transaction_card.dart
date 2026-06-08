@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../utils/currency_helper.dart';
+import '../../theme/app_theme.dart';
 
 class GlassTransactionCard extends StatelessWidget {
   final String title;
@@ -58,15 +60,15 @@ class GlassTransactionCard extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(left: 4),
             decoration: BoxDecoration(
-              color: const Color(0x26FFFFFF), // White 15% opacity
+              color: AppTheme.glassWhite15, // White 15% opacity
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0x1AFFFFFF), // White 10% opacity
+                color: AppTheme.glassWhite10, // White 10% opacity
                 width: 1.5,
               ),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x26000000), // Black 15% opacity
+                  color: AppTheme.glassShadow, // Black 15% opacity
                   blurRadius: 12,
                   offset: Offset(0, 4),
                 ),
@@ -146,7 +148,7 @@ class GlassTransactionCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'Bs. ${amount.toStringAsFixed(2)}',
+                                    CurrencyHelper.simple(amount),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -185,22 +187,22 @@ class GlassTransactionCard extends StatelessWidget {
       case 'COMPLETED':
       case 'PAID':
       case 'RECEIVED':
-        return const Color(0xFF51CF66); // Green
+        return AppTheme.success; // Green
       case 'PARTIAL':
         return const Color(0xFFF59F00); // Orange
       case 'CREDIT':
         return const Color(0xFF1C7ED6); // Blue
       case 'PENDING':
-        return const Color(0xFFFFA94D); // Yellow
+        return AppTheme.warning; // Yellow
       case 'OVERDUE':
-        return const Color(0xFFFF6B6B); // Red
+        return AppTheme.redAccent; // Red
       case 'VOIDED':
       case 'CANCELLED':
-        return const Color(0xFF6B7494); // Gray
+        return AppTheme.textTertiary; // Gray
       case 'CONFIRMED':
         return const Color(0xFF29B6F6); // Light Blue
       default:
-        return const Color(0xFF4A90E2); // Blue (default)
+        return AppTheme.blueIcon; // Blue (default)
     }
   }
 

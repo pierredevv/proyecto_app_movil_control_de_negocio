@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui' as ui;
 import 'digital_business_card_screen.dart';
 import 'whatsapp_catalog_screen.dart';
+import '../../theme/app_theme.dart';
 
 class MarketingHubScreen extends StatelessWidget {
   const MarketingHubScreen({super.key});
@@ -10,7 +11,7 @@ class MarketingHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Crece tu Negocio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -27,7 +28,7 @@ class MarketingHubScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [AppTheme.surfaceDeep, AppTheme.surfaceSlate, AppTheme.surfaceDeep],
                 ),
               ),
             ),
@@ -69,7 +70,7 @@ class MarketingHubScreen extends StatelessWidget {
                     title: 'Tarjeta de Presentación Digital',
                     description: 'Crea y comparte tu tarjeta de negocios con diseño profesional.',
                     icon: Icons.contact_mail,
-                    color: const Color(0xFF4A90E2),
+                    color: AppTheme.blueIcon,
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const DigitalBusinessCardScreen()));
                     },
@@ -82,7 +83,7 @@ class MarketingHubScreen extends StatelessWidget {
                     title: 'Exportar Catálogo Whatsapp',
                     description: 'Genera un catálogo en texto de tus productos para compartir rápidamente.',
                     icon: Icons.storefront,
-                    color: const Color(0xFF51CF66),
+                    color: AppTheme.success,
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const WhatsAppCatalogScreen()));
                     },

@@ -11,6 +11,23 @@ class AppTheme {
   static const Color purpleIcon = Color(0xFF9B51E0);
   static const Color greenIcon = Color(0xFF4ECDC4); // Distinct from greenAccent
 
+  // Status / Semantic colors
+  static const Color success = Color(0xFF51CF66);
+  static const Color error = Color(0xFFEF4444);
+  static const Color warning = Color(0xFFFFA94D);
+  static const Color info = blueIcon;
+
+  // Surface colors (dark mode card/container variants)
+  static const Color cardDark = Color(0xFF1E2432);
+  static const Color surfaceDeep = Color(0xFF0F172A);
+  static const Color surfaceSlate = Color(0xFF1E293B);
+
+  // Glass morphism
+  static const Color glassWhite15 = Color(0x26FFFFFF); // White 15% opacity
+  static const Color glassWhite10 = Color(0x1AFFFFFF); // White 10% opacity
+  static const Color glassShadow = Color(0x26000000); // Black 15% opacity
+
+  // Text colors
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFA0A8C1);
   static const Color textTertiary = Color(0xFF6B7494);

@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class MarginCalculatorScreen extends StatefulWidget {
   const MarginCalculatorScreen({super.key});
@@ -9,7 +11,7 @@ class MarginCalculatorScreen extends StatefulWidget {
 }
 
 class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
-  final Color moduleColor = const Color(0xFFF5A623); // Orange
+  final Color moduleColor = AppTheme.yellowIcon; // Orange
 
   final TextEditingController _costController = TextEditingController();
   final TextEditingController _sellController = TextEditingController();
@@ -93,7 +95,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
       children: [
         Text(label,
             style: const TextStyle(
-                color: Color(0xFFA0A8C1),
+                color: AppTheme.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
@@ -130,7 +132,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
           Flexible(
             child: Text(
               title,
-              style: const TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ),
           const SizedBox(width: 8),
@@ -153,7 +155,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Calculadora de Margen',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -181,11 +183,11 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  _buildInputField('Costo (\$) *', _costController,
-                      prefix: '\$ '),
+                  _buildInputField('Costo (${CurrencyHelper.symbol}) *', _costController,
+                      prefix: '${CurrencyHelper.symbol} '),
                   const SizedBox(height: 16),
-                  _buildInputField('Precio de Venta (\$) *', _sellController,
-                      prefix: '\$ '),
+                  _buildInputField('Precio de Venta (${CurrencyHelper.symbol}) *', _sellController,
+                      prefix: '${CurrencyHelper.symbol} '),
                   const SizedBox(height: 16),
                   _buildInputField(
                       'Margen Esperado (%) - Opcional', _targetMarginController,
@@ -210,7 +212,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                   ),
                   const SizedBox(height: 20),
                   _buildResultRow(
-                      'Ganancia Neta:', '\$${_netProfit.toStringAsFixed(2)}',
+                      'Ganancia Neta:', CurrencyHelper.simple(_netProfit),
                       highlight: true),
                   const Divider(color: Colors.white12, height: 24),
                   _buildResultRow('Margen de Ganancia (sobre venta):',
@@ -222,7 +224,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                   _buildResultRow(
                       'Precio Sugerido (meta):',
                       _suggestedPrice > 0
-                          ? '\$${_suggestedPrice.toStringAsFixed(2)}'
+                          ? CurrencyHelper.simple(_suggestedPrice)
                           : '-',
                       highlight: _suggestedPrice > 0),
                 ],

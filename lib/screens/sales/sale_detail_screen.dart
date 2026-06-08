@@ -13,6 +13,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/settings_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../services/pdf_generator_service.dart';
+import '../../utils/currency_helper.dart';
 import '../main_screen.dart';
 
 class SaleDetailScreen extends StatefulWidget {
@@ -59,8 +60,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     const greenColor = Color(0xFF4CAF50);
     const yellowColor = Color(0xFFFBC02D);
 
-    final currencyFormat = NumberFormat.currency(
-        symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final currencyFormat = CurrencyHelper.formatter;
     final dateFormat = DateFormat('dd MMM, yyyy', 'es_BO');
     final timeFormat = DateFormat('HH:mm', 'es_BO');
 
@@ -485,18 +485,21 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   const SizedBox(height: 16),
                   // Total Invoice row
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total Factura',
-                        style: TextStyle(
-                          color: subTextColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          'Total Factura',
+                          style: TextStyle(
+                            color: subTextColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         currencyFormat.format(widget.sale.totalAmount),
+                        textAlign: TextAlign.end,
                         style: TextStyle(
                           color: textColor,
                           fontSize: 16,
@@ -509,7 +512,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   // C1 FIX: Show amountPaid (not totalAmount)
                   Row(
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           'Total Pagado',
                           style: TextStyle(
@@ -537,18 +540,21 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   if (widget.sale.pendingAmount > 0.001) ...[
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Saldo Pendiente',
-                          style: TextStyle(
-                            color: Colors.red[400],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Text(
+                            'Saldo Pendiente',
+                            style: TextStyle(
+                              color: Colors.red[400],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           currencyFormat.format(widget.sale.pendingAmount),
+                          textAlign: TextAlign.end,
                           style: TextStyle(
                             color: Colors.red[400],
                             fontSize: 16,
@@ -753,20 +759,28 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Widget _buildSummaryRow(
       String label, double amount, NumberFormat format, Color? color) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: color, fontSize: 14)),
-        Text(format.format(amount),
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-                fontSize: 14)),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: color, fontSize: 14),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          format.format(amount),
+          textAlign: TextAlign.end,
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+              fontSize: 14),
+        ),
       ],
     );
   }
 
   Widget _buildLinkedPaymentsSection(ThemeData theme, Color cardColor, Color textColor, Color subTextColor, Color dividerColor) {
-    final format = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final format = CurrencyHelper.formatter;
     final df = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
 
     return FutureBuilder<List<Map<String, dynamic>>>(

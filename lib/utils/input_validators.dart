@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'currency_helper.dart';
 // Centralized validators for the entire application
 class InputValidators {
   // Validation of positive decimal numbers
@@ -172,7 +172,7 @@ class InputValidators {
     }
 
     if (amount > totalDebt) {
-      return '⚠️ El monto excede la deuda total (${totalDebt.toStringAsFixed(2)} Bs)';
+      return '⚠️ El monto excede la deuda total (${CurrencyHelper.simple(totalDebt)})';
     }
 
     return null;

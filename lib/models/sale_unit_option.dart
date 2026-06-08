@@ -1,3 +1,5 @@
+import '../utils/currency_helper.dart';
+
 class SaleUnitOption {
   final String label; // "Caja (18X250)", "Bolsa suelta", "Unidad"
   final String unitCode; // "CAJ", "BOL", "UNI", "KG"
@@ -18,5 +20,5 @@ class SaleUnitOption {
   }
 
   @override
-  String toString() => "$label ($unitCode) — $unitsPerSaleUnit u. — Bs. $price";
+  String toString() => "$label ($unitCode) — $unitsPerSaleUnit u. — ${CurrencyHelper.symbol} $price";
 }

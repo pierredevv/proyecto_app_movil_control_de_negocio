@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class FinancialSummary extends StatelessWidget {
   const FinancialSummary({super.key});
@@ -16,7 +17,7 @@ class FinancialSummary extends StatelessWidget {
         children: [
           _FinancialCard(
             label: 'Ventas de Hoy',
-            amount: 'Bs. ${provider.totalSalesToday.toStringAsFixed(2)}',
+            amount: CurrencyHelper.simple(provider.totalSalesToday),
             icon: Icons.arrow_upward,
             color: AppTheme.emerald,
             bgColor: const Color(0xFFECFDF5),
@@ -25,7 +26,7 @@ class FinancialSummary extends StatelessWidget {
           const SizedBox(width: 12),
           _FinancialCard(
             label: 'Compras de Hoy',
-            amount: 'Bs. ${provider.totalPurchasesToday.toStringAsFixed(2)}',
+            amount: CurrencyHelper.simple(provider.totalPurchasesToday),
             icon: Icons.arrow_downward,
             color: AppTheme.primary,
             bgColor: const Color(0xFFFFF1F2),
@@ -34,7 +35,7 @@ class FinancialSummary extends StatelessWidget {
           const SizedBox(width: 12),
           _FinancialCard(
             label: 'Balance Diario',
-            amount: 'Bs. ${provider.netBalance.toStringAsFixed(2)}',
+            amount: CurrencyHelper.simple(provider.netBalance),
             icon: provider.netBalance >= 0
                 ? Icons.trending_up
                 : Icons.trending_down,
@@ -91,23 +92,31 @@ class _FinancialCard extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: text),
               const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : AppTheme.textSecondaryLight,
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : AppTheme.textSecondaryLight,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: text,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              amount,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: text,
+              ),
             ),
           ),
         ],

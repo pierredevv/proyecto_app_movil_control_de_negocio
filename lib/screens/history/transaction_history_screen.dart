@@ -21,8 +21,11 @@ import '../purchases/purchase_form_screen.dart';
 import '../../widgets/responsive_layout.dart';
 import '../../theme/app_theme.dart';
 import '../sales/sales_screen.dart';
+import '../expenses/expense_form_screen.dart';
+import '../treasury/global_payment_screen.dart';
 import '../../models/product.dart';
 import '../../widgets/common/glass_dialog.dart';
+import '../../utils/currency_helper.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -127,19 +130,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       context: context,
       title: 'Anular Transacción',
       content: Text(
-          '¿Estás seguro de que deseas anular esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'} por Bs. ${t.totalAmount.toStringAsFixed(2)}?\n\nEl inventario y el balance del cliente/proveedor se revertirán.',
+          '¿Estás seguro de que deseas anular esta ${t.type == TransactionType.sale ? 'Venta' : 'Compra'} por ${CurrencyHelper.simple(t.totalAmount)}?\n\nEl inventario y el balance del cliente/proveedor se revertirán.',
           style: const TextStyle(color: Colors.white70, fontSize: 16)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
-            border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: 0.5)),
+            color: AppTheme.redAccent.withValues(alpha: 0.2),
+            border: Border.all(color: AppTheme.redAccent.withValues(alpha: 0.5)),
           ),
           child: TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -147,7 +150,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Sí, Anular', style: TextStyle(color: Color(0xFFFF6B6B), fontWeight: FontWeight.bold)),
+            child: const Text('Sí, Anular', style: TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -201,13 +204,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+            gradient: const LinearGradient(colors: [AppTheme.blueIcon, Color(0xFF50A7EA)]),
           ),
           child: ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -331,13 +334,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+            gradient: const LinearGradient(colors: [AppTheme.blueIcon, Color(0xFF50A7EA)]),
           ),
           child: ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -445,7 +448,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                           : BoundedDesktopWrapper(
                               child: RefreshIndicator(
                                 onRefresh: _loadData,
-                                color: const Color(0xFFFF6B6B),
+                                color: AppTheme.redAccent,
                                 child: ListView.builder(
                                   controller: _scrollController,
                                   padding: const EdgeInsets.only(bottom: 20),
@@ -493,7 +496,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         : DateFormat('MMMM yyyy').format(DateTime.now());
 
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subColor = isDark ? const Color(0xFFA0A8C1) : Colors.grey[600];
+    final subColor = isDark ? AppTheme.textSecondary : Colors.grey[600];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -624,6 +627,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       icon = Icons.money_off;
       message = 'No hay gastos registrados';
       ctaLabel = 'Registrar Gasto';
+    } else if (_selectedType == 'payment') {
+      icon = Icons.payment;
+      message = 'No hay pagos registrados';
+      ctaLabel = 'Registrar Pago';
     } else {
       icon = Icons.history_edu;
       message = 'No hay movimientos';
@@ -643,20 +650,30 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           Container(
             decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)]),
+                    colors: [AppTheme.redAccent, Color(0xFFFF8E8E)]),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                      color: AppTheme.redAccent.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4))
                 ]),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _selectedType == 'sale'
-                    ? () => Navigator.pop(context)
-                    : _loadData,
+                onTap: () {
+                  if (_selectedType == 'sale') {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesScreen()));
+                  } else if (_selectedType == 'purchase') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchaseFormScreen())).then((_) => _loadData());
+                  } else if (_selectedType == 'expense') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseFormScreen())).then((_) => _loadData());
+                  } else if (_selectedType == 'payment') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const GlobalPaymentScreen())).then((_) => _loadData());
+                  } else {
+                    _loadData();
+                  }
+                },
                 borderRadius: BorderRadius.circular(24),
                 child: Padding(
                   padding:
@@ -734,7 +751,7 @@ class _GlassFilterTabs extends StatelessWidget {
 
     final textColor = isActive
         ? (isDark ? Colors.white : Colors.black)
-        : (isDark ? const Color(0xFFA0A8C1) : Colors.grey);
+        : (isDark ? AppTheme.textSecondary : Colors.grey);
 
     final fontWeight = isActive ? FontWeight.w600 : FontWeight.w400;
 
@@ -764,11 +781,11 @@ class _GlassFilterTabs extends StatelessWidget {
                 width: 20,
                 height: 3,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B6B),
+                    color: AppTheme.redAccent,
                     borderRadius: BorderRadius.circular(1.5),
                     boxShadow: [
                       BoxShadow(
-                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+                          color: AppTheme.redAccent.withValues(alpha: 0.2),
                           blurRadius: 8)
                     ]),
               )
@@ -811,11 +828,11 @@ class _GlassTransactionCard extends StatelessWidget {
         case 'PARTIAL':
           return const Color(0xFFF59F00);
         case 'CREDIT':
-          return const Color(0xFF4A90E2);
+          return AppTheme.blueIcon;
         case 'VOIDED':
-          return const Color(0xFF6B7494);
+          return AppTheme.textTertiary;
         default:
-          return const Color(0xFF51CF66);
+          return AppTheme.success;
       }
     }
     if (transaction is Purchase) {
@@ -824,24 +841,24 @@ class _GlassTransactionCard extends StatelessWidget {
         case 'PARTIAL':
           return const Color(0xFFF59F00); // Same Partial color
         case 'CREDIT':
-          return const Color(0xFF4A90E2);
+          return AppTheme.blueIcon;
         case 'VOIDED':
-          return const Color(0xFF6B7494);
+          return AppTheme.textTertiary;
         default:
-          return const Color(0xFFFF6B6B);
+          return AppTheme.redAccent;
       }
     }
     switch (transaction.type) {
       case TransactionType.purchase: // fallback
-        return const Color(0xFFFF6B6B);
+        return AppTheme.redAccent;
       case TransactionType.expense:
-        return const Color(0xFFFFA94D);
+        return AppTheme.warning;
       case TransactionType.payment:
-        return const Color(0xFF4A90E2);
+        return AppTheme.blueIcon;
       case TransactionType.order:
         return const Color(0xFF8C52FF);
       default:
-        return const Color(0xFF51CF66);
+        return AppTheme.success;
     }
   }
 
@@ -951,7 +968,7 @@ class _GlassTransactionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                          'Monto: Bs. ${transaction.totalAmount.toStringAsFixed(2)}'),
+                          'Monto: ${CurrencyHelper.simple(transaction.totalAmount)}'),
                       Text(
                           'Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(transaction.date)}'),
                       if (transaction is Expense)
@@ -1041,10 +1058,10 @@ class _GlassTransactionCard extends StatelessWidget {
     }
 
     final dateStr = DateFormat('MMM dd, HH:mm').format(transaction.date);
-    final amountStr = 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}';
+    final amountStr = CurrencyHelper.simple(transaction.totalAmount);
     final prefix = isPositive ? '+' : '-';
     final amountColor =
-        isPositive ? const Color(0xFF51CF66) : const Color(0xFFFF6B6B);
+        isPositive ? AppTheme.success : AppTheme.redAccent;
 
     final cardBg =
         isDark ? const Color(0xFFFFFFFF).withValues(alpha: 0.15) : Colors.white;
@@ -1056,8 +1073,8 @@ class _GlassTransactionCard extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.05);
 
     final titleColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? const Color(0xFF6B7494) : Colors.grey[600];
-    const secondaryGray = Color(0xFFA0A8C1);
+    final subtitleColor = isDark ? AppTheme.textTertiary : Colors.grey[600];
+    const secondaryGray = AppTheme.textSecondary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
@@ -1126,7 +1143,7 @@ class _GlassTransactionCard extends StatelessWidget {
                                 if (transaction.type == TransactionType.sale)
                                   IconButton(
                                     icon: const Icon(Icons.print,
-                                        size: 22, color: Color(0xFFFF6B6B)),
+                                        size: 22, color: AppTheme.redAccent),
                                     onPressed: () => _handlePrint(context),
                                     constraints: const BoxConstraints(),
                                     padding: const EdgeInsets.all(8),
@@ -1245,9 +1262,8 @@ class _GlassTransactionCard extends StatelessWidget {
     required Color typeColor,
     required bool isDark,
   }) {
-    final fmt = NumberFormat.currency(
-        symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
-    const paidColor = Color(0xFF51CF66);
+    final fmt = CurrencyHelper.formatter;
+    const paidColor = AppTheme.success;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1307,7 +1323,7 @@ class _GlassTransactionCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
                 color: _isOverdue(sale.paymentDueDate!)
-                    ? const Color(0xFFFF6B6B).withValues(alpha: 0.15)
+                    ? AppTheme.redAccent.withValues(alpha: 0.15)
                     : typeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -1319,7 +1335,7 @@ class _GlassTransactionCard extends StatelessWidget {
                         : Icons.calendar_today,
                     size: 12,
                     color: _isOverdue(sale.paymentDueDate!)
-                        ? const Color(0xFFFF6B6B)
+                        ? AppTheme.redAccent
                         : typeColor,
                   ),
                   const SizedBox(height: 2),
@@ -1327,7 +1343,7 @@ class _GlassTransactionCard extends StatelessWidget {
                     DateFormat('dd/MM').format(sale.paymentDueDate!),
                     style: TextStyle(
                       color: _isOverdue(sale.paymentDueDate!)
-                          ? const Color(0xFFFF6B6B)
+                          ? AppTheme.redAccent
                           : typeColor,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,

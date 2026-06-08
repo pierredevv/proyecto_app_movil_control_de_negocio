@@ -27,10 +27,13 @@ class _ValuedInventoryReportScreenState
       final inventory = context.read<InventoryProvider>();
       final products =
           inventory.products.where((p) => p.stock > 0).toList()
-            ..sort((a, b) => (b.stock * b.weightedAverageCost)
-                .compareTo(a.stock * a.weightedAverageCost));
+            ..sort((a, b) {
+              final valA = a.stock * (a.weightedAverageCost > 0 ? a.weightedAverageCost : (a.cost / (a.unitsPerSaleUnit > 0 ? a.unitsPerSaleUnit : 1)));
+              final valB = b.stock * (b.weightedAverageCost > 0 ? b.weightedAverageCost : (b.cost / (b.unitsPerSaleUnit > 0 ? b.unitsPerSaleUnit : 1)));
+              return valB.compareTo(valA);
+            });
       final totalValue = products.fold(
-          0.0, (sum, p) => sum + (p.stock * p.weightedAverageCost));
+          0.0, (sum, p) => sum + (p.stock * (p.weightedAverageCost > 0 ? p.weightedAverageCost : (p.cost / (p.unitsPerSaleUnit > 0 ? p.unitsPerSaleUnit : 1)))));
 
       final exportService = ReportExportService();
       final bytes = isPdf
@@ -74,11 +77,14 @@ class _ValuedInventoryReportScreenState
 
     // Filter out products with 0 stock to avoid clutter, or keep them? Usually kept to be transparent, or filtered if requested. Let's keep stock > 0 for valued inventory.
     final valuedProducts = products.where((p) => p.stock > 0).toList()
-      ..sort((a, b) => (b.stock * b.weightedAverageCost)
-          .compareTo(a.stock * a.weightedAverageCost)); // Sort by largest value
+      ..sort((a, b) {
+        final valA = a.stock * (a.weightedAverageCost > 0 ? a.weightedAverageCost : (a.cost / (a.unitsPerSaleUnit > 0 ? a.unitsPerSaleUnit : 1)));
+        final valB = b.stock * (b.weightedAverageCost > 0 ? b.weightedAverageCost : (b.cost / (b.unitsPerSaleUnit > 0 ? b.unitsPerSaleUnit : 1)));
+        return valB.compareTo(valA);
+      });
 
     final totalCapital = valuedProducts.fold(
-        0.0, (sum, p) => sum + (p.stock * p.weightedAverageCost));
+        0.0, (sum, p) => sum + (p.stock * (p.weightedAverageCost > 0 ? p.weightedAverageCost : (p.cost / (p.unitsPerSaleUnit > 0 ? p.unitsPerSaleUnit : 1)))));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -168,7 +174,7 @@ class _ValuedInventoryReportScreenState
                           itemCount: valuedProducts.length,
                           itemBuilder: (context, index) {
                             final p = valuedProducts[index];
-                            final value = p.stock * p.weightedAverageCost;
+                            final value = p.stock * (p.weightedAverageCost > 0 ? p.weightedAverageCost : (p.cost / (p.unitsPerSaleUnit > 0 ? p.unitsPerSaleUnit : 1)));
 
                             return Card(
                               color: theme.cardColor,

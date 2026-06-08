@@ -11,6 +11,8 @@ import '../purchases/purchase_form_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/common/glass_dialog.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
 
 class OrderListScreen extends StatefulWidget {
   const OrderListScreen({super.key});
@@ -102,16 +104,16 @@ class _OrderListScreenState extends State<OrderListScreen> {
           ),
         ],
       ),
-      body: Container(
+      body: BoundedDesktopWrapper(child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF1E293B),
-                    const Color(0xFF0F172A),
+                    AppTheme.surfaceDeep,
+                    AppTheme.surfaceSlate,
+                    AppTheme.surfaceDeep,
                   ]
                 : [
                     const Color(0xFFF8FAFC),
@@ -129,10 +131,10 @@ class _OrderListScreenState extends State<OrderListScreen> {
                 width: 300,
                 height: 300,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                  color: AppTheme.blueIcon.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFF4A90E2).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                    BoxShadow(color: AppTheme.blueIcon.withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
                   ],
                 ),
               ),
@@ -151,7 +153,7 @@ class _OrderListScreenState extends State<OrderListScreen> {
             ),
           ],
         ),
-      ),
+      ),),
       // Only show FAB if NOT in Pending/Confirmed empty states (optional, but usually good to keep)
       // User request said CTA Button on Pending Empty State, so we might want to hide main FAB or keep it?
       // "Do NOT show on Confirmed Orders" refers to the CTA inside the empty state.
@@ -230,7 +232,7 @@ class _OrderListScreenState extends State<OrderListScreen> {
 
     final textColor = isSelected
         ? (isDark ? Colors.white : Colors.black)
-        : (isDark ? const Color(0xFFA0A8C1) : Colors.grey);
+        : (isDark ? AppTheme.textSecondary : Colors.grey);
 
     final fontWeight = isSelected ? FontWeight.w600 : FontWeight.w400;
 
@@ -260,11 +262,11 @@ class _OrderListScreenState extends State<OrderListScreen> {
                 width: 20,
                 height: 3,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B6B),
+                    color: AppTheme.redAccent,
                     borderRadius: BorderRadius.circular(1.5),
                     boxShadow: [
                       BoxShadow(
-                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+                          color: AppTheme.redAccent.withValues(alpha: 0.2),
                           blurRadius: 8)
                     ]),
               )
@@ -416,7 +418,7 @@ class _OrderListScreenState extends State<OrderListScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.normal,
-                color: Color(0xFFA0A8C1), // #A0A8C1
+                color: AppTheme.textSecondary, // #A0A8C1
               ),
               textAlign: TextAlign.center,
             ),
@@ -502,10 +504,30 @@ class _OrderListScreenState extends State<OrderListScreen> {
       children: [
         // Forward via WhatsApp
         TextButton.icon(
-          onPressed: () {
+          onPressed: () async {
             final message = WhatsAppHelper.generateOrderMessage(order);
-            // TODO: Get real phone number from supplier if available
-            WhatsAppHelper.launchWhatsApp('59100000000', message);
+            String phone = '';
+            if (order.supplierId != null) {
+              final db = DatabaseService();
+              final supplier = await db.getSupplierById(order.supplierId!);
+              if (supplier != null &&
+                  supplier.phone != null &&
+                  supplier.phone!.isNotEmpty) {
+                phone = supplier.phone!;
+              }
+            }
+            try {
+              await WhatsAppHelper.launchWhatsApp(phone, message);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text(
+                          'No se pudo abrir WhatsApp. Verifique si está instalado.'),
+                      backgroundColor: Colors.orange),
+                );
+              }
+            }
           },
           icon: const Icon(Icons.share, size: 18),
           label: const Text('Enviar'),
@@ -553,14 +575,14 @@ class _OrderListScreenState extends State<OrderListScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+              colors: [AppTheme.blueIcon, Color(0xFF50A7EA)],
             ),
           ),
           child: ElevatedButton(

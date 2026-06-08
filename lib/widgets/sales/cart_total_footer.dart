@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class CartTotalFooter extends StatefulWidget {
   final double total;
@@ -82,18 +83,24 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                'Bs. ${widget.total.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: Colors.white, // Or Accent color
-                  fontSize: widget.allowInvoiceAdjustments ? 14 : 24,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    CurrencyHelper.simple(widget.total),
+                    style: TextStyle(
+                      color: Colors.white, // Or Accent color
+                      fontSize: widget.allowInvoiceAdjustments ? 14 : 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               if (widget.allowInvoiceAdjustments) ...[
                  const SizedBox(width: 8),
-                 SizedBox(
-                   width: 120,
+                 ConstrainedBox(
+                   constraints: const BoxConstraints(maxWidth: 140),
                    child: TextField(
                       controller: _totalController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -140,7 +147,7 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
                 flex: 7,
                 child: ElevatedButton.icon(
                   onPressed: () => widget.onCheckout(_currentTotal),
-                  label: const Text('PAGAR'),
+                  label: const Text('COBRAR'),
                   icon: const Icon(Icons.payment),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.redAccent,

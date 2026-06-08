@@ -88,7 +88,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
     final rawHeaders = result.rawHeaders.where((h) => h.isNotEmpty).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppTheme.surfaceDeep,
       appBar: AppBar(
         title: const Text('Mapeo de Columnas', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.transparent,
@@ -99,7 +99,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF1E293B),
+            color: AppTheme.surfaceSlate,
             child: const Text(
               'Hemos detectado las siguientes columnas en tu archivo. '
               'Verifica y ajusta a qué campo del sistema corresponde cada una.',
@@ -119,7 +119,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
+                    color: AppTheme.surfaceSlate,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isRequired && _currentMapping[key] == null
@@ -141,7 +141,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
                       InputDecorator(
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: const Color(0xFF0F172A),
+                          fillColor: AppTheme.surfaceDeep,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
@@ -150,7 +150,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            dropdownColor: const Color(0xFF1E293B),
+                            dropdownColor: AppTheme.surfaceSlate,
                             value: rawHeaders.contains(_currentMapping[key])
                                 ? _currentMapping[key]
                                 : null,
@@ -186,8 +186,8 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
-              color: Color(0xFF0F172A),
-              border: Border(top: BorderSide(color: Color(0xFF1E293B))),
+              color: AppTheme.surfaceDeep,
+              border: Border(top: BorderSide(color: AppTheme.surfaceSlate)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +243,7 @@ class _ImportMappingScreenState extends State<ImportMappingScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
+              color: AppTheme.surfaceSlate,
               border: Border(top: BorderSide(color: Color(0xFF334155))),
             ),
             child: SizedBox(

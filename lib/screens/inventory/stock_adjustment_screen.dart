@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/product.dart';
 import '../../providers/inventory_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class StockAdjustmentScreen extends StatefulWidget {
   final Product product;
@@ -154,9 +155,9 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF0F172A),
-                    Color(0xFF1E293B),
-                    Color(0xFF0F172A)
+                    AppTheme.surfaceDeep,
+                    AppTheme.surfaceSlate,
+                    AppTheme.surfaceDeep
                   ],
                 ),
               ),
@@ -169,11 +170,11 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                color: AppTheme.blueIcon.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                      color: AppTheme.blueIcon.withValues(alpha: 0.2),
                       blurRadius: 100,
                       spreadRadius: 20),
                 ],
@@ -357,7 +358,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Color(0xFF4A90E2), width: 1.5),
+                                      color: AppTheme.blueIcon, width: 1.5),
                                 ),
                                 prefixIcon: Icon(
                                     _isAddition ? Icons.add : Icons.remove,
@@ -384,7 +385,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                                     color: Colors.white, fontSize: 18),
                                 decoration: InputDecoration(
                                   labelText:
-                                      'Costo Unitario (Bs.) — Opcional (recalcula CMPp)',
+                                      'Costo Unitario (${CurrencyHelper.symbol}) — Opcional (recalcula CMPp)',
                                   labelStyle: const TextStyle(
                                       color: Colors.white70, fontSize: 13),
                                   hintText:
@@ -439,7 +440,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Color(0xFF4A90E2), width: 1.5),
+                                      color: AppTheme.blueIcon, width: 1.5),
                                 ),
                               ),
                               items: _reasons
@@ -480,7 +481,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Color(0xFF4A90E2), width: 1.5),
+                                      color: AppTheme.blueIcon, width: 1.5),
                                 ),
                               ),
                             ),
@@ -522,7 +523,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)],
+                              colors: [AppTheme.blueIcon, Color(0xFF50A7EA)],
                             ),
                           ),
                           child: ElevatedButton(

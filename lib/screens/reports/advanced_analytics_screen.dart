@@ -118,8 +118,8 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                     ..._topProducts.map((p) => _buildGlassCard(
                           child: ListTile(
                             title: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                            subtitle: Text('Cant: ${p.quantitySold.toStringAsFixed(2)} | Ingresos: Bs. ${p.totalRevenue.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
-                            trailing: Text('Stock: ${p.currentStock.toStringAsFixed(0)}', style: const TextStyle(color: Colors.amber)),
+                            subtitle: Text('Cant: ${p.displayQuantitySold.toStringAsFixed(0)} ${p.saleUnit} | Ingresos: Bs. ${p.totalRevenue.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
+                            trailing: Text('Stock: ${p.displayCurrentStock.toStringAsFixed(0)} ${p.saleUnit}', style: const TextStyle(color: Colors.amber)),
                           ),
                         )),
                     if (_topProducts.isEmpty) const Text('No hay datos suficientes.', style: TextStyle(color: Colors.white70)),
@@ -141,8 +141,8 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                           borderColor: Colors.red.withValues(alpha: 0.5),
                           child: ListTile(
                             title: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                            subtitle: Text('Cant. Histórica Vendida: ${p.quantitySold.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
-                            trailing: Text('Stock Atrapado:\n${p.currentStock.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            subtitle: Text('Cant. Histórica Vendida: ${p.displayQuantitySold.toStringAsFixed(0)} ${p.saleUnit}', style: const TextStyle(color: Colors.white70)),
+                            trailing: Text('Stock Atrapado:\n${p.displayCurrentStock.toStringAsFixed(0)} ${p.saleUnit}', textAlign: TextAlign.right, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                           ),
                         )),
                     if (_deadStock.isEmpty) const Text('¡Excelente! No hay inventario estancado.', style: TextStyle(color: Colors.white70)),

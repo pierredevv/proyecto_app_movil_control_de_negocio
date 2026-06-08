@@ -14,6 +14,7 @@ import 'valued_inventory_report_screen.dart';
 import 'advanced_analytics_screen.dart';
 import '../../theme/app_theme.dart';
 import '../orders/order_details_screen.dart';
+import '../../utils/currency_helper.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -40,9 +41,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final provider = context.watch<DashboardProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF151924),
+        backgroundColor: AppTheme.backgroundBlack,
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white, size: 24),
@@ -57,9 +58,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       body: provider.isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4ECDC4)))
+              child: CircularProgressIndicator(color: AppTheme.greenIcon))
           : RefreshIndicator(
-              color: const Color(0xFF4ECDC4),
+              color: AppTheme.greenIcon,
               backgroundColor: const Color(0xFF1E2433),
               onRefresh: () async => await provider.loadDashboardData(),
               child: ListView(
@@ -85,14 +86,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           icon: const Icon(Icons.assessment, size: 18),
                           label: const Text('Antigüedad\nde Deuda', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E2432),
-                            foregroundColor: const Color(0xFF4A90E2),
+                            backgroundColor: AppTheme.cardDark,
+                            foregroundColor: AppTheme.blueIcon,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                               side: BorderSide(
                                   color:
-                                      const Color(0xFF4A90E2).withValues(alpha: 0.3)),
+                                      AppTheme.blueIcon.withValues(alpha: 0.3)),
                             ),
                           ),
                         ),
@@ -110,14 +111,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           icon: const Icon(Icons.trending_up, size: 18),
                           label: const Text('Ventas por\nPeriodo', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E2432),
-                            foregroundColor: const Color(0xFF51CF66),
+                            backgroundColor: AppTheme.cardDark,
+                            foregroundColor: AppTheme.success,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                               side: BorderSide(
                                   color:
-                                      const Color(0xFF51CF66).withValues(alpha: 0.3)),
+                                      AppTheme.success.withValues(alpha: 0.3)),
                             ),
                           ),
                         ),
@@ -136,7 +137,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     icon: const Icon(Icons.inventory_2),
                     label: const Text('Reporte de Inventario Valorado'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E2432),
+                      backgroundColor: AppTheme.cardDark,
                       foregroundColor: AppTheme.blueIcon,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -159,7 +160,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     icon: const Icon(Icons.analytics),
                     label: const Text('Analítica Avanzada y Data Mining'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E2432),
+                      backgroundColor: AppTheme.cardDark,
                       foregroundColor: Colors.amber,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -196,7 +197,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             const Text(
                               'No hay transacciones aún',
                               style: TextStyle(
-                                  color: Color(0xFFA0A8C1), fontSize: 16),
+                                  color: AppTheme.textSecondary, fontSize: 16),
                             ),
                           ],
                         ),
@@ -217,8 +218,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       final iconData =
                           isPositive ? Icons.arrow_outward : Icons.south_west;
                       final iconColor = isPositive
-                          ? const Color(0xFF51CF66)
-                          : const Color(0xFFFF6B6B);
+                          ? AppTheme.success
+                          : AppTheme.redAccent;
                       
                       String titleText = 'Transacción';
                       if (t is Sale) {
@@ -259,7 +260,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                           mainAxisSize: MainAxisSize.min,
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('Monto: Bs. ${t.totalAmount.toStringAsFixed(2)}'),
+                                            Text('Monto: ${CurrencyHelper.simple(t.totalAmount)}'),
                                             Text('Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(t.date)}'),
                                             if (t is Expense)
                                               Text('Descripción: ${t.description}'),
@@ -331,7 +332,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                 const Text(
                   'RESUMEN DEL DÍA',
                   style: TextStyle(
-                    color: Color(0xFF6B7494),
+                    color: AppTheme.textTertiary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
@@ -341,18 +342,18 @@ class _AnimatedSummaryCard extends StatelessWidget {
 
                 // Balance Display
                 Text(
-                  'Bs. ${provider.netBalance.toStringAsFixed(2)}',
+                  CurrencyHelper.simple(provider.netBalance),
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w800,
                     color: isPositive
-                        ? const Color(0xFF4ECDC4)
-                        : const Color(0xFFFF6B6B),
+                        ? AppTheme.greenIcon
+                        : AppTheme.redAccent,
                     shadows: [
                       Shadow(
                         color: (isPositive
-                                ? const Color(0xFF4ECDC4)
-                                : const Color(0xFFFF6B6B))
+                                ? AppTheme.greenIcon
+                                : AppTheme.redAccent)
                             .withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
@@ -362,7 +363,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                 ),
                 const Text(
                   'Balance Neto (base caja)',
-                  style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                 ),
 
                 const SizedBox(height: 24),
@@ -382,7 +383,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                         label: 'Ventas',
                         sublabel: '(incl. crédito)',
                         value: provider.totalSalesToday,
-                        color: const Color(0xFF51CF66),
+                        color: AppTheme.success,
                       ),
                     ),
                     Container(
@@ -396,7 +397,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                         label: 'Cobrado',
                         sublabel: '(efectivo hoy)',
                         value: provider.cashInToday,
-                        color: const Color(0xFF4ECDC4),
+                        color: AppTheme.greenIcon,
                       ),
                     ),
                     Container(
@@ -409,7 +410,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
                         label: 'Compras',
                         sublabel: '',
                         value: provider.totalPurchasesToday,
-                        color: const Color(0xFFFF6B6B),
+                        color: AppTheme.redAccent,
                       ),
                     ),
                   ],
@@ -428,13 +429,13 @@ class _AnimatedSummaryCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Color(0xFFA0A8C1), fontSize: 13),
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 4),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            'Bs. ${value.toStringAsFixed(2)}',
+            CurrencyHelper.simple(value),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -446,7 +447,7 @@ class _AnimatedSummaryCard extends StatelessWidget {
           Text(
             sublabel,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF6B7494), fontSize: 10),
+            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
           ),
       ],
     );
@@ -537,7 +538,7 @@ class _AnimatedTransactionTileState extends State<_AnimatedTransactionTile> {
                         Text(
                           widget.dateText,
                           style: const TextStyle(
-                            color: Color(0xFFA0A8C1),
+                            color: AppTheme.textSecondary,
                             fontSize: 13,
                           ),
                         ),
@@ -545,11 +546,11 @@ class _AnimatedTransactionTileState extends State<_AnimatedTransactionTile> {
                     ),
                   ),
                   Text(
-                    '${widget.isPositive ? '+' : '-'}Bs. ${widget.amount.toStringAsFixed(2)}',
+                    '${widget.isPositive ? '+' : '-'}${CurrencyHelper.simple(widget.amount)}',
                     style: TextStyle(
                       color: widget.isPositive
-                          ? const Color(0xFF51CF66)
-                          : const Color(0xFFFF6B6B),
+                          ? AppTheme.success
+                          : AppTheme.redAccent,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),

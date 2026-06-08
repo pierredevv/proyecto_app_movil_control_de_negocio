@@ -19,6 +19,8 @@ import '../notifications/notifications_screen.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../import/import_screen.dart';
 import '../../widgets/responsive_layout.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -39,6 +41,7 @@ class _ProductListScreenState extends State<ProductListScreen>
 
   bool _isSearching = false;
   bool _isGridView = false;
+  final Set<int> _selectedProductIds = {};
 
   @override
   void initState() {
@@ -176,9 +179,9 @@ class _ProductListScreenState extends State<ProductListScreen>
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          const Color(0xFF0F172A),
-                          const Color(0xFF1E293B),
-                          const Color(0xFF0F172A),
+                          AppTheme.surfaceDeep,
+                          AppTheme.surfaceSlate,
+                          AppTheme.surfaceDeep,
                         ]
                       : [
                           const Color(0xFFF8FAFC),
@@ -196,12 +199,12 @@ class _ProductListScreenState extends State<ProductListScreen>
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2)
+                color: AppTheme.blueIcon
                     .withValues(alpha: 0.1), // Primary Blue
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    color: AppTheme.blueIcon.withValues(alpha: 0.2),
                     blurRadius: 100,
                     spreadRadius: 20,
                   ),
@@ -216,12 +219,12 @@ class _ProductListScreenState extends State<ProductListScreen>
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: const Color(0xFFEF4444)
+                color: AppTheme.error
                     .withValues(alpha: 0.1), // Secondary Red
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    color: AppTheme.error.withValues(alpha: 0.2),
                     blurRadius: 80,
                     spreadRadius: 20,
                   ),
@@ -277,6 +280,31 @@ class _ProductListScreenState extends State<ProductListScreen>
   }
 
   PreferredSizeWidget _buildHeader(BuildContext context) {
+    if (_selectedProductIds.isNotEmpty) {
+      return AppBar(
+        backgroundColor: AppTheme.cardDark,
+        elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => setState(() => _selectedProductIds.clear()),
+        ),
+        title: Text(
+          '${_selectedProductIds.length} seleccionados',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: AppTheme.error),
+            tooltip: 'Eliminar seleccionados',
+            onPressed: () => _confirmMultiDelete(context),
+          ),
+        ],
+      );
+    }
     final notificationProvider = context.watch<NotificationProvider>();
     final inventoryProvider = context.watch<InventoryProvider>();
     final unreadCount = notificationProvider.unreadCount;
@@ -322,7 +350,7 @@ class _ProductListScreenState extends State<ProductListScreen>
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
+                    color: AppTheme.error,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -358,7 +386,7 @@ class _ProductListScreenState extends State<ProductListScreen>
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
+                    color: AppTheme.error,
                     shape: BoxShape.circle,
                   ),
                   constraints:
@@ -385,10 +413,10 @@ class _ProductListScreenState extends State<ProductListScreen>
       height: 52,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF), // White 15% opacity
+        color: AppTheme.glassWhite15, // White 15% opacity
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0x1AFFFFFF), // White 10% opacity
+          color: AppTheme.glassWhite10, // White 10% opacity
           width: 1.5,
         ),
         boxShadow: const [
@@ -409,12 +437,12 @@ class _ProductListScreenState extends State<ProductListScreen>
             decoration: InputDecoration(
               hintText: 'Buscar productos...',
               hintStyle: const TextStyle(
-                  color: Color(0xFF6B7494),
+                  color: AppTheme.textTertiary,
                   fontSize: 16,
                   fontWeight: FontWeight.normal),
               prefixIcon: const Padding(
                 padding: EdgeInsets.only(left: 16, right: 12),
-                child: Icon(Icons.search, color: Color(0xFFA0A8C1), size: 24),
+                child: Icon(Icons.search, color: AppTheme.textSecondary, size: 24),
               ),
               prefixIconConstraints:
                   const BoxConstraints(minWidth: 52, minHeight: 24),
@@ -488,7 +516,7 @@ class _ProductListScreenState extends State<ProductListScreen>
     // Price Range (Simple indicator)
     if (provider.priceRange != null) {
       chips.add(_buildFilterChip(
-          '\$${provider.priceRange!.start.round()} - \$${provider.priceRange!.end.round()}',
+          '${CurrencyHelper.symbol} ${provider.priceRange!.start.round()} - ${CurrencyHelper.symbol} ${provider.priceRange!.end.round()}',
           () => provider.removeFilter('price')));
     }
 
@@ -596,14 +624,14 @@ class _ProductListScreenState extends State<ProductListScreen>
                         horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0x26FFFFFF) // White 15%
+                          ? AppTheme.glassWhite15 // White 15%
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(24),
                       border: isSelected
                           ? Border.all(
-                              color: const Color(0x1AFFFFFF), width: 1.5)
+                              color: AppTheme.glassWhite10, width: 1.5)
                           : Border.all(
-                              color: const Color(0x1AFFFFFF), width: 1),
+                              color: AppTheme.glassWhite10, width: 1),
                       boxShadow: isSelected
                           ? [
                               const BoxShadow(
@@ -623,7 +651,7 @@ class _ProductListScreenState extends State<ProductListScreen>
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : const Color(0xFFA0A8C1),
+                              : AppTheme.textSecondary,
                           fontSize: 15,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -637,7 +665,7 @@ class _ProductListScreenState extends State<ProductListScreen>
                       height: 3,
                       width: 24,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A90E2), // Blue underline
+                        color: AppTheme.blueIcon, // Blue underline
                         borderRadius: BorderRadius.circular(1.5),
                       ),
                     ),
@@ -662,7 +690,7 @@ class _ProductListScreenState extends State<ProductListScreen>
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.05),
+                color: AppTheme.blueIcon.withValues(alpha: 0.05),
               ),
               alignment: Alignment.center,
               child: Icon(Icons.inventory_2_outlined,
@@ -679,7 +707,7 @@ class _ProductListScreenState extends State<ProductListScreen>
             const SizedBox(height: 12),
             const Text(
               'Agrega productos para comenzar a gestionar tu inventario',
-              style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 16),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -687,7 +715,7 @@ class _ProductListScreenState extends State<ProductListScreen>
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
+                  colors: [AppTheme.blueIcon, Color(0xFF357ABD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -736,7 +764,7 @@ class _ProductListScreenState extends State<ProductListScreen>
       key: _fabKey,
       icon: Icons.add,
       activeIcon: Icons.close,
-      backgroundColor: const Color(0xFFFF6B6B),
+      backgroundColor: AppTheme.redAccent,
       foregroundColor: Colors.white,
       activeBackgroundColor: Colors.grey.shade800,
       activeForegroundColor: Colors.white,
@@ -750,7 +778,7 @@ class _ProductListScreenState extends State<ProductListScreen>
       children: [
         SpeedDialChild(
           child: const Icon(Icons.edit_document, color: Colors.white),
-          backgroundColor: const Color(0xFF4A90E2), // Blue
+          backgroundColor: AppTheme.blueIcon, // Blue
           label: 'Agregar Manual',
           labelStyle: const TextStyle(
               fontWeight: FontWeight.w600, color: Colors.black87),
@@ -794,7 +822,25 @@ class _ProductListScreenState extends State<ProductListScreen>
               : const SizedBox(height: 80);
         }
         final product = provider.filteredProducts[index];
+        final isSelected = _selectedProductIds.contains(product.id);
+        void handleLongPress() {
+          setState(() {
+            if (isSelected) {
+              _selectedProductIds.remove(product.id!);
+            } else {
+              _selectedProductIds.add(product.id!);
+            }
+          });
+        }
+        void handleSelectionTap() {
+          if (_selectedProductIds.isNotEmpty) {
+            handleLongPress();
+          }
+        }
         return ProductListItem(
+          isSelected: isSelected,
+          onSelectionTap: _selectedProductIds.isNotEmpty ? handleSelectionTap : null,
+          onLongPress: handleLongPress,
           product: product,
           categoryName: _getCategoryName(provider.categories, product.categoryId),
           onEdit: () => _navigateToForm(context, product),
@@ -841,7 +887,24 @@ class _ProductListScreenState extends State<ProductListScreen>
         // Note: For a true Grid View we should create a ProductGridItem.
         // For now, we will reuse ProductListItem but it might overflow if it's strictly a row.
         // To do this perfectly, I will create a Grid Item layout within ProductListItem or use a specialized widget.
-        return _buildGridCard(context, product, _getCategoryName(provider.categories, product.categoryId))
+        final isSelected = _selectedProductIds.contains(product.id);
+        void handleLongPress() {
+          setState(() {
+            if (isSelected) {
+              _selectedProductIds.remove(product.id!);
+            } else {
+              _selectedProductIds.add(product.id!);
+            }
+          });
+        }
+        void handleSelectionTap() {
+          if (_selectedProductIds.isNotEmpty) {
+            handleLongPress();
+          } else {
+            _navigateToForm(context, product);
+          }
+        }
+        return _buildGridCard(context, product, _getCategoryName(provider.categories, product.categoryId), isSelected, handleSelectionTap, handleLongPress)
             .animate().fadeIn(duration: 400.ms).scale(
               begin: const Offset(0.9, 0.9),
               end: const Offset(1.0, 1.0),
@@ -851,16 +914,16 @@ class _ProductListScreenState extends State<ProductListScreen>
     );
   }
 
-  Widget _buildGridCard(BuildContext context, Product product, String categoryName) {
+  Widget _buildGridCard(BuildContext context, Product product, String categoryName, bool isSelected, VoidCallback onTap, VoidCallback onLongPress) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final stockColor = product.stock <= product.minStock ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    final stockColor = product.stock <= product.minStock ? AppTheme.error : const Color(0xFF10B981);
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isSelected ? AppTheme.primary.withValues(alpha: 0.15) : (isDark ? AppTheme.surfaceSlate : Colors.white),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(color: isSelected ? AppTheme.primary : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -873,7 +936,8 @@ class _ProductListScreenState extends State<ProductListScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _navigateToForm(context, product),
+          onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -884,7 +948,7 @@ class _ProductListScreenState extends State<ProductListScreen>
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark ? AppTheme.surfaceDeep : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: product.imagePath != null
@@ -908,16 +972,16 @@ class _ProductListScreenState extends State<ProductListScreen>
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    color: isDark ? Colors.white : AppTheme.surfaceDeep,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '\$${product.price.toStringAsFixed(2)}',
+                  CurrencyHelper.simple(product.price),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Color(0xFF4A90E2),
+                    color: AppTheme.blueIcon,
                   ),
                 ),
                 const Spacer(),
@@ -966,7 +1030,7 @@ class _ProductListScreenState extends State<ProductListScreen>
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceSlate : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
@@ -976,7 +1040,7 @@ class _ProductListScreenState extends State<ProductListScreen>
             Text(product.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             ListTile(
-              leading: const Icon(Icons.edit, color: Color(0xFF4A90E2)),
+              leading: const Icon(Icons.edit, color: AppTheme.blueIcon),
               title: const Text('Editar Producto'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -999,8 +1063,8 @@ class _ProductListScreenState extends State<ProductListScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
-              title: const Text('Eliminar', style: TextStyle(color: Color(0xFFEF4444))),
+              leading: const Icon(Icons.delete, color: AppTheme.error),
+              title: const Text('Eliminar', style: TextStyle(color: AppTheme.error)),
               onTap: () {
                 Navigator.pop(ctx);
                 _confirmDelete(context, product);
@@ -1054,6 +1118,42 @@ class _ProductListScreenState extends State<ProductListScreen>
 
     if (confirm == true && context.mounted) {
       context.read<InventoryProvider>().deleteProduct(product.id!);
+    }
+  }
+
+  Future<void> _confirmMultiDelete(BuildContext context) async {
+    final provider = context.read<InventoryProvider>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        title: const Text('Eliminar Productos', style: TextStyle(color: Colors.white)),
+        content: Text('¿Está seguro de eliminar ${_selectedProductIds.length} productos? Esta acción no se puede deshacer.',
+            style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      for (final id in _selectedProductIds) {
+        await provider.deleteProduct(id);
+      }
+      setState(() => _selectedProductIds.clear());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Productos eliminados exitosamente')),
+        );
+      }
     }
   }
 

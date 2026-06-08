@@ -21,6 +21,17 @@ mixin SuppliersDb on CoreDb {
     return List.generate(maps.length, (i) => Supplier.fromMap(maps[i]));
   }
 
+  Future<Supplier?> getSupplierById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'suppliers',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) return null;
+    return Supplier.fromMap(maps.first);
+  }
+
   Future<int> updateSupplier(Supplier supplier) async {
     final db = await database;
     return await db.update(

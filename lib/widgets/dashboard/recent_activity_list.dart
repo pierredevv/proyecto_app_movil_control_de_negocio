@@ -4,11 +4,13 @@ import '../../theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/transaction_model.dart';
 import 'package:intl/intl.dart';
+import '../../utils/currency_helper.dart';
 import '../../screens/history/transaction_history_screen.dart';
 import '../../screens/sales/sale_detail_screen.dart';
 import '../../screens/purchases/purchase_details_screen.dart';
 import '../../screens/customers/customer_ledger_screen.dart';
 import '../../screens/suppliers/supplier_ledger_screen.dart';
+import '../../screens/orders/order_details_screen.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -96,13 +98,15 @@ class RecentActivityList extends StatelessWidget {
               } else if (t is Expense) {
                 name = t.description;
                 typeLabel = 'GASTO';
+              } else if (t is Order) {
+                name = t.supplierName ?? 'Proveedor Ocasional';
+                typeLabel = 'PEDIDO';
               } else if (t is Payment) {
                 name = 'Pago de Deuda';
                 typeLabel = 'PAGO';
               }
 
-              final currencyFormat = NumberFormat.currency(
-                  symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+              final currencyFormat = CurrencyHelper.formatter;
 
               return _buildTransactionCard(
                 context,
@@ -137,9 +141,13 @@ class RecentActivityList extends StatelessWidget {
         accentColor = const Color(0xFFF59F00); // orange
       } else if (transaction.status == 'CREDIT') {
         accentColor = Colors.blueAccent;
+    } else if (transaction is Order) {
+      accentColor = transaction.status == 'PENDING' ? Colors.orange : (transaction.status == 'CONFIRMED' ? Colors.blue : Colors.green);
       } else {
         accentColor = isSale ? AppTheme.greenAccent : AppTheme.redAccent;
       }
+    } else if (transaction is Order) {
+      accentColor = transaction.status == 'PENDING' ? Colors.orange : (transaction.status == 'CONFIRMED' ? Colors.blue : Colors.green);
     } else {
       accentColor = AppTheme.redAccent;
     }
@@ -170,6 +178,16 @@ class RecentActivityList extends StatelessWidget {
               ),
             ),
           );
+        } else if (transaction is Order) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OrderDetailsScreen(
+                order: transaction,
+                heroTag: heroTag,
+              ),
+            ),
+          );
         } else if (transaction is Expense || transaction is Payment) {
           showDialog(
               context: context,
@@ -182,7 +200,7 @@ class RecentActivityList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              'Monto: Bs. ${transaction.totalAmount.toStringAsFixed(2)}'),
+                              'Monto: ${CurrencyHelper.simple(transaction.totalAmount)}'),
                           Text(
                               'Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(transaction.date)}'),
                           if (transaction is Expense)
@@ -212,13 +230,13 @@ class RecentActivityList extends StatelessWidget {
         // Glassmorphism Decoration
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0x26FFFFFF) // White 15% opacity
+              ? AppTheme.glassWhite15 // White 15% opacity
               : Colors
                   .white, // Keep white for light mode or adapt? usually glass is used on dark
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
-                ? const Color(0x1AFFFFFF) // White 10% opacity
+                ? AppTheme.glassWhite10 // White 10% opacity
                 : Colors.black.withValues(alpha: 0.05),
             width: 1.5,
           ),
@@ -336,11 +354,11 @@ class RecentActivityList extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Pagado: Bs. ${(transaction is Sale ? transaction.amountPaid : (transaction as Purchase).amountPaid).toStringAsFixed(2)}',
+                                    'Pagado: ${CurrencyHelper.simple(transaction is Sale ? transaction.amountPaid : (transaction as Purchase).amountPaid)}',
                                     style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 11),
                                   ),
                                   Text(
-                                    'Pendiente: Bs. ${(transaction is Sale ? transaction.pendingAmount : (transaction as Purchase).pendingAmount).toStringAsFixed(2)}',
+                                    'Pendiente: ${CurrencyHelper.simple(transaction is Sale ? transaction.pendingAmount : (transaction as Purchase).pendingAmount)}',
                                     style: TextStyle(color: accentColor, fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],

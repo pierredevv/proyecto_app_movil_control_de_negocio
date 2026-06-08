@@ -5,6 +5,8 @@ import '../../providers/dashboard_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/expense_category.dart';
 import '../../widgets/common/glass_text_field_group.dart';
+import '../../utils/currency_helper.dart';
+import '../../theme/app_theme.dart';
 
 class ExpenseFormScreen extends StatefulWidget {
   const ExpenseFormScreen({super.key});
@@ -84,7 +86,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Gasto registrado exitosamente'),
-            backgroundColor: Color(0xFF51CF66),
+            backgroundColor: AppTheme.success,
           ),
         );
       }
@@ -93,7 +95,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: const Color(0xFFFF6B6B),
+            backgroundColor: AppTheme.redAccent,
           ),
         );
       }
@@ -224,7 +226,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
               const SizedBox(height: 20),
 
               GlassTextFieldGroup(
-                label: 'Monto (Bs.) *',
+                label: 'Monto (${CurrencyHelper.symbol}) *',
                 controller: _amountController,
                 icon: Icons.payments_outlined,
                 placeholder: 'Ingresa el monto',

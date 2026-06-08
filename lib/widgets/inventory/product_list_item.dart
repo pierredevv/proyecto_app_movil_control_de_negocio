@@ -2,7 +2,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../utils/currency_helper.dart';
 import '../../models/product.dart';
+import '../../theme/app_theme.dart';
 
 class ProductListItem extends StatefulWidget {
   final Product product;
@@ -10,6 +12,9 @@ class ProductListItem extends StatefulWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onAdjustStock;
+  final bool isSelected;
+  final VoidCallback? onSelectionTap;
+  final VoidCallback? onLongPress;
 
   const ProductListItem({
     super.key,
@@ -18,6 +23,9 @@ class ProductListItem extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onAdjustStock,
+    this.isSelected = false,
+    this.onSelectionTap,
+    this.onLongPress,
   });
 
   @override
@@ -39,7 +47,7 @@ class _ProductListItemState extends State<ProductListItem>
       stockColor = const Color(0xFF9CA3AF); // Gray (Out of stock)
     } else if (minStock > 0) {
       if (stockSaleUnits <= minStock) {
-        stockColor = const Color(0xFFEF4444); // Red (Critical)
+        stockColor = AppTheme.error; // Red (Critical)
       } else if (stockSaleUnits <= minStock * 2) {
         stockColor = const Color(0xFFF59E0B); // Yellow (Moderate)
       } else {
@@ -50,23 +58,24 @@ class _ProductListItemState extends State<ProductListItem>
     }
 
     return GestureDetector(
-      onTap: () {
+      onTap: widget.onSelectionTap ?? () {
         setState(() {
           _isExpanded = !_isExpanded;
         });
       },
+      onLongPress: widget.onLongPress,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0x26FFFFFF), // White 15% opacity
+          color: widget.isSelected ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.glassWhite15, // White 15% opacity
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0x1AFFFFFF), // White 10% opacity
+            color: widget.isSelected ? AppTheme.primary : AppTheme.glassWhite10, // White 10% opacity
             width: 1.5,
           ),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x26000000), // Black 15%
+              color: AppTheme.glassShadow, // Black 15%
               blurRadius: 12,
               offset: Offset(0, 4),
             ),
@@ -147,7 +156,7 @@ class _ProductListItemState extends State<ProductListItem>
                                   'Cód: ${widget.product.barcode.isEmpty ? "N/A" : widget.product.barcode}',
                                   style: const TextStyle(
                                     fontSize: 14,
-                                    color: Color(0xFFA0A8C1),
+                                    color: AppTheme.textSecondary,
                                     fontWeight: FontWeight.w400,
                                   ),
                                   maxLines: 1,
@@ -191,7 +200,7 @@ class _ProductListItemState extends State<ProductListItem>
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerRight,
                                 child: Text(
-                                  'Bs. ${widget.product.price.toStringAsFixed(2)}',
+                                  CurrencyHelper.simple(widget.product.price),
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -204,7 +213,7 @@ class _ProductListItemState extends State<ProductListItem>
                                 turns: _isExpanded ? 0.5 : 0.0,
                                 duration: const Duration(milliseconds: 300),
                                 child: const Icon(Icons.expand_more,
-                                    color: Color(0xFF6B7494), size: 24),
+                                    color: AppTheme.textTertiary, size: 24),
                               ),
                             ],
                           ),
@@ -238,7 +247,7 @@ class _ProductListItemState extends State<ProductListItem>
                                                 widget.categoryName),
                                             const SizedBox(height: 8),
                                             _buildInfoRow('Precio Costo',
-                                                'Bs. ${widget.product.cost.toStringAsFixed(2)}'),
+                                                CurrencyHelper.simple(widget.product.cost)),
                                           ],
                                         ),
                                       ),
@@ -288,7 +297,7 @@ class _ProductListItemState extends State<ProductListItem>
                                       _buildGlassButton(
                                         icon: Icons.delete_outline,
                                         label: 'Eliminar',
-                                        color: const Color(0xFFEF4444),
+                                        color: AppTheme.error,
                                         onTap: widget.onDelete,
                                       ),
                                     ],
@@ -315,7 +324,7 @@ class _ProductListItemState extends State<ProductListItem>
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFFA0A8C1),
+            color: AppTheme.textSecondary,
             fontSize: 12,
             fontWeight: FontWeight.normal,
           ),

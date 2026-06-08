@@ -62,7 +62,7 @@ class Customer {
       email: map['email'],
       address: map['address'],
       ciNit: map['ci_nit'],
-      totalDebt: map['total_debt'] ?? 0.0,
+      totalDebt: (map['total_debt'] as num?)?.toDouble() ?? 0.0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
     );
   }

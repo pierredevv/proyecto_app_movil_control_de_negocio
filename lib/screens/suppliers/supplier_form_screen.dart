@@ -7,6 +7,7 @@ import '../../models/supplier.dart';
 import '../../providers/supplier_provider.dart';
 import '../../services/contact_helper.dart';
 import '../../widgets/common/glass_text_field_group.dart';
+import '../../theme/app_theme.dart';
 
 class SupplierFormScreen extends StatefulWidget {
   final Supplier? supplier;
@@ -121,9 +122,9 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.supplier != null;
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF151924),
+        backgroundColor: AppTheme.backgroundBlack,
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white, size: 24),
@@ -255,11 +256,11 @@ class _ImportContactButtonState extends State<_ImportContactButton> {
         transformAlignment: Alignment.center,
         height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFFFF6B6B)
+          color: AppTheme.redAccent
               .withValues(alpha: _isPressed ? 0.15 : 0.10),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: const Color(0xFFFF6B6B).withValues(alpha: 0.30),
+              color: AppTheme.redAccent.withValues(alpha: 0.30),
               width: 1.5),
         ),
         child: ClipRRect(
@@ -269,12 +270,12 @@ class _ImportContactButtonState extends State<_ImportContactButton> {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.contact_page, color: Color(0xFFFF6B6B), size: 22),
+                Icon(Icons.contact_page, color: AppTheme.redAccent, size: 22),
                 SizedBox(width: 12),
                 Text(
                   'Importar desde Contactos',
                   style: TextStyle(
-                    color: Color(0xFFFF6B6B),
+                    color: AppTheme.redAccent,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -337,7 +338,7 @@ class _AnimatedSaveButtonState extends State<_AnimatedSaveButton> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            colors: [AppTheme.redAccent, Color(0xFFFF5757)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -345,7 +346,7 @@ class _AnimatedSaveButtonState extends State<_AnimatedSaveButton> {
               ? null
               : [
                   BoxShadow(
-                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.30),
+                    color: AppTheme.redAccent.withValues(alpha: 0.30),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   )

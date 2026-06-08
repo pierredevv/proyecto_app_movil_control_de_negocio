@@ -3,6 +3,9 @@ import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../models/category.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
+import 'category_manager_screen.dart';
 
 class InventoryFilterPanel extends StatefulWidget {
   const InventoryFilterPanel({super.key});
@@ -245,11 +248,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFF6B6B).withValues(alpha: 0.05)
+              ? AppTheme.redAccent.withValues(alpha: 0.05)
               : Colors.white.withValues(alpha: 0.05),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFFF6B6B)
+                ? AppTheme.redAccent
                 : Colors.white.withValues(alpha: 0.08),
             width: isSelected ? 1.5 : 1,
           ),
@@ -265,7 +268,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFFF6B6B)
+                      ? AppTheme.redAccent
                       : Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
@@ -312,11 +315,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           runSpacing: 8,
           children: [
             _buildStatusChip(StockStatus.sufficient, 'Suficiente',
-                const Color(0xFF51CF66), Icons.check_circle),
+                AppTheme.success, Icons.check_circle),
             _buildStatusChip(StockStatus.moderate, 'Moderado',
-                const Color(0xFFFFA94D), Icons.warning),
+                AppTheme.warning, Icons.warning),
             _buildStatusChip(StockStatus.critical, 'Crítico',
-                const Color(0xFFFF6B6B), Icons.error),
+                AppTheme.redAccent, Icons.error),
           ],
         ),
       ],
@@ -379,7 +382,27 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSectionTitle('Categorías'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionTitle('Categorías'),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: IconButton(
+                icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary),
+                tooltip: 'Gestionar Categorías',
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CategoryManagerScreen()),
+                  );
+                  if (!mounted) return;
+                  context.read<InventoryProvider>().loadProducts(reset: true);
+                },
+              ),
+            ),
+          ],
+        ),
         // Glassmorphic Search Input
         Container(
           height: 48,
@@ -402,11 +425,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                 decoration: const InputDecoration(
                   hintText: 'Buscar categoría...',
                   hintStyle: TextStyle(
-                    color: Color(0xFF6B7494),
+                    color: AppTheme.textTertiary,
                     fontSize: 15,
                   ),
                   prefixIcon:
-                      Icon(Icons.search, color: Color(0xFFA0A8C1), size: 20),
+                      Icon(Icons.search, color: AppTheme.textSecondary, size: 20),
                   border: InputBorder.none,
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -442,11 +465,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4A90E2).withValues(alpha: 0.2) // Blue 20%
+              ? AppTheme.blueIcon.withValues(alpha: 0.2) // Blue 20%
               : const Color(0xFF333333).withValues(alpha: 0.3), // Dark Gray 30%
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF4A90E2)
+                ? AppTheme.blueIcon
                 : Colors.white.withValues(alpha: 0.10),
             width: isSelected ? 1.5 : 1,
           ),
@@ -456,7 +479,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           category.name,
           style: TextStyle(
             color:
-                isSelected ? const Color(0xFF4A90E2) : const Color(0xFFA0A8C1),
+                isSelected ? AppTheme.blueIcon : AppTheme.textSecondary,
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -473,10 +496,10 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
         _buildSectionTitle('Rango de Precio'),
         SliderTheme(
           data: SliderThemeData(
-            activeTrackColor: const Color(0xFFFF6B6B),
+            activeTrackColor: AppTheme.redAccent,
             inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
-            thumbColor: const Color(0xFFFF6B6B),
-            overlayColor: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+            thumbColor: AppTheme.redAccent,
+            overlayColor: AppTheme.redAccent.withValues(alpha: 0.2),
             trackHeight: 4.0,
           ),
           child: RangeSlider(
@@ -490,9 +513,9 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Min: \$${_priceRange.start.round()}',
+            Text('Min: ${CurrencyHelper.symbol} ${_priceRange.start.round()}',
                 style: const TextStyle(fontSize: 14, color: Colors.white)),
-            Text('Max: \$${_priceRange.end.round()}+',
+            Text('Max: ${CurrencyHelper.symbol} ${_priceRange.end.round()}+',
                 style: const TextStyle(fontSize: 14, color: Colors.white)),
           ],
         )
@@ -541,7 +564,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           label,
           style: const TextStyle(
             fontSize: 12,
-            color: Color(0xFFA0A8C1),
+            color: AppTheme.textSecondary,
             fontWeight: FontWeight.normal,
           ),
         ),
@@ -566,7 +589,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                 style: const TextStyle(color: Colors.white, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: placeholder,
-                  hintStyle: const TextStyle(color: Color(0xFF6B7494)),
+                  hintStyle: const TextStyle(color: AppTheme.textTertiary),
                   border: InputBorder.none,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -627,14 +650,14 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+                  colors: [AppTheme.redAccent, Color(0xFFFF5757)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                    color: AppTheme.redAccent.withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   )

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../models/business_profile.dart';
 import '../../utils/number_to_words.dart';
+import '../../utils/currency_helper.dart';
 
 /// Generates a thermal-printer receipt directly as ESC/POS bytes.
 ///
@@ -39,7 +40,7 @@ class EscPosReceiptService {
     final sep = '=' * lineWidth;
     final thinSep = '-' * lineWidth;
 
-    final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', 'es_BO');
+    final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', CurrencyHelper.locale);
     final dateStr = dateFormat.format(transaction.date);
 
     // ── Sanitize all user-supplied strings ───────────────────────────────
@@ -251,8 +252,8 @@ class EscPosReceiptService {
       final qty = item.quantity;
       final qtyStr =
           '${qty.toStringAsFixed(qty == qty.truncate() ? 0 : 2)} ${_s(item.saleUnit)}';
-      final totalStr = 'Bs.${item.subtotal.toStringAsFixed(2)}';
-      final unitStr  = 'Bs.${item.unitPrice.toStringAsFixed(2)}';
+      final totalStr = CurrencyHelper.simple(item.subtotal);
+      final unitStr  = CurrencyHelper.simple(item.unitPrice);
       final nameMaxLen = widthMm == 58 ? 20 : 28;
       final rawName = _s(item.productName);
       final name = rawName.length > nameMaxLen
@@ -295,7 +296,7 @@ class EscPosReceiptService {
             width: 8,
             styles: const PosStyles(bold: true)),
         PosColumn(
-            text: 'Bs.${grossAmount.toStringAsFixed(2)}',
+            text: CurrencyHelper.simple(grossAmount),
             width: 4,
             styles: const PosStyles(bold: true, align: PosAlign.right)),
       ]);
@@ -305,7 +306,7 @@ class EscPosReceiptService {
             width: 8,
             styles: const PosStyles(bold: true)),
         PosColumn(
-            text: 'Bs.${transaction.adjustmentAmount.toStringAsFixed(2)}',
+            text: CurrencyHelper.simple(transaction.adjustmentAmount),
             width: 4,
             styles: const PosStyles(bold: true, align: PosAlign.right)),
       ]);
@@ -316,7 +317,7 @@ class EscPosReceiptService {
           width: 8,
           styles: const PosStyles(bold: true)),
       PosColumn(
-          text: 'Bs.${transaction.totalAmount.toStringAsFixed(2)}',
+          text: CurrencyHelper.simple(transaction.totalAmount),
           width: 4,
           styles: const PosStyles(bold: true, align: PosAlign.right)),
     ]);
@@ -331,7 +332,7 @@ class EscPosReceiptService {
             width: 8,
             styles: const PosStyles(bold: true)),
         PosColumn(
-            text: 'Bs.${transaction.amountTendered.toStringAsFixed(2)}',
+            text: CurrencyHelper.simple(transaction.amountTendered),
             width: 4,
             styles: const PosStyles(bold: true, align: PosAlign.right)),
       ]);
@@ -341,7 +342,7 @@ class EscPosReceiptService {
             width: 8,
             styles: const PosStyles(bold: true)),
         PosColumn(
-            text: 'Bs.${change.toStringAsFixed(2)}',
+            text: CurrencyHelper.simple(change),
             width: 4,
             styles: const PosStyles(bold: true, align: PosAlign.right)),
       ]);
@@ -352,7 +353,7 @@ class EscPosReceiptService {
           width: 8,
           styles: const PosStyles(bold: true)),
       PosColumn(
-          text: 'Bs.${transaction.totalAmount.toStringAsFixed(2)}',
+          text: CurrencyHelper.simple(transaction.totalAmount),
           width: 4,
           styles: const PosStyles(bold: true, align: PosAlign.right)),
     ]);
@@ -361,7 +362,7 @@ class EscPosReceiptService {
 
     // ── 6. Amount in words ────────────────────────────────────────────────
     final words = _s(
-      NumberToWords.toLiteral(transaction.totalAmount, currency: 'Bolivianos')
+      NumberToWords.toLiteral(transaction.totalAmount, currency: profile.currencyName)
           .replaceAll('SON: ', ''),
     );
     bytes += generator.text(

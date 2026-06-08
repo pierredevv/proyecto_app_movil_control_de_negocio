@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
+import '../../utils/currency_helper.dart';
 
 class SummaryGlassCard extends StatelessWidget {
   final double salesTotal;
@@ -85,8 +85,7 @@ class SummaryGlassCard extends StatelessWidget {
       required double amount,
       required Color color,
       required CrossAxisAlignment alignment}) {
-    final currencyFormat = NumberFormat.currency(
-        symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final currencyFormat = CurrencyHelper.formatter;
     final theme = Theme.of(context);
 
     return Column(

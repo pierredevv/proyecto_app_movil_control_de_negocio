@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:android_intent_plus/android_intent.dart';
+import '../../theme/app_theme.dart';
 
 class PrintPreviewScreen extends StatefulWidget {
   final Transaction transaction;
@@ -165,7 +166,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                     children: [
                       const Text('IMPRESORA TÉRMICA BLUETOOTH',
                           style: TextStyle(
-                              color: Color(0xFFA0A8C1),
+                              color: AppTheme.textSecondary,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.2)),
@@ -197,7 +198,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                 const Text(
                   'ANCHO DE PAPEL',
                   style: TextStyle(
-                    color: Color(0xFFA0A8C1),
+                    color: AppTheme.textSecondary,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
@@ -350,7 +351,7 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Previsualización',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -403,9 +404,9 @@ class _PrintPreviewScreenState extends State<PrintPreviewScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF151924).withValues(alpha: 0.0),
-                    const Color(0xFF151924).withValues(alpha: 0.8),
-                    const Color(0xFF151924),
+                    AppTheme.backgroundBlack.withValues(alpha: 0.0),
+                    AppTheme.backgroundBlack.withValues(alpha: 0.8),
+                    AppTheme.backgroundBlack,
                   ],
                 ),
               ),

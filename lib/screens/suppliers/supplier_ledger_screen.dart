@@ -11,6 +11,7 @@ import '../treasury/account_statement_screen.dart';
 import '../../main.dart'; // To access routeObserver
 import '../../widgets/common/glass_dialog.dart';
 import '../purchases/purchase_details_screen.dart';
+import '../../utils/currency_helper.dart';
 
 class SupplierLedgerScreen extends StatefulWidget {
   final int supplierId;
@@ -103,7 +104,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-                'Compra #${purchase.id} - Saldo a pagar: Bs. ${purchase.pendingAmount.toStringAsFixed(2)}',
+                'Compra #${purchase.id} - Saldo a pagar: ${CurrencyHelper.simple(purchase.pendingAmount)}',
                 style: const TextStyle(color: Colors.white70, fontSize: 16)),
             const SizedBox(height: 16),
             TextField(
@@ -111,12 +112,12 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Monto a pagar (Bs.)',
+                labelText: 'Monto a pagar (${CurrencyHelper.symbol})',
                 labelStyle: const TextStyle(color: Colors.white70),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.blueIcon)),
               ),
             ),
             const SizedBox(height: 16),
@@ -130,7 +131,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.blueIcon)),
               ),
               items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
                 return DropdownMenuItem(value: m, child: Text(m));
@@ -145,13 +146,13 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A8C1))),
+          child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
         ),
         const SizedBox(width: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF50A7EA)]),
+            gradient: const LinearGradient(colors: [AppTheme.blueIcon, Color(0xFF50A7EA)]),
           ),
           child: ElevatedButton(
             onPressed: () {
@@ -220,11 +221,11 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
     final totalDebt = idx >= 0 ? suppliers[idx].totalDebt : 0.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.payment),
         label: const Text('Pago Global'),
-        backgroundColor: const Color(0xFF4A90E2), // Corporate Blue
+        backgroundColor: AppTheme.blueIcon, // Corporate Blue
         onPressed: () async {
           await Navigator.push(
             context,
@@ -239,7 +240,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
       ),
       appBar: AppBar(
         title: Text('Cuentas por Pagar: ${widget.supplierName}'),
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: AppTheme.cardDark,
       ),
       body: Column(
         children: [
@@ -261,7 +262,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
                 const SizedBox(width: 8),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Bs. ${totalDebt.toStringAsFixed(2)}',
+                  child: Text(CurrencyHelper.simple(totalDebt),
                       style: const TextStyle(
                           color: AppTheme.redAccent,
                           fontSize: 24,
@@ -319,7 +320,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
                           return GlassTransactionCard(
                             title: 'Compra #${purchase.id}',
                             subtitle:
-                                'Pagado: Bs. ${purchase.amountPaid.toStringAsFixed(2)} | $dueDateText',
+                                'Pagado: ${CurrencyHelper.simple(purchase.amountPaid)} | $dueDateText',
                             amount: purchase.pendingAmount,
                             status: purchase.status,
                             color: AppTheme.redAccent,
@@ -328,7 +329,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> with Widget
                             actionButtons: Center(
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF4A90E2),
+                                  backgroundColor: AppTheme.blueIcon,
                                   foregroundColor: Colors.white,
                                 ),
                                 icon: const Icon(Icons.payment, size: 18),

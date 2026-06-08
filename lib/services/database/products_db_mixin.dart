@@ -101,8 +101,15 @@ mixin ProductsDb on CoreDb {
       args.add(maxStock);
     }
 
-    // 6. Sorting
-    String orderBy = '$sortColumn ${sortAscending ? 'ASC' : 'DESC'}';
+    // 6. Sorting — whitelist to prevent SQL injection via sortColumn
+    const allowedSortColumns = {
+      'name', 'price', 'cost', 'stock', 'category_id',
+      'created_at', 'updated_at', 'barcode', 'weighted_average_cost',
+    };
+    final safeSortColumn = allowedSortColumns.contains(sortColumn)
+        ? sortColumn
+        : 'name';
+    String orderBy = '$safeSortColumn ${sortAscending ? 'ASC' : 'DESC'}';
 
     final List<Map<String, dynamic>> maps = await db.query(
       'products',

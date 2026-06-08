@@ -12,7 +12,7 @@ class ImportScreen extends StatelessWidget {
     final importProvider = context.watch<ImportProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Slate 900
+      backgroundColor: AppTheme.surfaceDeep, // Slate 900
       appBar: AppBar(
         title: const Text('Importar Productos',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -23,7 +23,7 @@ class ImportScreen extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+            colors: [AppTheme.surfaceDeep, AppTheme.surfaceSlate],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -75,7 +75,7 @@ class ImportScreen extends StatelessWidget {
                     'Selecciona un archivo Excel (.xlsx o .xls) con tu lista de productos. El sistema detectará automáticamente las columnas comunes (Nombre, Código, Precio, Stock).',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFFA0A8C1), // Slate 400
+                      color: AppTheme.textSecondary, // Slate 400
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
@@ -145,14 +145,14 @@ class ImportScreen extends StatelessWidget {
       height: 64,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF4A90E2), Color(0xFF357ABD)], // Azul moderno
+          colors: [AppTheme.blueIcon, Color(0xFF357ABD)], // Azul moderno
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
+            color: AppTheme.blueIcon.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -197,7 +197,7 @@ class ImportScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0x1AFFFFFF), // White 10%
+        color: AppTheme.glassWhite10, // White 10%
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0x0DFFFFFF)), // White 5%
       ),
@@ -242,7 +242,7 @@ class ImportScreen extends StatelessWidget {
             child: Text(
               text,
               style: const TextStyle(
-                  color: Color(0xFFA0A8C1), fontSize: 13, height: 1.4),
+                  color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
             ),
           ),
         ],

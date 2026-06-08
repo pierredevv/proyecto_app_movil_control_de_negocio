@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../utils/currency_helper.dart';
 import 'package:excel/excel.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,6 +13,8 @@ class ProductPerformance {
   final double quantitySold;
   final double totalRevenue;
   final double currentStock;
+  final String saleUnit;
+  final double unitsPerSaleUnit;
 
   ProductPerformance({
     required this.productId,
@@ -19,7 +22,12 @@ class ProductPerformance {
     required this.quantitySold,
     required this.totalRevenue,
     required this.currentStock,
+    this.saleUnit = 'UNI',
+    this.unitsPerSaleUnit = 1.0,
   });
+
+  double get displayQuantitySold => unitsPerSaleUnit > 0 ? quantitySold / unitsPerSaleUnit : quantitySold;
+  double get displayCurrentStock => unitsPerSaleUnit > 0 ? currentStock / unitsPerSaleUnit : currentStock;
 }
 
 class CustomerPerformance {
@@ -46,7 +54,7 @@ class AnalyticsService {
     try {
       final db = await DatabaseService().database;
       final result = await db.rawQuery('''
-        SELECT p.id, p.name, SUM(ti.quantity) as total_qty, SUM(ti.subtotal) as total_revenue, p.stock
+        SELECT p.id, p.name, SUM(ti.quantity * ti.units_per_sale_unit) as total_qty, SUM(ti.subtotal) as total_revenue, p.stock, p.unit_type, p.units_per_box
         FROM transaction_items ti
         JOIN transactions t ON ti.transaction_id = t.id
         JOIN products p ON ti.product_id = p.id
@@ -62,6 +70,8 @@ class AnalyticsService {
             quantitySold: (row['total_qty'] as num?)?.toDouble() ?? 0.0,
             totalRevenue: (row['total_revenue'] as num?)?.toDouble() ?? 0.0,
             currentStock: (row['stock'] as num?)?.toDouble() ?? 0.0,
+            saleUnit: row['unit_type'] as String? ?? 'UNI',
+            unitsPerSaleUnit: (row['units_per_box'] as num?)?.toDouble() ?? 1.0,
           )).toList();
     } catch (e, stackTrace) {
       LoggerService().e('Analytics', 'Error calculating top products', e, stackTrace);
@@ -74,10 +84,10 @@ class AnalyticsService {
     try {
       final db = await DatabaseService().database;
       final result = await db.rawQuery('''
-        SELECT p.id, p.name, COALESCE(sales.total_qty, 0) as total_qty, COALESCE(sales.total_rev, 0) as total_revenue, p.stock
+        SELECT p.id, p.name, COALESCE(sales.total_qty, 0) as total_qty, COALESCE(sales.total_rev, 0) as total_revenue, p.stock, p.unit_type, p.units_per_box
         FROM products p
         LEFT JOIN (
-          SELECT ti.product_id, SUM(ti.quantity) as total_qty, SUM(ti.subtotal) as total_rev
+          SELECT ti.product_id, SUM(ti.quantity * ti.units_per_sale_unit) as total_qty, SUM(ti.subtotal) as total_rev
           FROM transaction_items ti
           JOIN transactions t ON ti.transaction_id = t.id
           WHERE t.type = 'sale' AND t.status = 'COMPLETED'
@@ -94,6 +104,8 @@ class AnalyticsService {
             quantitySold: (row['total_qty'] as num?)?.toDouble() ?? 0.0,
             totalRevenue: (row['total_revenue'] as num?)?.toDouble() ?? 0.0,
             currentStock: (row['stock'] as num?)?.toDouble() ?? 0.0,
+            saleUnit: row['unit_type'] as String? ?? 'UNI',
+            unitsPerSaleUnit: (row['units_per_box'] as num?)?.toDouble() ?? 1.0,
           )).toList();
     } catch (e, stackTrace) {
       LoggerService().e('Analytics', 'Error calculating dead stock', e, stackTrace);
@@ -140,6 +152,7 @@ class AnalyticsService {
       topProducts: topProducts,
       deadStock: deadStock,
       topCustomers: topCustomers,
+      currencySymbol: CurrencyHelper.symbol,
     );
     return compute(_generateExcelIsolate, payload);
   }
@@ -154,6 +167,7 @@ class AnalyticsService {
       topProducts: topProducts,
       deadStock: deadStock,
       topCustomers: topCustomers,
+      currencySymbol: CurrencyHelper.symbol,
     );
     return compute(_generatePdfIsolate, payload);
   }
@@ -163,10 +177,12 @@ class _ReportPayload {
   final List<ProductPerformance> topProducts;
   final List<ProductPerformance> deadStock;
   final List<CustomerPerformance> topCustomers;
+  final String currencySymbol;
   _ReportPayload({
     required this.topProducts,
     required this.deadStock,
     required this.topCustomers,
+    required this.currencySymbol,
   });
 }
 
@@ -186,9 +202,9 @@ Uint8List _generateExcelIsolate(_ReportPayload payload) {
     topSheet.appendRow([
       IntCellValue(p.productId),
       TextCellValue(p.productName),
-      DoubleCellValue(p.quantitySold),
+      DoubleCellValue(p.displayQuantitySold),
       DoubleCellValue(p.totalRevenue),
-      DoubleCellValue(p.currentStock),
+      DoubleCellValue(p.displayCurrentStock),
     ]);
   }
 
@@ -204,8 +220,8 @@ Uint8List _generateExcelIsolate(_ReportPayload payload) {
     deadSheet.appendRow([
       IntCellValue(p.productId),
       TextCellValue(p.productName),
-      DoubleCellValue(p.currentStock),
-      DoubleCellValue(p.quantitySold),
+      DoubleCellValue(p.displayCurrentStock),
+      DoubleCellValue(p.displayQuantitySold),
     ]);
   }
 
@@ -266,7 +282,7 @@ Future<Uint8List> _generatePdfIsolate(_ReportPayload payload) async {
             ...payload.topProducts.map((p) => [
                   p.productName,
                   p.quantitySold.toStringAsFixed(2),
-                  'Bs ${p.totalRevenue.toStringAsFixed(2)}',
+                  '${payload.currencySymbol} ${p.totalRevenue.toStringAsFixed(2)}',
                   p.currentStock.toStringAsFixed(2),
                 ])
           ],
@@ -281,7 +297,7 @@ Future<Uint8List> _generatePdfIsolate(_ReportPayload payload) async {
             ...payload.topCustomers.map((c) => [
                   c.customerName,
                   c.totalVisits.toString(),
-                  'Bs ${c.totalSpent.toStringAsFixed(2)}',
+                  '${payload.currencySymbol} ${c.totalSpent.toStringAsFixed(2)}',
                 ])
           ],
         ),

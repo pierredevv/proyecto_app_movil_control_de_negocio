@@ -7,6 +7,7 @@ import '../../services/database_service.dart';
 import '../../services/report_export_service.dart';
 import '../../services/snackbar_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 import '../customers/customer_ledger_screen.dart';
 import '../suppliers/supplier_ledger_screen.dart';
 
@@ -134,7 +135,7 @@ class _AgingReportScreenState extends State<AgingReportScreen> with SingleTicker
 
     final totalPendiente = report.fold<double>(0, (sum, item) => sum + (item['total'] as num).toDouble());
     final totalVencido = report.fold<double>(0, (sum, item) => sum + (item['days_30_60'] as num).toDouble() + (item['days_60_plus'] as num).toDouble());
-    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final fmt = CurrencyHelper.formatter;
 
     return Column(
       children: [
@@ -226,10 +227,7 @@ class _AgingReportScreenState extends State<AgingReportScreen> with SingleTicker
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            NumberFormat.currency(
-                                    symbol: 'Bs. ',
-                                    decimalDigits: 2,
-                                    locale: 'es_BO')
+                            CurrencyHelper.formatter
                                 .format(
                                     (entityData['total'] as num).toDouble()),
                             style: TextStyle(
@@ -275,7 +273,7 @@ class _AgingReportScreenState extends State<AgingReportScreen> with SingleTicker
   }
 
   Widget _buildAgeColumn(String label, double amount, Color color) {
-    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+    final fmt = CurrencyHelper.formatter;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

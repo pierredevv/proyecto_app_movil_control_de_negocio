@@ -44,6 +44,12 @@ class BusinessProfile {
   final bool disableAutoCut;
   final int leftMargin;
 
+  // Currency & Locale settings
+  final String currencySymbol;
+  final String currencyCode;
+  final String currencyName;
+  final String locale;
+
   const BusinessProfile({
     this.businessName = 'Mi Negocio',
     this.ownerName = '',
@@ -81,6 +87,10 @@ class BusinessProfile {
     this.enableExpertMode = false,
     this.disableAutoCut = false,
     this.leftMargin = 0,
+    this.currencySymbol = 'Bs.',
+    this.currencyCode = 'BOB',
+    this.currencyName = 'Bolivianos',
+    this.locale = 'es_BO',
   });
 
   BusinessProfile copyWith({
@@ -120,6 +130,10 @@ class BusinessProfile {
     bool? enableExpertMode,
     bool? disableAutoCut,
     int? leftMargin,
+    String? currencySymbol,
+    String? currencyCode,
+    String? currencyName,
+    String? locale,
   }) {
     return BusinessProfile(
       businessName: businessName ?? this.businessName,
@@ -161,6 +175,10 @@ class BusinessProfile {
       enableExpertMode: enableExpertMode ?? this.enableExpertMode,
       disableAutoCut: disableAutoCut ?? this.disableAutoCut,
       leftMargin: leftMargin ?? this.leftMargin,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
+      currencyCode: currencyCode ?? this.currencyCode,
+      currencyName: currencyName ?? this.currencyName,
+      locale: locale ?? this.locale,
     );
   }
 
@@ -202,6 +220,10 @@ class BusinessProfile {
       'enableExpertMode': enableExpertMode,
       'disableAutoCut': disableAutoCut,
       'leftMargin': leftMargin,
+      'currencySymbol': currencySymbol,
+      'currencyCode': currencyCode,
+      'currencyName': currencyName,
+      'locale': locale,
     };
   }
 
@@ -243,6 +265,10 @@ class BusinessProfile {
       enableExpertMode: map['enableExpertMode'] ?? false,
       disableAutoCut: map['disableAutoCut'] ?? false,
       leftMargin: map['leftMargin']?.toInt() ?? 0,
+      currencySymbol: map['currencySymbol'] ?? 'Bs.',
+      currencyCode: map['currencyCode'] ?? 'BOB',
+      currencyName: map['currencyName'] ?? 'Bolivianos',
+      locale: map['locale'] ?? 'es_BO',
     );
   }
 
@@ -284,6 +310,10 @@ class BusinessProfile {
       enableExpertMode: enableExpertMode,
       disableAutoCut: disableAutoCut,
       leftMargin: leftMargin,
+      currencySymbol: currencySymbol,
+      currencyCode: currencyCode,
+      currencyName: currencyName,
+      locale: locale,
     );
   }
 }

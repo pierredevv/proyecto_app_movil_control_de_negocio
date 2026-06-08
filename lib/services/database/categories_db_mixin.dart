@@ -27,6 +27,13 @@ mixin CategoriesDb on CoreDb {
 
   Future<int> deleteCategory(int id) async {
     final db = await database;
+    // Reassign products to 'General' category (ID 1) before deleting
+    await db.update(
+      'products',
+      {'category_id': 1},
+      where: 'category_id = ?',
+      whereArgs: [id],
+    );
     return await db.delete(
       'categories',
       where: 'id = ?',

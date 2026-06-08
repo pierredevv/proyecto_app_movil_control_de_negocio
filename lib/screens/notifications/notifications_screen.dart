@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/notification_provider.dart';
 import 'package:intl/intl.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -40,19 +42,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           if (notifications.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.done_all, color: Color(0xFF4A90E2)),
+              icon: const Icon(Icons.done_all, color: AppTheme.blueIcon),
               tooltip: 'Marcar todo como leído',
               onPressed: () => provider.markAllAsRead(),
             ),
           if (notifications.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Color(0xFFFF6B6B)),
+              icon: const Icon(Icons.delete_sweep, color: AppTheme.redAccent),
               tooltip: 'Limpiar todo',
               onPressed: () => provider.clearAll(),
             ),
         ],
       ),
-      body: Stack(
+      body: BoundedDesktopWrapper(child: Stack(
         children: [
           // Background Blobs (Soft ambient lighting)
           Positioned(
@@ -62,11 +64,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: isDark ? 0.08 : 0.03),
+                color: AppTheme.blueIcon.withValues(alpha: isDark ? 0.08 : 0.03),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withValues(alpha: isDark ? 0.15 : 0.05),
+                    color: AppTheme.blueIcon.withValues(alpha: isDark ? 0.15 : 0.05),
                     blurRadius: 100,
                     spreadRadius: 20,
                   ),
@@ -102,7 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     itemBuilder: (context, index) {
                       final notification = notifications[index];
                       final isLowStock = notification.type == 'low_stock';
-                      final colorAccent = isLowStock ? const Color(0xFFF59F00) : const Color(0xFF4A90E2);
+                      final colorAccent = isLowStock ? const Color(0xFFF59F00) : AppTheme.blueIcon;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -124,7 +126,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             child: Dismissible(
                               key: Key(notification.id),
                               background: Container(
-                                color: const Color(0xFFFF6B6B).withValues(alpha: 0.8),
+                                color: AppTheme.redAccent.withValues(alpha: 0.8),
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.only(right: 20),
                                 child: const Icon(Icons.delete, color: Colors.white),
@@ -184,7 +186,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
           ),
         ],
-      ),
+      ),),
     );
   }
 }

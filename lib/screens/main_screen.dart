@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/common/custom_bottom_nav.dart';
-import '../widgets/common/responsive_layout.dart';
+import '../widgets/responsive_layout.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'purchases/purchase_list_screen.dart';

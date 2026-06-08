@@ -4,8 +4,11 @@ import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_screen.dart';
+import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'providers/inventory_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/navigation_provider.dart';
@@ -18,10 +21,13 @@ import 'providers/import_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/cash_register_provider.dart'; // Added CashRegisterProvider
+import 'providers/auth_provider.dart'; // Added AuthProvider (RBAC)
 
 import 'services/backup_service.dart';
 import 'services/snackbar_service.dart';
 import 'services/logger_service.dart';
+import 'services/settings_service.dart';
+import 'utils/currency_helper.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -32,7 +38,19 @@ void main() async {
   await LoggerService().initialize();
   LoggerService().i('main', 'App starting up...');
   
-  await initializeDateFormatting('es_BO', null);
+  String initialLocale = 'es_BO';
+  try {
+    final profile = await SettingsService.getProfile();
+    initialLocale = profile.locale;
+    CurrencyHelper.updateConfig(
+      symbol: profile.currencySymbol,
+      locale: profile.locale,
+    );
+  } catch (e) {
+    debugPrint('Failed to load business profile on startup: $e');
+  }
+  
+  await initializeDateFormatting(initialLocale, null);
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     // Initialize FFI
@@ -93,6 +111,8 @@ class _MyAppState extends State<MyApp> {
             create: (_) => SettingsProvider()..loadProfile()),
         ChangeNotifierProvider(
             create: (_) => CashRegisterProvider()..checkActiveSession()),
+        ChangeNotifierProvider(
+            create: (_) => AuthProvider()..initialize()),
       ],
       child: Consumer2<ThemeProvider, SettingsProvider>(
         builder: (context, themeProvider, settingsProvider, _) {
@@ -103,11 +123,21 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('es', 'BO'),
+              Locale('es', ''),
+            ],
             navigatorObservers: [routeObserver],
             builder: (context, child) {
               final mediaQueryData = MediaQuery.of(context);
               final double baseSystemScale = mediaQueryData.textScaler.scale(16) / 16;
-              final double combinedFactor = (baseSystemScale * settingsProvider.textScale).clamp(0.8, 1.2);
+              final double textScale = settingsProvider.textScale;
+              final double combinedFactor = (baseSystemScale * textScale).clamp(0.8, 1.2);
               final finalScaler = TextScaler.linear(combinedFactor);
 
               return MediaQuery(
@@ -115,10 +145,32 @@ class _MyAppState extends State<MyApp> {
                 child: child!,
               );
             },
-            home: const MainScreen(),
+            home: const _AuthGate(),
           );
         },
       ),
     );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    switch (auth.state) {
+      case AuthState.initial:
+        return const Scaffold(
+          backgroundColor: AppTheme.backgroundBlack,
+          body: Center(child: CircularProgressIndicator()),
+        );
+      case AuthState.requiresOnboarding:
+        return const OnboardingScreen();
+      case AuthState.requiresLogin:
+        return const LoginScreen();
+      case AuthState.authenticated:
+        return const MainScreen();
+    }
   }
 }

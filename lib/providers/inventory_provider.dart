@@ -374,7 +374,10 @@ class InventoryProvider extends ChangeNotifier {
   // Valuation: Sum (Stock * Cost)
   double get totalInventoryValue {
     return _products.fold(0.0, (sum, product) {
-      return sum + (product.stock * product.weightedAverageCost);
+      final unitCost = product.weightedAverageCost > 0 
+          ? product.weightedAverageCost 
+          : (product.cost / (product.unitsPerSaleUnit > 0 ? product.unitsPerSaleUnit : 1));
+      return sum + (product.stock * unitCost);
     });
   }
 

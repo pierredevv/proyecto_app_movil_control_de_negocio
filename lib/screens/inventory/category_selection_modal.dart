@@ -48,14 +48,16 @@ class _CategorySelectionModalState extends State<CategorySelectionModal> {
         children: [
           // Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Seleccionar Categoría',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'Seleccionar Categoría',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),
@@ -162,11 +164,13 @@ class _CategorySelectionModalState extends State<CategorySelectionModal> {
                     Icon(Icons.add_circle_outline,
                         color: theme.colorScheme.primary),
                     const SizedBox(width: 8),
-                    Text(
-                      'Crear Nueva Categoría',
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        'Crear Nueva Categoría',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],

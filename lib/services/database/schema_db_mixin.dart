@@ -501,6 +501,93 @@ mixin SchemaDb on CoreDb {
         debugPrint('V21 notifications table error: $e');
       }
     }
+
+    // V22: RBAC (Roles, Users, Permissions, Active Session)
+    if (oldVersion < 22) {
+      try {
+        await db.execute('''
+          CREATE TABLE roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL,
+            description TEXT,
+            is_system INTEGER NOT NULL DEFAULT 1
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V22 roles table error: $e');
+      }
+
+      try {
+        await db.execute('''
+          CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL,
+            pin_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            last_login INTEGER
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V22 users table error: $e');
+      }
+
+      try {
+        await db.execute('''
+          CREATE TABLE user_roles (
+            user_id INTEGER NOT NULL,
+            role_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, role_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V22 user_roles table error: $e');
+      }
+
+      try {
+        await db.execute('''
+          CREATE TABLE role_permissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role_id INTEGER NOT NULL,
+            module TEXT NOT NULL,
+            can_view INTEGER NOT NULL DEFAULT 0,
+            can_create INTEGER NOT NULL DEFAULT 0,
+            can_edit INTEGER NOT NULL DEFAULT 0,
+            can_delete INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(role_id, module),
+            FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V22 role_permissions table error: $e');
+      }
+
+      try {
+        await db.execute('''
+          CREATE TABLE active_session (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            user_id INTEGER,
+            logged_in_at INTEGER NOT NULL,
+            last_activity_at INTEGER,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+          )
+        ''');
+      } catch (e) {
+        debugPrint('V22 active_session table error: $e');
+      }
+
+      try {
+        await db.execute(
+            'ALTER TABLE transactions ADD COLUMN performed_by_user_id INTEGER');
+      } catch (e) {
+        debugPrint('V22 alter transactions performed_by_user_id error: $e');
+      }
+    }
   }
 
   @override
@@ -571,7 +658,9 @@ mixin SchemaDb on CoreDb {
         status TEXT,
         supplier_invoice_ref TEXT,
         client_ci_nit TEXT,
-        amount_tendered REAL DEFAULT 0.0
+        amount_tendered REAL DEFAULT 0.0,
+        expense_category_id INTEGER,
+        performed_by_user_id INTEGER
       )
     ''');
 
@@ -722,6 +811,64 @@ mixin SchemaDb on CoreDb {
         type TEXT NOT NULL,
         is_read INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL
+      )
+    ''');
+
+    // V22: RBAC tables
+    await db.execute('''
+      CREATE TABLE roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        description TEXT,
+        is_system INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        pin_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        last_login INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE user_roles (
+        user_id INTEGER NOT NULL,
+        role_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, role_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE role_permissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role_id INTEGER NOT NULL,
+        module TEXT NOT NULL,
+        can_view INTEGER NOT NULL DEFAULT 0,
+        can_create INTEGER NOT NULL DEFAULT 0,
+        can_edit INTEGER NOT NULL DEFAULT 0,
+        can_delete INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(role_id, module),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE active_session (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id INTEGER,
+        logged_in_at INTEGER NOT NULL,
+        last_activity_at INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
       )
     ''');
   }

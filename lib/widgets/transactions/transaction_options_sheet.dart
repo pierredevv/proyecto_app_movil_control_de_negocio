@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../theme/app_theme.dart';
 
 class TransactionOptionsBottomSheet extends StatelessWidget {
   final VoidCallback? onEdit;
@@ -28,7 +29,7 @@ class TransactionOptionsBottomSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2432) : Colors.white,
+        color: isDark ? AppTheme.cardDark : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(

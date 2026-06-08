@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import '../models/business_profile.dart';
 import '../services/settings_service.dart';
+import '../utils/currency_helper.dart';
 
 class SettingsProvider extends ChangeNotifier {
   BusinessProfile _profile = const BusinessProfile();
@@ -19,6 +21,20 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> loadProfile() async {
     _profile = await SettingsService.getProfile();
     _textScale = await SettingsService.getTextScale();
+    
+    // Update CurrencyHelper
+    CurrencyHelper.updateConfig(
+      symbol: _profile.currencySymbol,
+      locale: _profile.locale,
+    );
+    
+    // Re-initialize Date formatting for new locale
+    try {
+      await initializeDateFormatting(_profile.locale, null);
+    } catch (e) {
+      debugPrint('Failed to initialize date formatting for ${_profile.locale}: $e');
+    }
+    
     _isLoaded = true;
     notifyListeners();
   }
@@ -32,6 +48,20 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> updateProfile(BusinessProfile updated) async {
     _profile = updated;
     await SettingsService.saveProfile(updated);
+    
+    // Update CurrencyHelper
+    CurrencyHelper.updateConfig(
+      symbol: updated.currencySymbol,
+      locale: updated.locale,
+    );
+
+    // Re-initialize Date formatting for new locale
+    try {
+      await initializeDateFormatting(updated.locale, null);
+    } catch (e) {
+      debugPrint('Failed to initialize date formatting for ${updated.locale}: $e');
+    }
+    
     notifyListeners();
   }
 

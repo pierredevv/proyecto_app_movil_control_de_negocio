@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SalesTrendChart extends StatelessWidget {
@@ -57,7 +58,7 @@ class SalesTrendChart extends StatelessWidget {
 
     // Gradient colors
     const List<Color> gradientColors = [
-      Color(0xFF5FD068), // Green (Top)
+      AppTheme.greenAccent, // Green (Top)
       Color(0xFFFECFEF), // Pastel Pink
       Color(0xFFFF9A9E), // Coral Pink (Bottom)
     ];
@@ -82,7 +83,7 @@ class SalesTrendChart extends StatelessWidget {
                   getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
                     return touchedBarSpots.map((barSpot) {
                       return LineTooltipItem(
-                        'Bs. ${barSpot.y.toStringAsFixed(2)}',
+                        '${CurrencyHelper.symbol} ${barSpot.y.toStringAsFixed(2)}',
                         TextStyle(
                           color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
@@ -186,10 +187,15 @@ class SalesTrendChart extends StatelessWidget {
           Positioned(
             left: 0,
             top: 20,
-            child: Text('Máx. Bs. ${displayMax.toStringAsFixed(0)}',
-                style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    fontSize: 10)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: Text('Máx. ${CurrencyHelper.symbol} ${displayMax.toStringAsFixed(0)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 10)),
+            ),
           ),
           if (maxY == 1000 &&
               spots.every((e) =>
@@ -197,10 +203,15 @@ class SalesTrendChart extends StatelessWidget {
             Positioned(
               left: 0,
               bottom: 45,
-              child: Text('Mín. Bs. ${minY.toStringAsFixed(0)}',
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                      fontSize: 10)),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 120),
+                child: Text('Mín. ${CurrencyHelper.symbol} ${minY.toStringAsFixed(0)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 10)),
+              ),
             ),
         ],
       ),
@@ -210,7 +221,7 @@ class SalesTrendChart extends StatelessWidget {
 
   Color _getColorForValue(double y) {
     // Simple mock approximation for dot center color
-    if (y > 1000) return const Color(0xFF5FD068);
+    if (y > 1000) return AppTheme.greenAccent;
     if (y > 600) return const Color(0xFFFECFEF);
     return const Color(0xFFFF9A9E);
   }

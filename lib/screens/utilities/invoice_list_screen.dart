@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import 'print_preview_screen.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
+import '../../widgets/responsive_layout.dart';
 
 class InvoiceListScreen extends StatefulWidget {
   const InvoiceListScreen({super.key});
@@ -14,7 +17,7 @@ class InvoiceListScreen extends StatefulWidget {
 
 class _InvoiceListScreenState extends State<InvoiceListScreen> {
   final DatabaseService _db = DatabaseService();
-  final Color moduleColor = const Color(0xFF9B51E0); // Purple UI
+  final Color moduleColor = AppTheme.purpleIcon; // Purple UI
 
   List<Transaction> _transactions = [];
   bool _isLoading = true;
@@ -80,7 +83,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Imprimir Facturas',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -88,7 +91,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
+      body: BoundedDesktopWrapper(child: _isLoading
           ? Center(child: CircularProgressIndicator(color: moduleColor))
           : _transactions.isEmpty
               ? _buildEmptyState()
@@ -132,14 +135,14 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                 color: isSale
                                     ? const Color(0xFF00C48C)
                                         .withValues(alpha: 0.15)
-                                    : const Color(0xFFFF6B6B)
+                                    : AppTheme.redAccent
                                         .withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: isSale
                                       ? const Color(0xFF00C48C)
                                           .withValues(alpha: 0.20)
-                                      : const Color(0xFFFF6B6B)
+                                      : AppTheme.redAccent
                                           .withValues(alpha: 0.20),
                                   width: 1,
                                 ),
@@ -150,7 +153,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                     : Icons.arrow_upward,
                                 color: isSale
                                     ? const Color(0xFF00C48C)
-                                    : const Color(0xFFFF6B6B),
+                                    : AppTheme.redAccent,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -175,7 +178,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                     DateFormat('dd MMM yyyy - HH:mm')
                                         .format(t.date),
                                     style: const TextStyle(
-                                        color: Color(0xFFA0A8C1), fontSize: 13),
+                                        color: AppTheme.textSecondary, fontSize: 13),
                                   ),
                                 ],
                               ),
@@ -185,7 +188,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '\$${t.totalAmount.toStringAsFixed(2)}',
+                                  CurrencyHelper.simple(t.totalAmount),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -194,7 +197,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 const Icon(Icons.print,
-                                    color: Color(0xFF6B7494), size: 18),
+                                    color: AppTheme.textTertiary, size: 18),
                               ],
                             ),
                           ],
@@ -203,7 +206,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                     },
                   ),
                 ),
-    );
+    ),);
   }
 
   Widget _buildEmptyState() {
@@ -230,7 +233,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
           const SizedBox(height: 8),
           const Text(
             'No hay ventas ni compras para imprimir.',
-            style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
           ),
         ],
       ),

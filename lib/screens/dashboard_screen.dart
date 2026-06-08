@@ -10,6 +10,7 @@ import '../../screens/settings/settings_screen.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/inventory_provider.dart';
 import 'reports/aging_report_screen.dart';
+import '../../theme/app_theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -48,9 +49,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          const Color(0xFF0F172A),
-                          const Color(0xFF1E293B),
-                          const Color(0xFF0F172A),
+                          AppTheme.surfaceDeep,
+                          AppTheme.surfaceSlate,
+                          AppTheme.surfaceDeep,
                         ]
                       : [
                           const Color(0xFFF8FAFC),
@@ -68,12 +69,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2)
+                color: AppTheme.blueIcon
                     .withValues(alpha: 0.1), // Primary Blue 10%
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    color: AppTheme.blueIcon.withValues(alpha: 0.2),
                     blurRadius: 100,
                     spreadRadius: 20,
                   ),
@@ -89,11 +90,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               height: 250,
               decoration: BoxDecoration(
                 color:
-                    const Color(0xFFFF6B6B).withValues(alpha: 0.08), // Coral 8%
+                    AppTheme.redAccent.withValues(alpha: 0.08), // Coral 8%
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.15),
+                    color: AppTheme.redAccent.withValues(alpha: 0.15),
                     blurRadius: 80,
                     spreadRadius: 20,
                   ),
@@ -187,11 +188,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4A90E2)
+                                color: AppTheme.blueIcon
                                     .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: const Color(0xFF4A90E2)
+                                    color: AppTheme.blueIcon
                                         .withValues(alpha: 0.3)),
                               ),
                               child: Row(
@@ -200,13 +201,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF4A90E2)
+                                      color: AppTheme.blueIcon
                                           .withValues(alpha: 0.15),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
                                         Icons.account_balance_wallet_rounded,
-                                        color: Color(0xFF4A90E2),
+                                        color: AppTheme.blueIcon,
                                         size: 18),
                                   ),
                                   const SizedBox(width: 12),
@@ -218,7 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         Text(
                                           'Tienes $pendingCount venta(s) pendiente(s) de cobro',
                                           style: const TextStyle(
-                                            color: Color(0xFF4A90E2),
+                                            color: AppTheme.blueIcon,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
@@ -226,14 +227,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         const Text(
                                           'Toca para ver el estado de la cartera',
                                           style: TextStyle(
-                                              color: Color(0xFF4A90E2),
+                                              color: AppTheme.blueIcon,
                                               fontSize: 12),
                                         ),
                                       ],
                                     ),
                                   ),
                                   const Icon(Icons.chevron_right,
-                                      color: Color(0xFF4A90E2)),
+                                      color: AppTheme.blueIcon),
                                 ],
                               ),
                             ),
@@ -265,29 +266,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFF6B6B)
+                                color: AppTheme.redAccent
                                     .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: const Color(0xFFFF6B6B)
+                                    color: AppTheme.redAccent
                                         .withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 children: [
                                   const Icon(Icons.warning_amber_rounded,
-                                      color: Color(0xFFFF6B6B)),
+                                      color: AppTheme.redAccent),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       'Tienes $lowStockCount producto(s) con stock bajo',
                                       style: const TextStyle(
-                                        color: Color(0xFFFF6B6B),
+                                        color: AppTheme.redAccent,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   const Icon(Icons.chevron_right,
-                                      color: Color(0xFFFF6B6B)),
+                                      color: AppTheme.redAccent),
                                 ],
                               ),
                             ),
@@ -396,7 +397,7 @@ class _DashboardHeader extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444),
+                          color: AppTheme.error,
                           shape: BoxShape.circle,
                         ),
                         child: Text(

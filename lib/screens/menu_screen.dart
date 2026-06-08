@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 // Providers
 import '../providers/settings_provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/auth_provider.dart';
 
 // Screens
 import 'customers/customer_list_screen.dart';
@@ -20,10 +21,12 @@ import 'inventory/product_list_screen.dart';
 import 'reports/reports_screen.dart';
 import 'utilities/utilities_screen.dart';
 import 'settings/settings_screen.dart';
+import 'settings/user_management_screen.dart';
 import 'backup_manager_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'marketing/marketing_hub_screen.dart';
-import 'cash_register/cash_register_screen.dart'; // Added CashRegisterScreen
+import 'cash_register/cash_register_screen.dart';
+import '../../theme/app_theme.dart'; // Added CashRegisterScreen
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -63,6 +66,7 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final auth = context.watch<AuthProvider>();
 
     // Using a base scaffold layout. It's assumed the parent scaffold or app handles the global background.
     return Scaffold(
@@ -78,9 +82,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          const Color(0xFF0F172A),
-                          const Color(0xFF1E293B),
-                          const Color(0xFF0F172A),
+                          AppTheme.surfaceDeep,
+                          AppTheme.surfaceSlate,
+                          AppTheme.surfaceDeep,
                         ]
                       : [
                           const Color(0xFFF8FAFC),
@@ -98,11 +102,11 @@ class _MenuScreenState extends State<MenuScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                color: AppTheme.blueIcon.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    color: AppTheme.blueIcon.withValues(alpha: 0.2),
                     blurRadius: 100,
                     spreadRadius: 20,
                   ),
@@ -117,11 +121,11 @@ class _MenuScreenState extends State<MenuScreen> {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                color: AppTheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    color: AppTheme.error.withValues(alpha: 0.2),
                     blurRadius: 80,
                     spreadRadius: 20,
                   ),
@@ -144,7 +148,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.account_balance_wallet,
                         title: 'Ventas',
-                        color: const Color(0xFF4A90E2), // Blue
+                        color: AppTheme.blueIcon, // Blue
+                        module: 'ventas',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -154,7 +159,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.shopping_cart,
                         title: 'Compras',
-                        color: const Color(0xFF9B51E0), // Purple
+                        color: AppTheme.purpleIcon, // Purple
+                        module: 'compras',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -163,7 +169,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.local_shipping_outlined,
                         title: 'Pedidos',
-                        color: const Color(0xFFF5A623), // Orange
+                        color: AppTheme.yellowIcon, // Orange
+                        module: 'pedidos',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -172,7 +179,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.people,
                         title: 'Clientes',
-                        color: const Color(0xFF4ECDC4), // Turquoise
+                        color: AppTheme.greenIcon, // Turquoise
+                        module: 'clientes',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -181,7 +189,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.local_shipping,
                         title: 'Proveedores',
-                        color: const Color(0xFFFFA94D), // Yellow
+                        color: AppTheme.warning, // Yellow
+                        module: 'proveedores',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -191,6 +200,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         icon: Icons.inventory,
                         title: 'Gestión de Inventario',
                         color: const Color(0xFFFF6B9D), // Magenta
+                        module: 'inventario',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -199,7 +209,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.bar_chart,
                         title: 'Reportes',
-                        color: const Color(0xFFFF6B6B), // Red
+                        color: AppTheme.redAccent, // Red
+                        module: 'reportes',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -209,6 +220,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         icon: Icons.receipt_long,
                         title: 'Gastos',
                         color: const Color(0xFFFF8A65), // Coral
+                        module: 'gastos',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -217,7 +229,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.point_of_sale,
                         title: 'Caja Registradora',
-                        color: const Color(0xFF51CF66), // Green
+                        color: AppTheme.success, // Green
+                        module: 'caja',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -233,7 +246,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.sync,
                         title: 'Sincronización y Compartir',
-                        color: const Color(0xFF4A90E2),
+                        color: AppTheme.blueIcon,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -245,7 +258,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.cloud_upload,
                         title: 'Respaldo de Datos',
-                        color: const Color(0xFF4ECDC4),
+                        color: AppTheme.greenIcon,
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -254,7 +267,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.build,
                         title: 'Utilidades',
-                        color: const Color(0xFFF5A623),
+                        color: AppTheme.yellowIcon,
                         isNew: true,
                         onTap: () => Navigator.push(
                             context,
@@ -288,12 +301,24 @@ class _MenuScreenState extends State<MenuScreen> {
                       _MenuItemData(
                         icon: Icons.settings,
                         title: 'Configuración',
-                        color: const Color(0xFFA0A8C1),
+                        color: AppTheme.textSecondary,
+                        module: 'configuracion',
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const SettingsScreen())),
                       ),
+                      if (auth.isAdmin)
+                        _MenuItemData(
+                          icon: Icons.people_alt,
+                          title: 'Gestión de Usuarios',
+                          color: AppTheme.purpleIcon,
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const UserManagementScreen())),
+                        ),
                     ],
                   ).animate().fade(duration: 300.ms, delay: 150.ms).slideY(
                       begin: 0.1, end: 0, duration: 300.ms, delay: 150.ms),
@@ -381,7 +406,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     const Text(
                       'Business Management',
-                      style: TextStyle(color: Color(0xFFA0A8C1), fontSize: 14),
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                     ),
                   ],
                 ),
@@ -406,7 +431,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444),
+                          color: AppTheme.error,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -437,6 +462,11 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildSectionCard(
       {required String title, required List<_MenuItemData> items}) {
+    final auth = context.watch<AuthProvider>();
+    final visibleItems = items
+        .where((item) => item.module == null || auth.canView(item.module!))
+        .toList();
+    if (visibleItems.isEmpty) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -456,7 +486,7 @@ class _MenuScreenState extends State<MenuScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
-              color: const Color(0x1AFFFFFF), // Exactly 10% opacity Hex
+              color: AppTheme.glassWhite10, // Exactly 10% opacity Hex
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                   color: const Color(0x14FFFFFF), width: 1.5), // 8% opacity Hex
@@ -469,7 +499,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: Text(
                     title.toUpperCase(),
                     style: const TextStyle(
-                      color: Color(0xFFA0A8C1), // Secondary color
+                      color: AppTheme.textSecondary, // Secondary color
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
@@ -477,10 +507,10 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ...items.asMap().entries.map((entry) {
+                ...visibleItems.asMap().entries.map((entry) {
                   int index = entry.key;
                   _MenuItemData item = entry.value;
-                  bool isLast = index == items.length - 1;
+                  bool isLast = index == visibleItems.length - 1;
 
                   return Column(
                     children: [
@@ -512,7 +542,7 @@ class _MenuScreenState extends State<MenuScreen> {
         const Text(
           'APP VERSION',
           style: TextStyle(
-            color: Color(0xFF6B7494),
+            color: AppTheme.textTertiary,
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
@@ -530,10 +560,10 @@ class _MenuScreenState extends State<MenuScreen> {
           child: const Text(
             'Política de Privacidad',
             style: TextStyle(
-              color: Color(0xFF4A90E2),
+              color: AppTheme.blueIcon,
               fontSize: 14,
               decoration: TextDecoration.underline,
-              decorationColor: Color(0xFF4A90E2),
+              decorationColor: AppTheme.blueIcon,
             ),
           ),
         ),
@@ -548,6 +578,7 @@ class _MenuItemData {
   final Color color;
   final VoidCallback onTap;
   final bool isNew;
+  final String? module;
 
   _MenuItemData({
     required this.icon,
@@ -555,6 +586,7 @@ class _MenuItemData {
     required this.color,
     required this.onTap,
     this.isNew = false,
+    this.module,
   });
 }
 
@@ -633,7 +665,7 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8A65)],
+                    colors: [AppTheme.redAccent, Color(0xFFFF8A65)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -648,7 +680,7 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
                   ),
                 ),
               ),
-            const Icon(Icons.chevron_right, color: Color(0xFF6B7494), size: 20),
+            const Icon(Icons.chevron_right, color: AppTheme.textTertiary, size: 20),
           ],
         ),
       ),

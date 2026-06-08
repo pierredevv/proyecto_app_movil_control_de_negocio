@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../sales/sale_detail_screen.dart';
 import '../purchases/purchase_details_screen.dart';
 import '../../models/transaction_model.dart';
+import '../../utils/currency_helper.dart';
 
 class AccountStatementScreen extends StatefulWidget {
   final int entityId;
@@ -110,10 +111,10 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Estado de Cuenta Completo'),
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: AppTheme.cardDark,
       ),
       body: Column(
         children: [
@@ -140,7 +141,7 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2432),
+        color: AppTheme.cardDark,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
@@ -206,19 +207,19 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
           icon = Icons.receipt_long;
           color = AppTheme.redAccent;
           amountText = isCustomer
-              ? '+ Bs. ${debit.toStringAsFixed(2)}'
-              : '+ Bs. ${credit.toStringAsFixed(2)}';
+              ? '+ ${CurrencyHelper.simple(debit)}'
+              : '+ ${CurrencyHelper.simple(credit)}';
         } else {
           // Payment / credit — reduces debt
           icon = Icons.payment;
           color = AppTheme.greenAccent;
           amountText = isCustomer
-              ? '- Bs. ${credit.toStringAsFixed(2)}'
-              : '- Bs. ${debit.toStringAsFixed(2)}';
+              ? '- ${CurrencyHelper.simple(credit)}'
+              : '- ${CurrencyHelper.simple(debit)}';
         }
 
         return Card(
-          color: const Color(0xFF1E2432),
+          color: AppTheme.cardDark,
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12)),
@@ -284,7 +285,7 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Saldo: Bs. ${balance.toStringAsFixed(2)}',
+                        'Saldo: ${CurrencyHelper.simple(balance)}',
                         style: const TextStyle(
                             color: Colors.white70, fontSize: 13),
                       ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/note_provider.dart';
 import '../../models/note.dart';
 import 'package:intl/intl.dart';
+import '../../theme/app_theme.dart';
 
 class NoteEditorScreen extends StatefulWidget {
   final Note? note;
@@ -13,7 +14,7 @@ class NoteEditorScreen extends StatefulWidget {
 }
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  final Color moduleColor = const Color(0xFF9B51E0);
+  final Color moduleColor = AppTheme.purpleIcon;
   late TextEditingController _titleController;
   late TextEditingController _contentController;
   bool _hasUnsavedChanges = false;
@@ -88,13 +89,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         title:
             const Text('Eliminar Nota', style: TextStyle(color: Colors.white)),
         content: const Text('¿Estás seguro de eliminar esta nota?',
-            style: TextStyle(color: Color(0xFFA0A8C1))),
+            style: TextStyle(color: AppTheme.textSecondary)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar',
-                style: TextStyle(color: Color(0xFFA0A8C1))),
+                style: TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -123,7 +124,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         : "Nueva nota";
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.transparent,
@@ -169,7 +170,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           children: [
             Text(
               dateLabel,
-              style: const TextStyle(color: Color(0xFF6B7494), fontSize: 13),
+              style: const TextStyle(color: AppTheme.textTertiary, fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -180,7 +181,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 hintText: 'Título',
-                hintStyle: TextStyle(color: Color(0xFF6B7494)),
+                hintStyle: TextStyle(color: AppTheme.textTertiary),
                 border: InputBorder.none,
               ),
               textCapitalization: TextCapitalization.sentences,
@@ -191,13 +192,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 maxLines: null,
                 expands: true,
                 style: const TextStyle(
-                  color: Color(0xFFA0A8C1),
+                  color: AppTheme.textSecondary,
                   fontSize: 16,
                   height: 1.5,
                 ),
                 decoration: const InputDecoration(
                   hintText: 'Escribe tu nota aquí...',
-                  hintStyle: TextStyle(color: Color(0xFF6B7494)),
+                  hintStyle: TextStyle(color: AppTheme.textTertiary),
                   border: InputBorder.none,
                 ),
                 keyboardType: TextInputType.multiline,

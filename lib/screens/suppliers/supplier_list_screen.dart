@@ -9,6 +9,9 @@ import 'supplier_form_screen.dart';
 import '../../widgets/common/skeleton_list.dart'; // Added SkeletonList
 import '../../utils/whatsapp_helper.dart';
 import 'supplier_ledger_screen.dart';
+import '../../utils/currency_helper.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
 
 class SupplierListScreen extends StatefulWidget {
   const SupplierListScreen({super.key});
@@ -64,9 +67,9 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
     final isLoading = supplierProvider.isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924), // Dark #151924 background
+      backgroundColor: AppTheme.backgroundBlack, // Dark #151924 background
       appBar: AppBar(
-        backgroundColor: const Color(0xFF151924),
+        backgroundColor: AppTheme.backgroundBlack,
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white, size: 24),
@@ -76,7 +79,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
               fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
-      body: Column(
+      body: BoundedDesktopWrapper(child: Column(
         children: [
           // SEARCH BAR
           Padding(
@@ -100,13 +103,13 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                     decoration: InputDecoration(
                       hintText: 'Buscar proveedor...',
                       hintStyle: const TextStyle(
-                          color: Color(0xFF6B7494), fontSize: 16),
+                          color: AppTheme.textTertiary, fontSize: 16),
                       prefixIcon: const Icon(Icons.search,
-                          color: Color(0xFFA0A8C1), size: 24),
+                          color: AppTheme.textSecondary, size: 24),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear,
-                                  color: Color(0xFFA0A8C1), size: 20),
+                                  color: AppTheme.textSecondary, size: 20),
                               onPressed: () {
                                 _searchController.clear();
                                 context
@@ -180,7 +183,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                       ),
           ),
         ],
-      ),
+      ),),
       // FAB
       floatingActionButton:
           (suppliers.isEmpty && !isLoading) ? null : _buildFAB(),
@@ -201,11 +204,11 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                   width: 200,
                   height: 200,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4ECDC4).withValues(alpha: 0.05),
+                    color: AppTheme.greenIcon.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                 ),
-                const Icon(Icons.business, size: 120, color: Color(0xFF4ECDC4)),
+                const Icon(Icons.business, size: 120, color: AppTheme.greenIcon),
               ],
             ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
             const SizedBox(height: 32),
@@ -221,7 +224,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
             const Text(
               'Añade a tu primer proveedor para comenzar a\ngestionar tus inventarios.',
               style: TextStyle(
-                  color: Color(0xFFA0A8C1), fontSize: 16, height: 1.5),
+                  color: AppTheme.textSecondary, fontSize: 16, height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -275,10 +278,10 @@ class _AnimatedCTAButtonState extends State<_AnimatedCTAButton> {
         width: 240,
         height: 56,
         decoration: BoxDecoration(
-          color: const Color(0xFF4ECDC4).withValues(alpha: 0.20),
+          color: AppTheme.greenIcon.withValues(alpha: 0.20),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-              color: const Color(0xFF4ECDC4).withValues(alpha: 0.30),
+              color: AppTheme.greenIcon.withValues(alpha: 0.30),
               width: 1.5),
         ),
         child: ClipRRect(
@@ -288,12 +291,12 @@ class _AnimatedCTAButtonState extends State<_AnimatedCTAButton> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(widget.icon, color: const Color(0xFF4ECDC4), size: 24),
+                Icon(widget.icon, color: AppTheme.greenIcon, size: 24),
                 const SizedBox(width: 12),
                 Text(
                   widget.title,
                   style: const TextStyle(
-                    color: Color(0xFF4ECDC4),
+                    color: AppTheme.greenIcon,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -337,13 +340,13 @@ class _AnimatedFABState extends State<_AnimatedFAB> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            colors: [AppTheme.redAccent, Color(0xFFFF5757)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF6B6B).withValues(alpha: 0.20),
+              color: AppTheme.redAccent.withValues(alpha: 0.20),
               blurRadius: 12,
               offset: const Offset(0, 6),
             )
@@ -377,22 +380,22 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
 
   Color _getAvatarColor(String name) {
     if (name.isEmpty) {
-      return const Color(0xFF4ECDC4);
+      return AppTheme.greenIcon;
     }
     final firstChar = name.trim().toUpperCase()[0];
     if (RegExp(r'[A-F]').hasMatch(firstChar)) {
-      return const Color(0xFF4ECDC4); // Turquoise
+      return AppTheme.greenIcon; // Turquoise
     }
     if (RegExp(r'[G-L]').hasMatch(firstChar)) {
-      return const Color(0xFF4A90E2); // Blue
+      return AppTheme.blueIcon; // Blue
     }
     if (RegExp(r'[M-R]').hasMatch(firstChar)) {
-      return const Color(0xFF51CF66); // Green
+      return AppTheme.success; // Green
     }
     if (RegExp(r'[S-Z]').hasMatch(firstChar)) {
-      return const Color(0xFFF5A623); // Orange
+      return AppTheme.yellowIcon; // Orange
     }
-    return const Color(0xFF4ECDC4); // Default Turquoise
+    return AppTheme.greenIcon; // Default Turquoise
   }
 
   @override
@@ -484,7 +487,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                           Text(
                             widget.supplier.category!,
                             style: const TextStyle(
-                              color: Color(0xFFA0A8C1),
+                              color: AppTheme.textSecondary,
                               fontSize: 14,
                             ),
                             maxLines: 1,
@@ -496,7 +499,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                           Text(
                             widget.supplier.phone!,
                             style: const TextStyle(
-                              color: Color(0xFF6B7494),
+                              color: AppTheme.textTertiary,
                               fontSize: 13,
                             ),
                           ),
@@ -516,7 +519,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                         if (hasPhone)
                           _CardActionButton(
                             icon: Icons.phone,
-                            color: const Color(0xFF4A90E2), // Blue
+                            color: AppTheme.blueIcon, // Blue
                             onTap: () {
                               context
                                   .read<SupplierProvider>()
@@ -527,7 +530,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                           _CardActionButton(
                             icon:
                                 Icons.message, // Use message as WhatsApp fallback
-                            color: const Color(0xFF51CF66), // Green
+                            color: AppTheme.success, // Green
                             onTap: () {
                               WhatsAppHelper.launchWhatsApp(
                                   widget.supplier.phone!,
@@ -536,7 +539,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                           ),
                         _CardActionButton(
                           icon: Icons.receipt_long,
-                          color: const Color(0xFFF5A623), // Orange
+                          color: AppTheme.yellowIcon, // Orange
                           onTap: widget.onLedgerTap,
                         ),
                         // Custom Popup Menu action button
@@ -568,7 +571,7 @@ class _SupplierGlassCardState extends State<_SupplierGlassCard> {
                 ),
               ),
               child: Text(
-                'Bs. ${widget.supplier.totalDebt.toStringAsFixed(2)}',
+                CurrencyHelper.simple(widget.supplier.totalDebt),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -657,7 +660,7 @@ class _CardPopupActions extends StatelessWidget {
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(Icons.more_vert, color: Color(0xFF6B7494), size: 22),
+        child: const Icon(Icons.more_vert, color: AppTheme.textTertiary, size: 22),
       ),
       padding: EdgeInsets.zero,
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[

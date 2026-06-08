@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../models/transaction_model.dart';
 import '../models/business_profile.dart';
 import '../utils/number_to_words.dart';
+import '../utils/currency_helper.dart';
 
 class PdfGeneratorService {
   Future<Uint8List> generateInvoice(Transaction transaction, BusinessProfile profile,
@@ -33,7 +34,7 @@ class PdfGeneratorService {
       ),
     );
     
-    final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', 'es_BO');
+    final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', CurrencyHelper.locale);
     
     // Determine CI/NIT and Entity Name
     String entityName = customClientName ?? (transaction is Sale ? transaction.customerName : (transaction is Purchase ? transaction.supplierName : null)) ?? "S/N";
@@ -136,19 +137,19 @@ class PdfGeneratorService {
                       return pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.end,
                         children: [
-                          pw.RichText(text: pw.TextSpan(text: 'SUBTOTAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${grossAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                          pw.RichText(text: pw.TextSpan(text: 'SUBTOTAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple(grossAmount), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
                           if (transaction.adjustmentAmount != 0)
-                            pw.RichText(text: pw.TextSpan(text: 'DESCUENTO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.adjustmentAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
-                          pw.RichText(text: pw.TextSpan(text: 'TOTAL A PAGAR: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                            pw.RichText(text: pw.TextSpan(text: 'DESCUENTO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple(transaction.adjustmentAmount), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                          pw.RichText(text: pw.TextSpan(text: 'TOTAL A PAGAR: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple(transaction.totalAmount), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
                         ],
                       );
                     }),
                     
                     if (transaction is Sale) ...[
-                      pw.RichText(text: pw.TextSpan(text: 'EFECTIVO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.amountTendered.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
-                      pw.RichText(text: pw.TextSpan(text: 'CAMBIO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${(transaction.amountTendered > transaction.totalAmount ? transaction.amountTendered - transaction.totalAmount : 0.0).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                      pw.RichText(text: pw.TextSpan(text: 'EFECTIVO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple(transaction.amountTendered), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                      pw.RichText(text: pw.TextSpan(text: 'CAMBIO: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple((transaction.amountTendered > transaction.totalAmount ? transaction.amountTendered - transaction.totalAmount : 0.0)), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
                     ],
-                    pw.RichText(text: pw.TextSpan(text: 'IMPORTE BASE CRÉDITO FISCAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: 'Bs. ${transaction.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
+                    pw.RichText(text: pw.TextSpan(text: 'IMPORTE BASE CRÉDITO FISCAL: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), children: [pw.TextSpan(text: CurrencyHelper.simple(transaction.totalAmount), style: pw.TextStyle(fontWeight: pw.FontWeight.normal))])),
                   ],
                 ),
               ),
@@ -159,7 +160,7 @@ class PdfGeneratorService {
               pw.Align(
                 alignment: pw.Alignment.centerLeft,
                 child: pw.Text(
-                  'SON: ${NumberToWords.toLiteral(transaction.totalAmount, currency: 'Bolivianos').replaceAll('SON: ', '')}',
+                  'SON: ${NumberToWords.toLiteral(transaction.totalAmount, currency: profile.currencyName).replaceAll('SON: ', '')}',
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
                 ),
               ),

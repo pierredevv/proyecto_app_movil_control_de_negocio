@@ -1,7 +1,7 @@
 part of '../database_service.dart';
 
 mixin CashRegisterDb on CoreDb {
-  Future<int> openRegister(double openingBalance) async {
+  Future<int> openRegister(double openingBalance, {int? userId}) async {
     final db = await database;
     // Check if there is an active session
     final active = await getOpenRegister();
@@ -13,6 +13,7 @@ mixin CashRegisterDb on CoreDb {
       'open_date': DateTime.now().millisecondsSinceEpoch,
       'opening_balance': openingBalance,
       'status': 'OPEN',
+      'user_id': userId,
     });
   }
 

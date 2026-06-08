@@ -4,6 +4,7 @@ import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../providers/customer_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class GlobalPaymentScreen extends StatefulWidget {
   final int? initialCustomerId;
@@ -142,7 +143,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
     // Add small tolerance for floating point comparisons
     if ((totalAllocated - totalDeposit).abs() > 0.01 && totalAllocated > totalDeposit) {
        ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('El monto distribuido (Bs. ${totalAllocated.toStringAsFixed(2)}) supera al depósito total.'))
+         SnackBar(content: Text('El monto distribuido (${CurrencyHelper.simple(totalAllocated)}) supera al depósito total.'))
        );
        return;
     }
@@ -184,10 +185,10 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
     final double unallocated = totalDeposit - totalAllocated;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Registrar Pago Global'),
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: AppTheme.cardDark,
         elevation: 0,
       ),
       body: _isLoading 
@@ -200,7 +201,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF1E2432),
+                  color: AppTheme.cardDark,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
@@ -216,7 +217,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                         labelText: 'Cliente',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                       items: customers.map((c) {
@@ -235,13 +236,13 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(color: AppTheme.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
-                      decoration: const InputDecoration(
-                        labelText: 'Monto Total Recibido (Bs)',
-                        labelStyle: TextStyle(color: Colors.white70),
+                      decoration: InputDecoration(
+                        labelText: 'Monto Total Recibido (${CurrencyHelper.symbol})',
+                        labelStyle: const TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        prefixIcon: Icon(Icons.payments, color: AppTheme.greenAccent),
+                        fillColor: AppTheme.backgroundBlack,
+                        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        prefixIcon: const Icon(Icons.payments, color: AppTheme.greenAccent),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -253,7 +254,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                         labelText: 'Método',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                       items: ['EFECTIVO', 'QR', 'TRANSFERENCIA'].map((m) {
@@ -274,7 +275,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                         labelText: 'Nota (Opcional)',
                         labelStyle: TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF151924),
+                        fillColor: AppTheme.backgroundBlack,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
                     ),
@@ -301,7 +302,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Hay Bs. ${unallocated.toStringAsFixed(2)} del depósito sin asignar a ninguna deuda. Se creará como saldo a favor en el estado de cuenta.',
+                            'Hay ${CurrencyHelper.simple(unallocated)} del depósito sin asignar a ninguna deuda. Se creará como saldo a favor en el estado de cuenta.',
                             style: const TextStyle(color: Colors.orange, fontSize: 13),
                           ),
                         ),
@@ -327,7 +328,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                         final controller = _allocationControllers[sale.id!];
                         
                         return Card(
-                          color: const Color(0xFF1E2432),
+                          color: AppTheme.cardDark,
                           margin: const EdgeInsets.only(bottom: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           child: Padding(
@@ -340,8 +341,8 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                                     children: [
                                       Text('Venta #${sale.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                                       const SizedBox(height: 4),
-                                      Text('Total: Bs. ${sale.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                                      Text('Saldo Pendiente: Bs. ${sale.pendingAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Text('Total: ${CurrencyHelper.simple(sale.totalAmount)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                                      Text('Saldo Pendiente: ${CurrencyHelper.simple(sale.pendingAmount)}', style: const TextStyle(color: AppTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
                                     ],
                                   ),
                                 ),
@@ -356,7 +357,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                                       labelText: 'Abono',
                                       labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
                                       filled: true,
-                                      fillColor: Color(0xFF151924),
+                                      fillColor: AppTheme.backgroundBlack,
                                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     ),
@@ -373,7 +374,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2432),
+                  color: AppTheme.cardDark,
                   boxShadow: [
                     BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 10, offset: const Offset(0, -4))
                   ],
@@ -387,7 +388,7 @@ class _GlobalPaymentScreenState extends State<GlobalPaymentScreen> {
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text('Confirmar Pago (Bs. ${totalDeposit.toStringAsFixed(2)})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: Text('Confirmar Pago (${CurrencyHelper.simple(totalDeposit)})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ),

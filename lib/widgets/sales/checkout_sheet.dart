@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import '../../utils/currency_helper.dart';
 
 class CheckoutSheet extends StatefulWidget {
   final double totalAmount;
@@ -116,7 +117,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                 Text(widget.isPurchase ? 'Total a pagar:' : 'Total a cobrar:',
                     style: TextStyle(
                         fontSize: 16, color: theme.colorScheme.onSurface)),
-                Text('Bs. ${widget.totalAmount.toStringAsFixed(2)}',
+                Text(CurrencyHelper.simple(widget.totalAmount),
                     style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -154,7 +155,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18),
               decoration: InputDecoration(
-                labelText: 'Monto recibido ahora (Bs.)',
+                labelText: widget.isPurchase ? 'Monto pagado ahora (${CurrencyHelper.symbol})' : 'Monto recibido ahora (${CurrencyHelper.symbol})',
                 labelStyle:
                     TextStyle(color: theme.colorScheme.onSurface.withAlpha(150)),
                 prefixIcon: const Icon(Icons.payments_outlined),
@@ -224,7 +225,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     Text(widget.isPurchase ? 'Cambio a recibir:' : 'Vuelto a entregar:',
                         style:
                             const TextStyle(fontSize: 14, color: AppTheme.greenAccent)),
-                    Text('Bs. ${_changeAmount.toStringAsFixed(2)}',
+                    Text(CurrencyHelper.simple(_changeAmount),
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -250,7 +251,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     Text(widget.isPurchase ? 'Saldo a pagar:' : 'Saldo pendiente:',
                         style:
                             const TextStyle(fontSize: 14, color: AppTheme.redAccent)),
-                    Text('Bs. ${_pendingBalance.toStringAsFixed(2)}',
+                    Text(CurrencyHelper.simple(_pendingBalance),
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

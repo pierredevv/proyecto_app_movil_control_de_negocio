@@ -49,12 +49,12 @@ class CashRegisterProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> openSession(double openingBalance) async {
+  Future<void> openSession(double openingBalance, {int? userId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _db.openRegister(openingBalance);
+      await _db.openRegister(openingBalance, userId: userId);
       await checkActiveSession();
     } catch (e) {
       debugPrint('Error opening cash register session: $e');

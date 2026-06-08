@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/invoice_item.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class CartItemCard extends StatefulWidget {
   final InvoiceItem item;
@@ -121,6 +122,8 @@ class _CartItemCardState extends State<CartItemCard>
               children: [
                 Text(
                   widget.item.productName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
@@ -129,7 +132,7 @@ class _CartItemCardState extends State<CartItemCard>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Bs. ${widget.item.unitPrice.toStringAsFixed(2)}',
+                  CurrencyHelper.simple(widget.item.unitPrice),
                   style: TextStyle(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       fontSize: 13),
@@ -144,13 +147,14 @@ class _CartItemCardState extends State<CartItemCard>
               ],
             ),
           ),
-
+          const SizedBox(width: 8),
           // Controls
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               // Qty Row
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _QtyButton(
                     icon: Icons.remove,
@@ -201,7 +205,7 @@ class _CartItemCardState extends State<CartItemCard>
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Bs. ${widget.item.subtotal.toStringAsFixed(2)}',
+                  CurrencyHelper.simple(widget.item.subtotal),
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.bold,

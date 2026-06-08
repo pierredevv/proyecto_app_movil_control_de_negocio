@@ -9,6 +9,7 @@ import '../suppliers/supplier_ledger_screen.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../../utils/haptic_feedback_helper.dart';
 import 'purchase_form_screen.dart';
+import '../../utils/currency_helper.dart';
 
 class PurchaseDetailsScreen extends StatefulWidget {
   final Purchase purchase;
@@ -103,9 +104,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF1E293B),
-                    const Color(0xFF0F172A),
+                    AppTheme.surfaceDeep,
+                    AppTheme.surfaceSlate,
+                    AppTheme.surfaceDeep,
                   ]
                 : [
                     const Color(0xFFF8FAFC),
@@ -137,15 +138,15 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     final statusColor = switch (_purchase.status) {
       'PARTIAL' => const Color(0xFFF59F00),
       'CREDIT' => Colors.blueAccent,
-      'VOIDED' => const Color(0xFF6B7494), // P1 FIX: VOIDED was showing green
+      'VOIDED' => AppTheme.textTertiary, // P1 FIX: VOIDED was showing green
       _ => Colors.green,
     };
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+        border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -273,9 +274,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   Widget _buildProductList(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+        border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -346,7 +347,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                                       fontWeight: FontWeight.w500,
                                       color: Colors.white)),
                               Text(
-                                '${item.quantity.toStringAsFixed(0)} x Bs. ${item.unitPrice.toStringAsFixed(2)}',
+                                '${item.quantity.toStringAsFixed(0)} x ${CurrencyHelper.simple(item.unitPrice)}',
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.white54),
                               ),
@@ -354,7 +355,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                           ),
                         ),
                         Text(
-                          'Bs. ${item.subtotal.toStringAsFixed(2)}',
+                          CurrencyHelper.simple(item.subtotal),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, color: Colors.white),
                         ),
@@ -375,9 +376,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: const Color(0x26FFFFFF),
+            color: AppTheme.glassWhite15,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+            border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -398,7 +399,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Bs. ${_purchase.totalAmount.toStringAsFixed(2)}',
+                            CurrencyHelper.simple(_purchase.totalAmount),
                             style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -414,7 +415,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                         children: [
                           const Text('PAGADO',
                               style: TextStyle(color: Colors.white70)),
-                          Text('Bs. ${_purchase.amountPaid.toStringAsFixed(2)}',
+                          Text(CurrencyHelper.simple(_purchase.amountPaid),
                               style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                         ],
                       ),
@@ -424,7 +425,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                         children: [
                           const Text('PENDIENTE',
                               style: TextStyle(color: Colors.white)),
-                          Text('Bs. ${_purchase.pendingAmount.toStringAsFixed(2)}',
+                          Text(CurrencyHelper.simple(_purchase.pendingAmount),
                               style: const TextStyle(color: Color(0xFFF59F00), fontWeight: FontWeight.bold)),
                         ],
                       ),

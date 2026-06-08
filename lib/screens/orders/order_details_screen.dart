@@ -7,7 +7,9 @@ import '../../models/transaction_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/whatsapp_helper.dart';
 import '../../providers/inventory_provider.dart';
-import '../../providers/settings_provider.dart';
+
+import '../../utils/currency_helper.dart';
+import '../../theme/app_theme.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final Order order;
@@ -94,19 +96,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () {
-              final phone = context.read<SettingsProvider>().whatsapp;
-              if (phone.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          'Configure su número de WhatsApp en Ajustes primero.'),
-                      backgroundColor: Colors.orange),
-                );
-                return;
+            onPressed: () async {
+              String phone = '';
+              if (_order.supplierId != null) {
+                final supplier = await _db.getSupplierById(_order.supplierId!);
+                if (supplier != null && supplier.phone != null && supplier.phone!.isNotEmpty) {
+                  phone = supplier.phone!;
+                }
               }
               final message = WhatsAppHelper.generateOrderMessage(_order);
-              WhatsAppHelper.launchWhatsApp(phone, message);
+              try {
+                await WhatsAppHelper.launchWhatsApp(phone, message);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No se pudo abrir WhatsApp. Verifique si está instalado.'), backgroundColor: Colors.orange),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -119,9 +126,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF1E293B),
-                    const Color(0xFF0F172A),
+                    AppTheme.surfaceDeep,
+                    AppTheme.surfaceSlate,
+                    AppTheme.surfaceDeep,
                   ]
                 : [
                     const Color(0xFFF8FAFC),
@@ -166,9 +173,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+        border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -295,9 +302,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Widget _buildProductList(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+        border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -368,7 +375,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       fontWeight: FontWeight.w500,
                                       color: Colors.white)),
                               Text(
-                                '${item.quantity.toStringAsFixed(0)} x Bs. ${item.unitPrice.toStringAsFixed(2)}',
+                                '${item.quantity.toStringAsFixed(0)} x ${CurrencyHelper.simple(item.unitPrice)}',
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.white54),
                               ),
@@ -376,7 +383,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                           ),
                         ),
                         Text(
-                          'Bs. ${item.subtotal.toStringAsFixed(2)}',
+                          CurrencyHelper.simple(item.subtotal),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, color: Colors.white),
                         ),
@@ -395,9 +402,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Widget _buildTotalsCard(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1AFFFFFF), width: 1.5),
+        border: Border.all(color: AppTheme.glassWhite10, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -416,7 +423,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    'Bs. ${_order.totalAmount.toStringAsFixed(2)}',
+                    CurrencyHelper.simple(_order.totalAmount),
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,

@@ -17,6 +17,7 @@ import '../../providers/settings_provider.dart';
 import '../../utils/input_validators.dart';
 import 'barcode_scanner_view.dart';
 import 'category_selection_modal.dart';
+import '../../theme/app_theme.dart';
 
 class ProductFormScreen extends StatefulWidget {
   final Product? product;
@@ -233,7 +234,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       barcode: barcode,
       price: price,
       cost: cost,
-      weightedAverageCost: widget.product?.weightedAverageCost ?? cost,
+      weightedAverageCost: widget.product?.weightedAverageCost ?? (cost / unitsPerSaleUnit),
       stock: stock,
       minStock: minStock,
       categoryId: _selectedCategoryId,
@@ -272,7 +273,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     // Assuming dark mode for now as per design
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151924), // Keep base background
+      backgroundColor: AppTheme.backgroundBlack, // Keep base background
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -285,9 +286,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF0F172A),
-                          Color(0xFF1E293B),
-                          Color(0xFF0F172A),
+                          AppTheme.surfaceDeep,
+                          AppTheme.surfaceSlate,
+                          AppTheme.surfaceDeep,
                         ],
                       ),
                     ),
@@ -300,11 +301,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     width: 300,
                     height: 300,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                      color: AppTheme.blueIcon.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                          color: AppTheme.blueIcon.withValues(alpha: 0.2),
                           blurRadius: 100,
                           spreadRadius: 20,
                         ),
@@ -319,11 +320,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     width: 200,
                     height: 200,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      color: AppTheme.error.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                          color: AppTheme.error.withValues(alpha: 0.2),
                           blurRadius: 80,
                           spreadRadius: 20,
                         ),
@@ -497,7 +498,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           padding:
               EdgeInsets.only(top: topPadding + 16, left: 20, right: 20, bottom: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF151924)
+            color: AppTheme.backgroundBlack
                 .withValues(alpha: 0.6), // More transparent
             border: Border(
               bottom: BorderSide(
@@ -560,7 +561,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     : const Icon(
                         Icons.camera_alt,
                         size: 48,
-                        color: Color(0xFF6B7494),
+                        color: AppTheme.textTertiary,
                       ),
               ),
             ),
@@ -572,7 +573,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: Color(0xFFFF6B6B),
+            color: AppTheme.redAccent,
           ),
         ),
       ],
@@ -585,7 +586,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       child: Text(
         title,
         style: const TextStyle(
-          color: Color(0xFF4A90E2),
+          color: AppTheme.blueIcon,
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
@@ -613,7 +614,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             label,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFFA0A8C1),
+              color: AppTheme.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -634,12 +635,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 fillColor:
                     Colors.white.withValues(alpha: 0.05), // More transparent
                 prefixIcon:
-                    Icon(icon, color: const Color(0xFFA0A8C1), size: 24),
+                    Icon(icon, color: AppTheme.textSecondary, size: 24),
                 suffixIcon: suffix,
                 hintText: hintText, // Use hintText
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                hintStyle: const TextStyle(color: Color(0xFF6B7494)),
+                hintStyle: const TextStyle(color: AppTheme.textTertiary),
                 // Border States
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -649,20 +650,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                      const BorderSide(color: AppTheme.blueIcon, width: 1.5),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                      const BorderSide(color: AppTheme.redAccent, width: 1.5),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                      const BorderSide(color: AppTheme.redAccent, width: 1.5),
                 ),
                 errorStyle:
-                    const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12),
+                    const TextStyle(color: AppTheme.redAccent, fontSize: 12),
               ),
             ),
           ),
@@ -683,7 +684,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFF4A90E2),
+          color: AppTheme.blueIcon,
           borderRadius: BorderRadius.circular(10),
         ),
         child: IconButton(
@@ -708,7 +709,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             'Categoría',
             style: TextStyle(
               fontSize: 14,
-              color: Color(0xFFA0A8C1),
+              color: AppTheme.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -734,7 +735,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 child: Row(
                   children: [
                     const Icon(Icons.category_outlined,
-                        color: Color(0xFFA0A8C1), size: 24),
+                        color: AppTheme.textSecondary, size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -753,7 +754,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.expand_more, color: Color(0xFFA0A8C1)),
+                    const Icon(Icons.expand_more, color: AppTheme.textSecondary),
                   ],
                 ),
               ),
@@ -778,7 +779,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             const SizedBox(height: 4),
             Text(
               _showLowStockAlert ? 'Activado' : 'Desactivado',
-              style: const TextStyle(fontSize: 14, color: Color(0xFFA0A8C1)),
+              style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -786,7 +787,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           value: _showLowStockAlert,
           activeTrackColor: const Color(
               0xFFFF6B6B), // Use activeTrackColor instead of activeColor
-          inactiveTrackColor: const Color(0xFF6B7494),
+          inactiveTrackColor: AppTheme.textTertiary,
           onChanged: (val) {
             setState(() {
               _showLowStockAlert = val;
@@ -810,8 +811,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             color: Colors.white,
           ),
         ),
-        iconColor: const Color(0xFFA0A8C1),
-        collapsedIconColor: const Color(0xFFA0A8C1),
+        iconColor: AppTheme.textSecondary,
+        collapsedIconColor: AppTheme.textSecondary,
         childrenPadding: EdgeInsets.zero,
         children: [
           const SizedBox(height: 16),
@@ -825,7 +826,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   'Proveedor',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFA0A8C1),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ),
@@ -836,16 +837,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   child: DropdownButtonFormField<int>(
                     isExpanded: true,
                     initialValue:
-                        _selectedSupplierId, // Change value to initialValue
-                    dropdownColor: const Color(0xFF1E293B),
+                        _selectedSupplierId,
+                    dropdownColor: AppTheme.surfaceSlate,
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     icon:
-                        const Icon(Icons.expand_more, color: Color(0xFFA0A8C1)),
+                        const Icon(Icons.expand_more, color: AppTheme.textSecondary),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.1),
                       prefixIcon: const Icon(Icons.local_shipping_outlined,
-                          color: Color(0xFFA0A8C1)),
+                          color: AppTheme.textSecondary),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
@@ -854,7 +855,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                            color: Color(0xFF4A90E2), width: 1.5),
+                            color: AppTheme.blueIcon, width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 16),
@@ -869,7 +870,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         setState(() => _selectedSupplierId = val),
                     hint: const Text(
                       'Seleccionar Proveedor',
-                      style: TextStyle(color: Color(0xFF6B7494)),
+                      style: TextStyle(color: AppTheme.textTertiary),
                     ),
                   ),
                 ),
@@ -890,7 +891,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     padding: EdgeInsets.only(left: 4, bottom: 8),
                     child: Text('Unidad',
                         style: TextStyle(
-                            color: Color(0xFFA0A8C1), fontSize: 14)),
+                            color: AppTheme.textSecondary, fontSize: 14)),
                   ),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -899,17 +900,17 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
                         initialValue:
-                            _saleUnit, // Change value to initialValue
-                        dropdownColor: const Color(0xFF1E293B),
+                            _saleUnit,
+                        dropdownColor: AppTheme.surfaceSlate,
                         style: const TextStyle(
                             color: Colors.white, fontSize: 16),
                         icon: const Icon(Icons.expand_more,
-                            color: Color(0xFFA0A8C1)),
+                            color: AppTheme.textSecondary),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white.withValues(alpha: 0.1),
                           prefixIcon: const Icon(Icons.scale,
-                              color: Color(0xFFA0A8C1)),
+                              color: AppTheme.textSecondary),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -918,7 +919,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                                color: Color(0xFF4A90E2), width: 1.5),
+                                color: AppTheme.blueIcon, width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 16),
@@ -970,7 +971,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       padding: EdgeInsets.only(left: 4, bottom: 8),
                       child: Text('Unidad Intermedia',
                           style: TextStyle(
-                              color: Color(0xFFA0A8C1), fontSize: 14)),
+                              color: AppTheme.textSecondary, fontSize: 14)),
                     ),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
@@ -979,16 +980,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         child: DropdownButtonFormField<String?>(
                           isExpanded: true,
                           initialValue: _secondaryUnit,
-                          dropdownColor: const Color(0xFF1E293B),
+                          dropdownColor: AppTheme.surfaceSlate,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 16),
                           icon: const Icon(Icons.expand_more,
-                              color: Color(0xFFA0A8C1)),
+                              color: AppTheme.textSecondary),
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white.withValues(alpha: 0.1),
                             prefixIcon: const Icon(Icons.layers_outlined,
-                                color: Color(0xFFA0A8C1)),
+                                color: AppTheme.textSecondary),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
@@ -997,7 +998,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                  color: Color(0xFF4A90E2), width: 1.5),
+                                  color: AppTheme.blueIcon, width: 1.5),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 16),
@@ -1036,7 +1037,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       padding: EdgeInsets.only(
           left: 16, right: 16, bottom: 16 + bottomPadding, top: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF151924).withValues(alpha: 0.95),
+        color: AppTheme.backgroundBlack.withValues(alpha: 0.95),
         border: Border(
           top: BorderSide(
             color: Colors.white.withValues(alpha: 0.05),
@@ -1049,13 +1050,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF6B6B), Color(0xFFFF5757)],
+            colors: [AppTheme.redAccent, Color(0xFFFF5757)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+              color: AppTheme.redAccent.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),

@@ -8,6 +8,7 @@ import '../backup_manager_screen.dart';
 import 'notepad_screen.dart';
 import 'margin_calculator_screen.dart';
 import 'invoice_list_screen.dart';
+import '../../theme/app_theme.dart';
 
 class UtilitiesScreen extends StatelessWidget {
   const UtilitiesScreen({super.key});
@@ -15,7 +16,7 @@ class UtilitiesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Utilidades',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -34,7 +35,7 @@ class UtilitiesScreen extends StatelessWidget {
                 Text(
                   'HERRAMIENTAS',
                   style: TextStyle(
-                    color: Color(0xFF6B7494),
+                    color: AppTheme.textTertiary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.2,
@@ -44,7 +45,7 @@ class UtilitiesScreen extends StatelessWidget {
                 Text(
                   '6 Utilidades Disponibles',
                   style: TextStyle(
-                    color: Color(0xFFA0A8C1),
+                    color: AppTheme.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -56,7 +57,7 @@ class UtilitiesScreen extends StatelessWidget {
             title: 'Gestión de Respaldos',
             subtitle: 'Importar y exportar base de datos',
             icon: Icons.cloud_upload,
-            color: const Color(0xFF4A90E2),
+            color: AppTheme.blueIcon,
             onTap: () {
               Navigator.push(
                 context,
@@ -70,7 +71,7 @@ class UtilitiesScreen extends StatelessWidget {
             subtitle:
                 'Ingresa costo y precio de venta, calcula margen automáticamente, porcentaje, ganancia neta y precio sugerido.',
             icon: Icons.calculate,
-            color: const Color(0xFFF5A623),
+            color: AppTheme.yellowIcon,
             onTap: () {
               Navigator.push(
                 context,
@@ -84,7 +85,7 @@ class UtilitiesScreen extends StatelessWidget {
             title: 'Calculadora Rápida',
             subtitle: 'Herramienta integrada para estimaciones rápidas.',
             icon: Icons.calculate_outlined,
-            color: const Color(0xFFF5A623),
+            color: AppTheme.yellowIcon,
             onTap: () async {
               if (Platform.isAndroid) {
                 const intent = AndroidIntent(
@@ -120,7 +121,7 @@ class UtilitiesScreen extends StatelessWidget {
             title: 'Haz crecer tu negocio',
             subtitle: 'Mensajes personalizados de WhatsApp para pedidos.',
             icon: Icons.trending_up,
-            color: const Color(0xFF9B51E0),
+            color: AppTheme.purpleIcon,
             onTap: () => _showComingSoon(context),
           ),
           _buildUtilityCard(
@@ -128,7 +129,7 @@ class UtilitiesScreen extends StatelessWidget {
             title: 'Imprimir Facturas',
             subtitle: 'Compras, ventas',
             icon: Icons.print,
-            color: const Color(0xFF9B51E0),
+            color: AppTheme.purpleIcon,
             onTap: () {
               Navigator.push(
                 context,
@@ -142,7 +143,7 @@ class UtilitiesScreen extends StatelessWidget {
             subtitle:
                 'Bloc de notas simple con persistencia local. Para anotar recordatorios, pedidos verbales e ideas rápidas sin salir de la app.',
             icon: Icons.notes,
-            color: const Color(0xFF9B51E0),
+            color: AppTheme.purpleIcon,
             onTap: () {
               Navigator.push(
                 context,
@@ -167,7 +168,7 @@ class UtilitiesScreen extends StatelessWidget {
             Text('Próximamente', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        backgroundColor: const Color(0xFF9B51E0),
+        backgroundColor: AppTheme.purpleIcon,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
@@ -256,7 +257,7 @@ class UtilitiesScreen extends StatelessWidget {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      color: Color(0xFFA0A8C1),
+                                      color: AppTheme.textSecondary,
                                       fontSize: 13,
                                       height: 1.3,
                                     ),
@@ -267,7 +268,7 @@ class UtilitiesScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           const Icon(Icons.arrow_forward_ios,
-                              color: Color(0xFF6B7494), size: 16),
+                              color: AppTheme.textTertiary, size: 16),
                         ],
                       ),
                     ),

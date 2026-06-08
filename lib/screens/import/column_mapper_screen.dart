@@ -33,7 +33,7 @@ class _ColumnMapperScreenState extends State<ColumnMapperScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppTheme.surfaceDeep,
       appBar: AppBar(
         title: const Text('Mapear Columnas',
             style: TextStyle(color: Colors.white)),
@@ -47,7 +47,7 @@ class _ColumnMapperScreenState extends State<ColumnMapperScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0x1AFFFFFF),
+                  color: AppTheme.glassWhite10,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
@@ -138,7 +138,7 @@ class _ColumnMapperScreenState extends State<ColumnMapperScreen> {
                 value: currentValue,
                 hint: const Text('Omitir',
                     style: TextStyle(color: Colors.white38)),
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: AppTheme.surfaceSlate,
                 isExpanded: true,
                 style: const TextStyle(color: Colors.white),
                 icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),

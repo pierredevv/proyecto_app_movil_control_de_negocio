@@ -5,6 +5,8 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/product.dart';
 import 'dart:ui' as ui;
+import '../../utils/currency_helper.dart';
+import '../../theme/app_theme.dart';
 
 class WhatsAppCatalogScreen extends StatefulWidget {
   const WhatsAppCatalogScreen({super.key});
@@ -60,7 +62,7 @@ class _WhatsAppCatalogScreenState extends State<WhatsAppCatalogScreen> {
       buffer.writeln('📦 *$catName*');
       for (var p in catProducts) {
         buffer.writeln('  ▫️ ${p.name}');
-        buffer.writeln('      Precio: Bs. ${p.price.toStringAsFixed(2)} por ${p.saleUnit}');
+        buffer.writeln('      Precio: ${CurrencyHelper.simple(p.price)} por ${p.saleUnit}');
         // Optional: display stock status or variations
       }
       buffer.writeln('');
@@ -89,7 +91,7 @@ class _WhatsAppCatalogScreenState extends State<WhatsAppCatalogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
         title: const Text('Catálogo WhatsApp', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -105,7 +107,7 @@ class _WhatsAppCatalogScreenState extends State<WhatsAppCatalogScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [AppTheme.surfaceDeep, AppTheme.surfaceSlate, AppTheme.surfaceDeep],
                 ),
               ),
             ),
@@ -117,10 +119,10 @@ class _WhatsAppCatalogScreenState extends State<WhatsAppCatalogScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF51CF66).withValues(alpha: 0.1),
+                color: AppTheme.success.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFF51CF66).withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
+                  BoxShadow(color: AppTheme.success.withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 20),
                 ],
               ),
             ),
@@ -179,7 +181,7 @@ class _WhatsAppCatalogScreenState extends State<WhatsAppCatalogScreen> {
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            gradient: const LinearGradient(colors: [Color(0xFF51CF66), Color(0xFF69DB7C)]),
+                            gradient: const LinearGradient(colors: [AppTheme.success, Color(0xFF69DB7C)]),
                           ),
                           child: ElevatedButton.icon(
                             onPressed: _copyToClipboard,

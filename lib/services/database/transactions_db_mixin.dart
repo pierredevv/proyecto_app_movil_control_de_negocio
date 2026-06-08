@@ -325,7 +325,7 @@ mixin TransactionsDb on CoreDb {
       // Allows a small tolerance for floating point errors
       if (amount > pending + 0.01) {
         throw Exception(
-            'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
+            'El monto supera el saldo pendiente. Pendiente: ${CurrencyHelper.simple(pending)}');
       }
 
       // 2. Extract Customer — may be null for occasional-customer sales
@@ -417,7 +417,7 @@ mixin TransactionsDb on CoreDb {
 
       if (amount > pending + 0.01) {
         throw Exception(
-            'El monto supera el saldo pendiente. Pendiente: Bs. ${pending.toStringAsFixed(2)}');
+            'El monto supera el saldo pendiente. Pendiente: ${CurrencyHelper.simple(pending)}');
       }
 
       final supplierId = transaction.first['entity_id'];
@@ -504,11 +504,11 @@ mixin TransactionsDb on CoreDb {
           : 0.0;
       if (currentDebt <= 0) {
         throw Exception(
-            'El cliente no tiene deudas pendientes (saldo: Bs. ${currentDebt.toStringAsFixed(2)}).');
+            'El cliente no tiene deudas pendientes (saldo: ${CurrencyHelper.simple(currentDebt)}).');
       }
       if (totalAmount > currentDebt + 0.01) {
         throw Exception(
-            'El abono (Bs. ${totalAmount.toStringAsFixed(2)}) excede la deuda total del cliente (Bs. ${currentDebt.toStringAsFixed(2)}).');
+            'El abono (${CurrencyHelper.simple(totalAmount)}) excede la deuda total del cliente (${CurrencyHelper.simple(currentDebt)}).');
       }
 
       // 1. Insert Global Payment
@@ -656,11 +656,11 @@ mixin TransactionsDb on CoreDb {
           : 0.0;
       if (currentDebt <= 0) {
         throw Exception(
-            'El proveedor no tiene deudas pendientes (saldo: Bs. ${currentDebt.toStringAsFixed(2)}).');
+            'El proveedor no tiene deudas pendientes (saldo: ${CurrencyHelper.simple(currentDebt)}).');
       }
       if (totalAmount > currentDebt + 0.01) {
         throw Exception(
-            'El abono (Bs. ${totalAmount.toStringAsFixed(2)}) excede la deuda total con el proveedor (Bs. ${currentDebt.toStringAsFixed(2)}).');
+            'El abono (${CurrencyHelper.simple(totalAmount)}) excede la deuda total con el proveedor (${CurrencyHelper.simple(currentDebt)}).');
       }
 
       // 1. Insert Global Payment

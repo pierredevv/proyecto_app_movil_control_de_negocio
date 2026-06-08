@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/import_provider.dart';
 import '../../models/import_result.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class ImportPreviewScreen extends StatelessWidget {
   const ImportPreviewScreen({super.key});
@@ -16,7 +17,7 @@ class ImportPreviewScreen extends StatelessWidget {
     // Safety check - shouldn't happen if routing is correct
     if (result == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppTheme.surfaceDeep,
         appBar: AppBar(title: const Text('Error')),
         body: const Center(
             child: Text('No hay datos parseados.',
@@ -30,11 +31,11 @@ class ImportPreviewScreen extends StatelessWidget {
     final isDone = importProvider.step == ImportStep.done;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppTheme.surfaceDeep,
       appBar: AppBar(
         title: const Text('Vista Previa',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1E293B), // Slate 800
+        backgroundColor: AppTheme.surfaceSlate, // Slate 800
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -45,7 +46,7 @@ class ImportPreviewScreen extends StatelessWidget {
                 // Info Header
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: const Color(0xFF1E293B), // Slate 800
+                  color: AppTheme.surfaceSlate, // Slate 800
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -79,7 +80,7 @@ class ImportPreviewScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
+                    color: AppTheme.surfaceSlate,
                     border: Border(
                         top: BorderSide(
                             color: Colors.white.withValues(alpha: 0.1))),
@@ -146,12 +147,12 @@ class ImportPreviewScreen extends StatelessWidget {
       bool isSelected, ImportProvider provider) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: AppTheme.glassWhite15,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected
               ? AppTheme.primary.withValues(alpha: 0.5)
-              : const Color(0x1AFFFFFF),
+              : AppTheme.glassWhite10,
           width: 1.5,
         ),
       ),
@@ -185,9 +186,9 @@ class ImportPreviewScreen extends StatelessWidget {
                     children: [
                       _buildChip(
                           row.barcode.isEmpty ? 'Sin código' : row.barcode,
-                          const Color(0xFF6B7494)),
+                          AppTheme.textTertiary),
                       const SizedBox(width: 8),
-                      _buildChip('Bs. ${row.price.toStringAsFixed(2)}',
+                      _buildChip(CurrencyHelper.simple(row.price),
                           const Color(0xFF10B981)),
                     ],
                   ),
@@ -294,7 +295,7 @@ class ImportPreviewScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0x1AFFFFFF),
+                color: AppTheme.glassWhite10,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -303,7 +304,7 @@ class ImportPreviewScreen extends StatelessWidget {
                       stats['inserted'].toString(), const Color(0xFF10B981)),
                   const Divider(color: Colors.white10, height: 24),
                   _buildStatRow('Existentes Actualizados',
-                      stats['updated'].toString(), const Color(0xFF4A90E2)),
+                      stats['updated'].toString(), AppTheme.blueIcon),
                   if ((stats['errors'] ?? 0) > 0) ...[
                     const Divider(color: Colors.white10, height: 24),
                     _buildStatRow('Errores (Omitidos)',
