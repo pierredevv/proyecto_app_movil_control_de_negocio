@@ -47,10 +47,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (file != null && await file.exists()) {
       if (mounted) {
         final box = context.findRenderObject() as RenderBox?;
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Registro de Diagnóstico - App Control de Negocio',
-          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: 'Registro de Diagnóstico - App Control de Negocio',
+            sharePositionOrigin: box != null
+                ? box.localToGlobal(Offset.zero) & box.size
+                : null,
+          ),
         );
       }
     } else {

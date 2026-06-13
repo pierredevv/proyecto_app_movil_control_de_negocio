@@ -13,6 +13,7 @@ import '../../services/pdf_generator_service.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 import '../../utils/input_validators.dart';
 
 // Widgets
@@ -141,7 +142,9 @@ class _SalesScreenState extends State<SalesScreen> {
       if (cart.selectedCustomer != null) {
         try {
           selectedCustomer = customers.firstWhere((c) => c.id == cart.selectedCustomer?.id);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Customer lookup failed: $e');
+        }
       }
 
       final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -216,7 +219,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E2432),
+      backgroundColor: Theme.of(context).cardColor,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -224,20 +227,20 @@ class _SalesScreenState extends State<SalesScreen> {
           children: [
             const Icon(Icons.check_circle, color: AppTheme.primary, size: 64),
             const SizedBox(height: 16),
-            const Text('¡Venta Exitosa!',
+            Text('¡Venta Exitosa!',
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white)),
+                    color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  label: const Text('Volver',
-                      style: TextStyle(color: Colors.white)),
+                  icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
+                  label: Text('Volver',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                 ),
                 FilledButton.icon(
                   onPressed: () async {
@@ -589,7 +592,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                               style: TextStyle(
                                   color: theme.colorScheme.onSurface)),
                           subtitle: Text(
-                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${p.price.toStringAsFixed(2)}',
+                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | ${CurrencyHelper.simple(p.price)}',
                               style: TextStyle(
                                   color: theme.colorScheme.onSurface
                                       .withValues(alpha: 0.6))),

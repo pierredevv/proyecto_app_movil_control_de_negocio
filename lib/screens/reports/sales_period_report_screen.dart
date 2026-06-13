@@ -10,6 +10,7 @@ import '../../services/report_export_service.dart';
 import '../../services/snackbar_service.dart';
 import '../../models/transaction_model.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 import '../sales/sale_detail_screen.dart';
 
 class SalesPeriodReportScreen extends StatefulWidget {
@@ -175,7 +176,7 @@ class _SalesPeriodReportScreenState extends State<SalesPeriodReportScreen> {
 
   String get _periodLabel {
     if (_selectedPeriod == 'Personalizado' && _customRange != null) {
-      final fmt = DateFormat('dd MMM', 'es_BO');
+      final fmt = DateFormat('dd MMM', CurrencyHelper.locale);
       return '${fmt.format(_customRange!.start)} — ${fmt.format(_customRange!.end)}';
     }
     return _selectedPeriod;
@@ -400,7 +401,7 @@ class _SalesPeriodReportScreenState extends State<SalesPeriodReportScreen> {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              'Bs. ${totalSales.toStringAsFixed(2)}',
+              CurrencyHelper.simple(totalSales),
               style: const TextStyle(
                   color: AppTheme.greenAccent,
                   fontSize: 32,
@@ -418,7 +419,7 @@ class _SalesPeriodReportScreenState extends State<SalesPeriodReportScreen> {
               _metricChip(Icons.shopping_bag,
                   '${totalUnits.toStringAsFixed(0)} productos', theme),
               _metricChip(Icons.confirmation_number,
-                  'Ticket: Bs. ${avgTicket.toStringAsFixed(2)}', theme),
+                  'Ticket: ${CurrencyHelper.simple(avgTicket)}', theme),
               _metricChip(
                   Icons.trending_up,
                   'Margen: ${marginPct.toStringAsFixed(1)}%',
@@ -526,7 +527,7 @@ class _SalesPeriodReportScreenState extends State<SalesPeriodReportScreen> {
                       ],
                     ),
                   ),
-                  Text('Bs. ${revenue.toStringAsFixed(2)}',
+                  Text(CurrencyHelper.simple(revenue),
                       style: const TextStyle(
                           color: AppTheme.greenAccent,
                           fontWeight: FontWeight.bold,
@@ -612,7 +613,7 @@ class _SalesPeriodReportScreenState extends State<SalesPeriodReportScreen> {
                 color:
                     theme.colorScheme.onSurface.withValues(alpha: 0.54),
                 fontSize: 12)),
-        trailing: Text('Bs. ${sale.totalAmount.toStringAsFixed(2)}',
+        trailing: Text(CurrencyHelper.simple(sale.totalAmount),
             style: const TextStyle(
                 color: AppTheme.greenAccent,
                 fontWeight: FontWeight.bold,

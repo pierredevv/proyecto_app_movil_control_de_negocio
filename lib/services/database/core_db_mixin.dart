@@ -88,7 +88,9 @@ mixin CoreDb {
       cashRegisters = await db.query('cash_registers');
       expenseCategories = await db.query('expense_categories');
       notifications = await db.query('notifications');
-    } catch (_) {}
+    } catch (_) {
+      // Tables may not exist in older database versions, ignore errors during export
+    }
 
     // V22 RBAC tables
     List<Map<String, dynamic>> roles = [];
@@ -100,7 +102,9 @@ mixin CoreDb {
       users = await db.query('users');
       userRoles = await db.query('user_roles');
       rolePermissions = await db.query('role_permissions');
-    } catch (_) {}
+    } catch (_) {
+      // Tables may not exist in older database versions, ignore errors during export
+    }
 
     final version = await db.getVersion();
 

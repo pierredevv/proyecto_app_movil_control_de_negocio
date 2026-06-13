@@ -61,8 +61,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     const yellowColor = Color(0xFFFBC02D);
 
     final currencyFormat = CurrencyHelper.formatter;
-    final dateFormat = DateFormat('dd MMM, yyyy', 'es_BO');
-    final timeFormat = DateFormat('HH:mm', 'es_BO');
+    final dateFormat = DateFormat('dd MMM, yyyy', CurrencyHelper.locale);
+    final timeFormat = DateFormat('HH:mm', CurrencyHelper.locale);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -584,7 +584,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 color: widget.sale.status == 'VOIDED'
                     ? Colors.red.withValues(alpha: 0.07)
                     : isDark
-                        ? const Color(0xFF1E2432)
+                        ? theme.cardColor
                         : Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -781,7 +781,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   Widget _buildLinkedPaymentsSection(ThemeData theme, Color cardColor, Color textColor, Color subTextColor, Color dividerColor) {
     final format = CurrencyHelper.formatter;
-    final df = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
+    final df = DateFormat('dd MMM yyyy, HH:mm', CurrencyHelper.locale);
 
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _paymentsFuture,
@@ -1025,7 +1025,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         final cust =
             customers.firstWhere((c) => c.id == widget.sale.customerId);
         cart.setCustomer(cust);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Customer lookup failed in sale details: $e');
+      }
     }
 
     // Load items
@@ -1046,7 +1048,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
         cart.addToCart(product, qty: item.quantity, option: option, allowNegativeStock: true);
       } catch (e) {
-        // Skip product if not found
+        debugPrint('Skipped product in sale details duplicate: $e');
       }
     }
 

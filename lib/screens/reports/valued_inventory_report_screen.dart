@@ -8,6 +8,7 @@ import '../../providers/inventory_provider.dart';
 import '../../services/report_export_service.dart';
 import '../../services/snackbar_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class ValuedInventoryReportScreen extends StatefulWidget {
   const ValuedInventoryReportScreen({super.key});
@@ -129,7 +130,7 @@ class _ValuedInventoryReportScreenState
                                   .withValues(alpha: 0.7),
                               fontSize: 16)),
                       const SizedBox(height: 8),
-                      Text('Bs. ${totalCapital.toStringAsFixed(2)}',
+                      Text(CurrencyHelper.simple(totalCapital),
                           style: const TextStyle(
                               color: AppTheme.blueIcon,
                               fontSize: 32,
@@ -230,7 +231,7 @@ class _ValuedInventoryReportScreenState
                                                   fontSize: 16)),
                                           const SizedBox(height: 4),
                                           Text(
-                                              'Stock: ${p.stock.toStringAsFixed(1)} ${p.saleUnit} | Costo WAC: Bs. ${p.weightedAverageCost.toStringAsFixed(2)}',
+                                              'Stock: ${p.stock.toStringAsFixed(1)} ${p.saleUnit} | Costo WAC: ${CurrencyHelper.simple(p.weightedAverageCost)}',
                                               style: TextStyle(
                                                   color: theme
                                                       .colorScheme.onSurface
@@ -251,7 +252,7 @@ class _ValuedInventoryReportScreenState
                                                 fontSize: 10)),
                                         const SizedBox(height: 2),
                                         Text(
-                                            'Bs. ${value.toStringAsFixed(2)}',
+                                            CurrencyHelper.simple(value),
                                             style: const TextStyle(
                                                 color: AppTheme.blueIcon,
                                                 fontWeight: FontWeight.bold,

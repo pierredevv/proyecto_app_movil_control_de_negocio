@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../services/analytics_service.dart';
 import '../../services/snackbar_service.dart';
+import '../../utils/currency_helper.dart';
 
 class AdvancedAnalyticsScreen extends StatefulWidget {
   const AdvancedAnalyticsScreen({super.key});
@@ -72,10 +73,14 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
       if (mounted) {
         final box = context.findRenderObject() as RenderBox?;
         // ignore: deprecated_member_use
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Reporte de Analítica de Negocio',
-          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: 'Reporte de Analítica de Negocio',
+            sharePositionOrigin: box != null
+                ? box.localToGlobal(Offset.zero) & box.size
+                : null,
+          ),
         );
       }
     } catch (e) {
@@ -118,7 +123,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                     ..._topProducts.map((p) => _buildGlassCard(
                           child: ListTile(
                             title: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                            subtitle: Text('Cant: ${p.displayQuantitySold.toStringAsFixed(0)} ${p.saleUnit} | Ingresos: Bs. ${p.totalRevenue.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
+                            subtitle: Text('Cant: ${p.displayQuantitySold.toStringAsFixed(0)} ${p.saleUnit} | Ingresos: ${CurrencyHelper.simple(p.totalRevenue)}', style: const TextStyle(color: Colors.white70)),
                             trailing: Text('Stock: ${p.displayCurrentStock.toStringAsFixed(0)} ${p.saleUnit}', style: const TextStyle(color: Colors.amber)),
                           ),
                         )),
@@ -130,7 +135,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                           child: ListTile(
                             title: Text(c.customerName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                             subtitle: Text('Total Ventas: ${c.totalVisits}', style: const TextStyle(color: Colors.white70)),
-                            trailing: Text('Gasto Total:\nBs. ${c.totalSpent.toStringAsFixed(2)}', textAlign: TextAlign.right, style: const TextStyle(color: Colors.blue)),
+                            trailing: Text('Gasto Total:\n${CurrencyHelper.simple(c.totalSpent)}', textAlign: TextAlign.right, style: const TextStyle(color: Colors.blue)),
                           ),
                         )),
                     if (_topCustomers.isEmpty) const Text('No hay datos suficientes.', style: TextStyle(color: Colors.white70)),

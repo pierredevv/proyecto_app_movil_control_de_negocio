@@ -13,7 +13,7 @@ class DigitalBusinessCardScreen extends StatelessWidget {
     final profile = context.watch<SettingsProvider>().profile;
     
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Tarjeta de Presentación', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,

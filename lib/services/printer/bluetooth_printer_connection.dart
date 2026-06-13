@@ -53,6 +53,8 @@ class BluetoothPrinterConnection implements ThermalPrinterConnection {
   Future<void> disconnect() async {
     try {
       await PrintBluetoothThermal.disconnect;
-    } catch (_) {}
+    } catch (_) {
+      // BT disconnect
+    }
   }
 }

@@ -195,17 +195,20 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF151924),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Gestión de Respaldos',
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: onSurface, fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: onSurface),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
@@ -218,21 +221,21 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                   height: 48,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: onSurface.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
                     controller: _tabController,
                     indicator: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: onSurface.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
-                    labelColor: Colors.white,
+                    labelColor: onSurface,
                     labelStyle: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 13),
-                    unselectedLabelColor: const Color(0xFFA0A8C1),
+                    unselectedLabelColor: onSurface.withValues(alpha: 0.6),
                     unselectedLabelStyle: const TextStyle(
                         fontWeight: FontWeight.normal, fontSize: 13),
                     tabs: [
@@ -247,7 +250,7 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                                   size: 20,
                                   color: _tabController.index == 0
                                       ? AppTheme.primary
-                                      : const Color(0xFF6B7494)),
+                                      : onSurface.withValues(alpha: 0.5)),
                               const SizedBox(width: 6),
                               const Text('Restaurar'),
                             ],
@@ -265,7 +268,7 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                                   size: 20,
                                   color: _tabController.index == 1
                                       ? AppTheme.primary
-                                      : const Color(0xFF6B7494)),
+                                      : onSurface.withValues(alpha: 0.5)),
                               const SizedBox(width: 6),
                               const Text('Exportar'),
                             ],
@@ -316,16 +319,16 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                       color: const Color(0xFF4A90E2).withValues(alpha: 0.20),
                       width: 1.0),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline,
+                    const Icon(Icons.info_outline,
                         color: Color(0xFF4A90E2), size: 18),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Aquí puedes gestionar los puntos de restauración del sistema. Los respaldos automáticos se guardan diariamente.',
                         style: TextStyle(
-                            color: Color(0xFFA0A8C1),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontSize: 13,
                             height: 1.5),
                       ),
@@ -397,10 +400,10 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                 border: Border.all(
                     color: const Color(0xFF51CF66).withValues(alpha: 0.25)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
+                  const Row(children: [
                     Icon(Icons.folder_open, color: Color(0xFF51CF66), size: 20),
                     SizedBox(width: 8),
                     Text('Almacenamiento Local',
@@ -409,11 +412,11 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                             fontSize: 14,
                             color: Color(0xFF51CF66))),
                   ]),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                       'Los archivos exportados se guardan de forma segura en la aplicación. Puedes usar la opción Compartir para enviarlos a otros destinos.',
                       style: TextStyle(
-                          color: Color(0xFFA0A8C1), fontSize: 13, height: 1.5))
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 13, height: 1.5))
                 ],
               ),
             ),
@@ -445,12 +448,12 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
           onCsv: () => _export(BackupType.full, ExportFormat.csv),
         ),
         const SizedBox(height: 24),
-        const Text('OPCIONES INDIVIDUALES',
+        Text('OPCIONES INDIVIDUALES',
             style: TextStyle(
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
                 letterSpacing: 1.2,
-                color: Color(0xFF6B7494))),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
         const SizedBox(height: 12),
         _buildExportCard(
             title: 'Solo Clientes',
@@ -507,10 +510,10 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Crea tu primer respaldo para proteger\nlos datos de tu negocio',
               style: TextStyle(
-                  color: Color(0xFFA0A8C1), fontSize: 16, height: 1.5),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 16, height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -579,7 +582,7 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: const Color(0xFFA0A8C1), size: 18),
+                  Icon(icon, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), size: 18),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -721,8 +724,8 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                                   future: BackupService.getBackupSize(file),
                                   builder: (ctx, snap) => Text(
                                     '$date • ${snap.data ?? "..."}',
-                                    style: const TextStyle(
-                                        color: Color(0xFF6B7494),
+                                    style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                         fontSize: 12,
                                         fontWeight: FontWeight.normal),
                                   ),
@@ -746,12 +749,12 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                         );
                       },
                       borderRadius: BorderRadius.circular(14),
-                      child: const SizedBox(
+                      child: SizedBox(
                         width: 44,
                         height: 44,
                         child: Center(
                           child:
-                              Icon(Icons.more_vert, color: Color(0xFF6B7494)),
+                              Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                         ),
                       ),
                     ),
@@ -767,9 +770,9 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
 
   Widget _buildBottomSheetMenu(FileSystemEntity file) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E293B), // Match dark theme bottoms
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).bottomSheetTheme.backgroundColor ?? Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -868,8 +871,8 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                                       fontSize: 16)),
                               if (subtitle.isNotEmpty)
                                 Text(subtitle,
-                                    style: const TextStyle(
-                                        color: Color(0xFFA0A8C1),
+                                    style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                         fontSize: 13)),
                             ],
                           ),
@@ -900,14 +903,14 @@ class _BackupManagerScreenState extends State<BackupManagerScreen>
                             child: InkWell(
                               onTap: onCsv,
                               borderRadius: BorderRadius.circular(12),
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Row(
                                   children: [
                                     Icon(Icons.description,
-                                        color: Color(0xFFA0A8C1), size: 18),
-                                    SizedBox(width: 6),
-                                    Text('CSV',
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), size: 18),
+                                    const SizedBox(width: 6),
+                                    const Text('CSV',
                                         style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,

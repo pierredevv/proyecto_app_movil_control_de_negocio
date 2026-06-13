@@ -13,6 +13,7 @@ import '../../models/invoice_item.dart';
 import '../../models/product.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 import '../../widgets/sales/checkout_sheet.dart';
 import '../inventory/barcode_scanner_view.dart';
 
@@ -104,11 +105,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: AppTheme.primary,
               onPrimary: Colors.white,
-              surface: Color(0xFF1E2432),
-              onSurface: Colors.white,
             ),
           ),
           child: child!,
@@ -181,18 +180,14 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1E2432),
-          title: const Text('Confirmar Pedido',
-              style: TextStyle(color: Colors.white)),
+          title: const Text('Confirmar Pedido'),
           content: Text(
-            'Se guardará el pedido por Bs. ${_totalAmount.toStringAsFixed(2)}\nNo modificará el stock hasta ser recibido.',
-            style: const TextStyle(color: Colors.white70),
+            'Se guardará el pedido por ${CurrencyHelper.simple(_totalAmount)}\nNo modificará el stock hasta ser recibido.',
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar',
-                    style: TextStyle(color: Colors.white54))),
+                child: const Text('Cancelar')),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Guardar',
@@ -205,7 +200,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       final result = await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: const Color(0xFF1E2432),
+        backgroundColor: Theme.of(context).cardColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -328,15 +323,21 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
-            ],
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [
+                    const Color(0xFF0F172A),
+                    const Color(0xFF1E293B),
+                    const Color(0xFF0F172A),
+                  ]
+                : [
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Colors.grey[100]!,
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
           ),
         ),
         child: Stack(
@@ -387,20 +388,20 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                                       return DropdownButtonHideUnderline(
                                         child: DropdownButton<Supplier>(
                                           value: _selectedSupplier,
-                                          hint: const Text(
+                                          hint: Text(
                                               'Proveedor General',
                                               style: TextStyle(
-                                                  color: Colors.white,
+                                                  color: Theme.of(context).colorScheme.onSurface,
                                                   fontSize: 16,
                                                   fontWeight:
                                                       FontWeight.w600)),
                                           dropdownColor:
-                                              const Color(0xFF1E2432),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                          icon: const Icon(
+                                              Theme.of(context).cardColor,
+                                          style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface),
+                                          icon: Icon(
                                               Icons.keyboard_arrow_down,
-                                              color: Colors.white70),
+                                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                                           isExpanded: true,
                                           items: [
                                             const DropdownMenuItem<Supplier>(
@@ -712,11 +713,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Agrega productos a la compra',
             style: TextStyle(
               fontSize: 16,
-              color: Color(0xFFA0A8C1),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -748,16 +749,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Total a Pagar',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFA0A8C1),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Bs. ${_totalAmount.toStringAsFixed(2)}',
+                  CurrencyHelper.simple(_totalAmount),
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -1036,7 +1037,7 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                                 enabledBorder: const OutlineInputBorder(
                                     borderSide:
                                         BorderSide(color: Colors.white10)),
-                                prefixText: 'Bs. ',
+                                prefixText: '${CurrencyHelper.symbol} ',
                                 suffix: widget.product.unitsPerSaleUnit > 1.0
                                     ? GestureDetector(
                                         onTap: _toggleUnit,
@@ -1064,7 +1065,7 @@ class _PurchaseItemRowState extends State<_PurchaseItemRow> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Bs. ${widget.item.subtotal.toStringAsFixed(2)}',
+                      CurrencyHelper.simple(widget.item.subtotal),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -1123,9 +1124,9 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
     final products = provider.filteredProducts;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E2432),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom, top: 16),
@@ -1234,7 +1235,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                           title: Text(p.name,
                               style: const TextStyle(color: Colors.white)),
                           subtitle: Text(
-                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | Bs. ${p.cost.toStringAsFixed(2)}',
+                              'Stock: ${p.stockInSaleUnits.toStringAsFixed(1)} ${p.saleUnit} | ${CurrencyHelper.simple(p.cost)}',
                               style: const TextStyle(color: Colors.white54)),
                           trailing:
                               const Icon(Icons.add, color: AppTheme.primary),

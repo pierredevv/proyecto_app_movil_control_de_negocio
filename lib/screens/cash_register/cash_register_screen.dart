@@ -12,6 +12,7 @@ import '../../services/report_export_service.dart';
 import '../../services/snackbar_service.dart';
 import '../../services/database_service.dart'; // Added DatabaseService import
 import '../../theme/app_theme.dart';
+import '../../utils/currency_helper.dart';
 
 class CashRegisterScreen extends StatefulWidget {
   const CashRegisterScreen({super.key});
@@ -69,7 +70,7 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
                 controller: _openBalanceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Fondo Inicial (Bs.)',
+                  labelText: 'Fondo Inicial (${CurrencyHelper.symbol})',
                   labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                   prefixIcon: const Icon(Icons.payments, color: AppTheme.primary),
                   enabledBorder: OutlineInputBorder(
@@ -131,7 +132,7 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
           final summary = provider.currentSessionSummary;
           final opening = provider.activeRegister?.openingBalance ?? 0.0;
           final expected = opening + (summary['net_cash'] as double? ?? 0.0);
-          final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
+          final fmt = CurrencyHelper.formatter;
 
           return AlertDialog(
             backgroundColor: theme.cardColor,
@@ -159,7 +160,7 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
                     controller: _closeCountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
-                      labelText: 'Efectivo Real Contado (Bs.)',
+                      labelText: 'Efectivo Real Contado (${CurrencyHelper.symbol})',
                       labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                       prefixIcon: const Icon(Icons.calculate, color: AppTheme.blueIcon),
                       enabledBorder: OutlineInputBorder(
@@ -216,7 +217,7 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
                   // Export PDF Arqueo receipt before closing
                   final active = provider.activeRegister!;
                   final settings = context.read<SettingsProvider>();
-                  final bizName = settings.businessName.isNotEmpty ? settings.businessName : 'Dulces Pierre';
+                  final bizName = settings.businessName.isNotEmpty ? settings.businessName : 'Mi Negocio';
                   
                   final summaryData = CashRegisterCloseData(
                     businessName: bizName,
@@ -265,7 +266,7 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(file.path)],
-            text: 'Arqueo de Caja Dulces Pierre',
+            text: 'Arqueo de Caja - ${context.read<SettingsProvider>().businessName.isNotEmpty ? context.read<SettingsProvider>().businessName : "Mi Negocio"}',
             sharePositionOrigin: box != null
                 ? box.localToGlobal(Offset.zero) & box.size
                 : null,
@@ -389,8 +390,8 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
     final netCash = (summary['net_cash'] as num?)?.toDouble() ?? 0.0;
     final expected = opening + netCash;
 
-    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
-    final timeFmt = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
+    final fmt = CurrencyHelper.formatter;
+    final timeFmt = DateFormat('dd MMM yyyy, HH:mm', CurrencyHelper.locale);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -596,8 +597,8 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
       );
     }
 
-    final fmt = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2, locale: 'es_BO');
-    final timeFmt = DateFormat('dd MMM yyyy, HH:mm', 'es_BO');
+    final fmt = CurrencyHelper.formatter;
+    final timeFmt = DateFormat('dd MMM yyyy, HH:mm', CurrencyHelper.locale);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -665,15 +666,15 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () async {
+                      final settings = context.read<SettingsProvider>();
+                      final bizName = settings.businessName.isNotEmpty ? settings.businessName : 'Mi Negocio';
+
                       // Fetch the cash summary for that closed period
                       final db = DatabaseService();
                       final cashSummary = await db.getCashSummaryByDateRange(
                         register.openDate.millisecondsSinceEpoch,
                         register.closeDate!.millisecondsSinceEpoch,
                       );
-
-                      final settings = context.read<SettingsProvider>();
-                      final bizName = settings.businessName.isNotEmpty ? settings.businessName : 'Dulces Pierre';
 
                       final summaryData = CashRegisterCloseData(
                         businessName: bizName,

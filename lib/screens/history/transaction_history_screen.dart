@@ -256,7 +256,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             cart.setCustomer(Customer.fromMap(results.first));
           }
         } catch (e) {
-          // ignore
+          debugPrint('Customer lookup failed: $e');
         }
       }
 
@@ -271,7 +271,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             if (pMap.isNotEmpty) {
               productMatch = Product.fromMap(pMap.first);
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('Product lookup failed: $e');
+          }
         }
         
         if (productMatch != null) {
