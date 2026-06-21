@@ -42,6 +42,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   double _logoSpacing = 6.0;
   bool _allowNegativeStock = false;
   bool _allowInvoiceAdjustments = false;
+  bool _allowEditablePricesInPOS = false;
   String? _logoPath;
 
   // Advanced Printer Config
@@ -93,6 +94,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
     _logoSpacing = profile.logoSpacing;
     _allowNegativeStock = profile.allowNegativeStock;
     _allowInvoiceAdjustments = profile.allowInvoiceAdjustments;
+    _allowEditablePricesInPOS = profile.allowEditablePricesInPOS;
     _logoPath = profile.logoPath;
 
     _printerProfile = profile.printerProfile;
@@ -227,6 +229,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
       logoSpacing: _logoSpacing,
       allowNegativeStock: _allowNegativeStock,
       allowInvoiceAdjustments: _allowInvoiceAdjustments,
+      allowEditablePricesInPOS: _allowEditablePricesInPOS,
       printerProfile: _printerProfile,
       codePage: _codePage,
       printDensity: _printDensity,
@@ -521,6 +524,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
             const SizedBox(height: 24),
 
+
             const _SectionTitle('Reglas de Negocio / ERP'),
             SwitchListTile(
               title: const Text('Permitir Stock Negativo'),
@@ -533,6 +537,12 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
               subtitle: const Text('Permite redondear o modificar el total a pagar'),
               value: _allowInvoiceAdjustments,
               onChanged: (v) => setState(() => _allowInvoiceAdjustments = v),
+            ),
+            SwitchListTile(
+              title: const Text('Precios Editables en Punto de Venta'),
+              subtitle: const Text('Permite modificar el precio unitario al momento de vender'),
+              value: _allowEditablePricesInPOS,
+              onChanged: (v) => setState(() => _allowEditablePricesInPOS = v),
             ),
 
             const SizedBox(height: 24),

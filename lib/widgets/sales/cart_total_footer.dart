@@ -71,10 +71,11 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Expanded(
+              Flexible(
+                flex: 2,
                 child: Text(
-                  'Total a Cobrar',
-                  style: TextStyle(
+                  widget.allowInvoiceAdjustments ? 'Total:' : 'Total a Cobrar',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -83,14 +84,16 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 4),
               Flexible(
+                flex: 2,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: Text(
                     CurrencyHelper.simple(widget.total),
                     style: TextStyle(
-                      color: Colors.white, // Or Accent color
+                      color: Colors.white,
                       fontSize: widget.allowInvoiceAdjustments ? 14 : 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -98,9 +101,9 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
                 ),
               ),
               if (widget.allowInvoiceAdjustments) ...[
-                 const SizedBox(width: 8),
-                 ConstrainedBox(
-                   constraints: const BoxConstraints(maxWidth: 140),
+                 const SizedBox(width: 4),
+                 Flexible(
+                   flex: 3,
                    child: TextField(
                       controller: _totalController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -116,7 +119,7 @@ class _CartTotalFooterState extends State<CartTotalFooter> {
                         enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(50))),
                         focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
                       ),
-                   )
+                   ),
                  )
               ]
             ],

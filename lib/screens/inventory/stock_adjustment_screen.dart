@@ -502,15 +502,26 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Stock Final Resultante:',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 16)),
-                              Text(
-                                '${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
-                                style: TextStyle(
-                                    color: previewColor,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold),
+                              const Flexible(
+                                child: Text('Stock Final Resultante:',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 16),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    '${_newStockSalesUnits.toStringAsFixed(2)} ${widget.product.saleUnit}',
+                                    style: TextStyle(
+                                        color: previewColor,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                               ),
                             ],
                           ),

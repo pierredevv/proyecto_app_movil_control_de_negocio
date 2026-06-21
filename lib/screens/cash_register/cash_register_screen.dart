@@ -13,6 +13,7 @@ import '../../services/snackbar_service.dart';
 import '../../services/database_service.dart'; // Added DatabaseService import
 import '../../theme/app_theme.dart';
 import '../../utils/currency_helper.dart';
+import 'cash_register_movements_screen.dart';
 
 class CashRegisterScreen extends StatefulWidget {
   const CashRegisterScreen({super.key});
@@ -692,7 +693,30 @@ class _CashRegisterScreenState extends State<CashRegisterScreen> with SingleTick
                     },
                     icon: const Icon(Icons.share, color: AppTheme.primary),
                     label: const Text('Exportar / Imprimir Recibo de Arqueo', style: TextStyle(color: AppTheme.primary)),
-                  )
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.blueIcon),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CashRegisterMovementsScreen(
+                            openDate: register.openDate,
+                            closeDate: register.closeDate!,
+                            registerId: register.id!,
+                            openingBalance: register.openingBalance,
+                            expectedBalance: register.expectedBalance!,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.receipt_long, color: AppTheme.blueIcon),
+                    label: const Text('Ver Movimientos del Turno', style: TextStyle(color: AppTheme.blueIcon)),
+                  ),
                 ]
               ],
             ),

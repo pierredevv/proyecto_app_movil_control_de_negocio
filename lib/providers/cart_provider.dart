@@ -112,12 +112,67 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateUnitPrice(int index, double newPrice) {
+    if (newPrice <= 0) return;
+    final item = _items[index];
+    _items[index] = item.copyWith(
+      unitPrice: newPrice,
+      subtotal: item.quantity * newPrice,
+    );
+    notifyListeners();
+  }
+
   void clearCart() {
     _items.clear();
     _selectedCustomer = null;
     editingOriginalSaleId = null;
     editingOriginalAmountPaid = 0.0;
     notifyListeners();
+  }
+
+  Future<bool> loadSaleForEditing(Sale sale, List<Product> products) async {
+    clearCart();
+    editingOriginalSaleId = sale.id;
+    editingOriginalAmountPaid = sale.amountPaid;
+
+    if (sale.customerId != null) {
+      try {
+        final db = await DatabaseService().database;
+        final results = await db.query('customers', where: 'id = ?', whereArgs: [sale.customerId]);
+        if (results.isNotEmpty) {
+          setCustomer(Customer.fromMap(results.first));
+        }
+      } catch (e) {
+        debugPrint('Customer lookup failed during edit: $e');
+      }
+    }
+
+    for (var i in sale.items) {
+      Product? productMatch = products.where((p) => p.id == i.productId).firstOrNull;
+
+      if (productMatch == null) {
+        try {
+          final db = await DatabaseService().database;
+          final pMap = await db.query('products', where: 'id = ?', whereArgs: [i.productId]);
+          if (pMap.isNotEmpty) {
+            productMatch = Product.fromMap(pMap.first);
+          }
+        } catch (e) {
+          debugPrint('Product lookup failed during edit: $e');
+        }
+      }
+
+      if (productMatch == null) return false;
+
+      final option = SaleUnitOption(
+        label: '${i.productName} (${i.saleUnit})',
+        unitCode: i.saleUnit,
+        unitsPerSaleUnit: i.unitsPerSaleUnit,
+        price: i.unitPrice,
+      );
+      addToCart(productMatch, option: option, qty: i.quantity, allowNegativeStock: true);
+    }
+    return true;
   }
 
   Future<Sale> checkout(DatabaseService db,

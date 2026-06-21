@@ -35,6 +35,7 @@ class BusinessProfile {
   final bool lowStockAlertsEnabled;
   final bool allowNegativeStock;
   final bool allowInvoiceAdjustments;
+  final bool allowEditablePricesInPOS;
 
   // Advanced Printer Settings
   final String printerProfile; // 'default', 'epson', 'xprinter'
@@ -81,6 +82,7 @@ class BusinessProfile {
     this.lowStockAlertsEnabled = true,
     this.allowNegativeStock = false,
     this.allowInvoiceAdjustments = false,
+    this.allowEditablePricesInPOS = false,
     this.printerProfile = 'default',
     this.codePage = 'CP858',
     this.printDensity = 0,
@@ -124,6 +126,7 @@ class BusinessProfile {
     bool? lowStockAlertsEnabled,
     bool? allowNegativeStock,
     bool? allowInvoiceAdjustments,
+    bool? allowEditablePricesInPOS,
     String? printerProfile,
     String? codePage,
     int? printDensity,
@@ -169,6 +172,8 @@ class BusinessProfile {
       allowNegativeStock: allowNegativeStock ?? this.allowNegativeStock,
       allowInvoiceAdjustments:
           allowInvoiceAdjustments ?? this.allowInvoiceAdjustments,
+      allowEditablePricesInPOS:
+          allowEditablePricesInPOS ?? this.allowEditablePricesInPOS,
       printerProfile: printerProfile ?? this.printerProfile,
       codePage: codePage ?? this.codePage,
       printDensity: printDensity ?? this.printDensity,
@@ -214,6 +219,7 @@ class BusinessProfile {
       'lowStockAlertsEnabled': lowStockAlertsEnabled,
       'allowNegativeStock': allowNegativeStock,
       'allowInvoiceAdjustments': allowInvoiceAdjustments,
+      'allowEditablePricesInPOS': allowEditablePricesInPOS,
       'printerProfile': printerProfile,
       'codePage': codePage,
       'printDensity': printDensity,
@@ -259,6 +265,7 @@ class BusinessProfile {
       lowStockAlertsEnabled: map['lowStockAlertsEnabled'] ?? true,
       allowNegativeStock: map['allowNegativeStock'] ?? false,
       allowInvoiceAdjustments: map['allowInvoiceAdjustments'] ?? false,
+      allowEditablePricesInPOS: map['allowEditablePricesInPOS'] ?? false,
       printerProfile: map['printerProfile'] ?? 'default',
       codePage: map['codePage'] ?? 'CP858',
       printDensity: map['printDensity']?.toInt() ?? 0,
@@ -304,6 +311,7 @@ class BusinessProfile {
       lowStockAlertsEnabled: lowStockAlertsEnabled,
       allowNegativeStock: allowNegativeStock,
       allowInvoiceAdjustments: allowInvoiceAdjustments,
+      allowEditablePricesInPOS: allowEditablePricesInPOS,
       printerProfile: printerProfile,
       codePage: codePage,
       printDensity: printDensity,

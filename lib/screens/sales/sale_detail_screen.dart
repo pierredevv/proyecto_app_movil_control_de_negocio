@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../models/transaction_model.dart';
-import '../../models/sale_unit_option.dart';
 import '../../utils/haptic_feedback_helper.dart';
 import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../utilities/print_preview_screen.dart';
@@ -15,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../services/pdf_generator_service.dart';
 import '../../utils/currency_helper.dart';
 import '../main_screen.dart';
+import 'sales_screen.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final Sale sale;
@@ -1014,42 +1014,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final cart = context.read<CartProvider>();
     final inventory = context.read<InventoryProvider>();
 
-    cart.clearCart();
-
-    // Set Customer
-    if (widget.sale.customerId != null) {
-      final db = DatabaseService();
-      final customers = await db.getCustomers();
-      if (!mounted) return;
-      try {
-        final cust =
-            customers.firstWhere((c) => c.id == widget.sale.customerId);
-        cart.setCustomer(cust);
-      } catch (e) {
-        debugPrint('Customer lookup failed in sale details: $e');
-      }
-    }
-
-    // Load items
-    for (var item in widget.sale.items) {
-      try {
-        final product =
-            inventory.products.firstWhere((p) => p.id == item.productId);
-        final option = SaleUnitOption(
-          unitCode: item.saleUnit,
-          price: item.unitPrice,
-          unitsPerSaleUnit: item.unitsPerSaleUnit,
-          label: item.saleUnit == 'CAJ'
-              ? 'Caja'
-              : item.saleUnit == 'BOL'
-                  ? 'Bolsa'
-                  : 'Unidad',
-        );
-
-        cart.addToCart(product, qty: item.quantity, option: option, allowNegativeStock: true);
-      } catch (e) {
-        debugPrint('Skipped product in sale details duplicate: $e');
-      }
+    final success = await cart.loadSaleForEditing(widget.sale, inventory.products);
+    if (success) {
+      // This is a duplicate, not an edit — clear the editing state
+      cart.editingOriginalSaleId = null;
+      cart.editingOriginalAmountPaid = 0.0;
     }
 
     if (!mounted) return;
@@ -1075,15 +1044,14 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Editar Transacción'),
         content: const Text(
-            'Para editar esta transacción, se cargará en el carrito. La venta original solo se anulará (revirtiendo inventario) cuando finalices el pago de esta nueva versión.\n\n¿Deseas continuar?'),
+            'Se cargará esta venta en el carrito para editar. La venta original se anulará (revirtiendo inventario) cuando finalices el pago de la nueva versión.\n\n¿Deseas continuar?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancelar')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('Continuar', style: TextStyle(color: Colors.blue)),
+            child: const Text('Continuar', style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
@@ -1094,8 +1062,20 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
     try {
       final cart = context.read<CartProvider>();
-      cart.editingOriginalSaleId = widget.sale.id;
-      cart.editingOriginalAmountPaid = widget.sale.amountPaid;
+      final inventory = context.read<InventoryProvider>();
+
+      final success = await cart.loadSaleForEditing(widget.sale, inventory.products);
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo cargar la venta. Algunos productos pueden haber sido eliminados.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1104,9 +1084,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             backgroundColor: Colors.blue,
           ),
         );
-      }
 
-      await _handleDuplicateSale();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SalesScreen()),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

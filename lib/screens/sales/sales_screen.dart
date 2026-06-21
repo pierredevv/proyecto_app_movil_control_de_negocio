@@ -234,28 +234,40 @@ class _SalesScreenState extends State<SalesScreen> {
                     color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
-                  label: Text('Volver',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: Icon(Icons.arrow_back, size: 18, color: Theme.of(context).colorScheme.onSurface),
+                    label: Flexible(
+                      child: Text('Volver',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
                 ),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await SharePlus.instance.share(
-                      ShareParams(
-                        files: [XFile(file.path)],
-                        text: 'Ticket de Venta #${sale.id}',
-                      ),
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                  icon: const Icon(Icons.share),
-                  label: const Text('Compartir Ticket'),
-                  style:
-                      FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          files: [XFile(file.path)],
+                          text: 'Ticket de Venta #${sale.id}',
+                        ),
+                      );
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    icon: const Icon(Icons.share, size: 18),
+                    label: const Flexible(
+                      child: Text('Compartir Ticket',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    style:
+                        FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+                  ),
                 ),
               ],
             )
@@ -271,6 +283,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
@@ -426,6 +439,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                     SnackbarService.showError(e.toString());
                                   }
                                 },
+                                onUpdatePrice: context.read<SettingsProvider>().profile.allowEditablePricesInPOS
+                                    ? (newPrice) => cart.updateUnitPrice(index, newPrice)
+                                    : null,
                                 onRemove: () => cart.removeFromCart(index),
                               );
                             },

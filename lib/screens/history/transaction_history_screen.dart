@@ -10,8 +10,6 @@ import '../../widgets/transactions/transaction_options_sheet.dart';
 import '../purchases/purchase_details_screen.dart';
 import '../orders/order_details_screen.dart';
 import 'package:provider/provider.dart';
-import '../../models/customer.dart';
-import '../../models/sale_unit_option.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -23,7 +21,6 @@ import '../../theme/app_theme.dart';
 import '../sales/sales_screen.dart';
 import '../expenses/expense_form_screen.dart';
 import '../treasury/global_payment_screen.dart';
-import '../../models/product.dart';
 import '../../widgets/common/glass_dialog.dart';
 import '../../utils/currency_helper.dart';
 
@@ -237,66 +234,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       final cart = context.read<CartProvider>();
       final inventory = context.read<InventoryProvider>();
 
-      cart.clearCart();
-
-      if (isEditing) {
-        cart.editingOriginalSaleId = t.id;
-        if (t is Sale) {
-          cart.editingOriginalAmountPaid = t.amountPaid;
-        }
-      }
-
-      if ((t as Sale).customerId != null) {
-        try {
-          final db = await _db.database;
-          final results = await db
-              .query('customers', where: 'id = ?', whereArgs: [t.customerId]);
-          if (!mounted) return;
-          if (results.isNotEmpty) {
-            cart.setCustomer(Customer.fromMap(results.first));
-          }
-        } catch (e) {
-          debugPrint('Customer lookup failed: $e');
-        }
-      }
-
-      for (var i in t.items) {
-        Product? productMatch =
-            inventory.products.where((p) => p.id == i.productId).firstOrNull;
-            
-        if (productMatch == null) {
-          try {
-            final db = await _db.database;
-            final pMap = await db.query('products', where: 'id = ?', whereArgs: [i.productId]);
-            if (pMap.isNotEmpty) {
-              productMatch = Product.fromMap(pMap.first);
-            }
-          } catch (e) {
-            debugPrint('Product lookup failed: $e');
-          }
-        }
-        
-        if (productMatch != null) {
-          final option = SaleUnitOption(
-            label: '${i.productName} (${i.saleUnit})',
-            unitCode: i.saleUnit,
-            unitsPerSaleUnit: i.unitsPerSaleUnit,
-            price: i.unitPrice,
+      final success = await cart.loadSaleForEditing(t as Sale, inventory.products);
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo cargar la venta. Algunos productos pueden haber sido eliminados.'),
+              backgroundColor: Colors.orange,
+            ),
           );
-          try {
-            cart.addToCart(productMatch, option: option, qty: i.quantity, allowNegativeStock: isEditing);
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('Sin stock para ${productMatch.name}'),
-                    backgroundColor: Colors.orange),
-              );
-            }
-            cart.clearCart();
-            return;
-          }
         }
+        return;
+      }
+
+      // If duplicating (not editing), clear the editing state
+      if (!isEditing) {
+        cart.editingOriginalSaleId = null;
+        cart.editingOriginalAmountPaid = 0.0;
       }
 
       if (mounted) {
@@ -368,12 +322,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       }
 
       await _loadToCartAndNavigate(t, isEditing: true);
-
-      if (mounted) {
-        context.read<DashboardProvider>().loadDashboardData();
-        context.read<InventoryProvider>().loadProducts(reset: true);
-        _loadData();
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -7,6 +7,7 @@ import '../../utils/currency_helper.dart';
 class CartItemCard extends StatefulWidget {
   final InvoiceItem item;
   final ValueChanged<double> onUpdateQty;
+  final ValueChanged<double>? onUpdatePrice;
   final VoidCallback onRemove;
   final int index; // For staggered animation
   final bool canIncrement;
@@ -15,6 +16,7 @@ class CartItemCard extends StatefulWidget {
     super.key,
     required this.item,
     required this.onUpdateQty,
+    this.onUpdatePrice,
     required this.onRemove,
     required this.index,
     required this.canIncrement,
@@ -65,6 +67,50 @@ class _CartItemCardState extends State<CartItemCard>
                 final val = double.tryParse(qtyController.text);
                 if (val != null && val > 0) {
                   widget.onUpdateQty(val);
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPriceEditDialog(BuildContext context) {
+    final priceController = TextEditingController(
+      text: widget.item.unitPrice.toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          title: const Text('Editar Precio'),
+          content: TextField(
+            controller: priceController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Precio Unitario',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final val = double.tryParse(priceController.text);
+                if (val != null && val > 0) {
+                  widget.onUpdatePrice!(val);
                 }
                 Navigator.pop(ctx);
               },
@@ -131,11 +177,32 @@ class _CartItemCardState extends State<CartItemCard>
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  CurrencyHelper.simple(widget.item.unitPrice),
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontSize: 13),
+                GestureDetector(
+                  onTap: widget.onUpdatePrice != null
+                      ? () => _showPriceEditDialog(context)
+                      : null,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        CurrencyHelper.simple(widget.item.unitPrice),
+                        style: TextStyle(
+                          color: widget.onUpdatePrice != null
+                              ? AppTheme.blueIcon
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          decoration: widget.onUpdatePrice != null
+                              ? TextDecoration.underline
+                              : null,
+                        ),
+                      ),
+                      if (widget.onUpdatePrice != null)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(Icons.edit, size: 12, color: AppTheme.blueIcon),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
